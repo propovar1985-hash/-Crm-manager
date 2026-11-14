@@ -1,70 +1,134 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Мастер мебельщик — CRM</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--nav:#142033;--blue:#285fe8;--bg:#f4f6fa;--line:#e5eaf1;--muted:#748094}
-*{box-sizing:border-box}body{margin:0;font:15px system-ui,Arial;background:var(--bg);color:#1d2939}
-.app{min-height:100vh;display:grid;grid-template-columns:230px 1fr}.side{background:var(--nav);color:white;padding:22px 14px}
-.logo{font-size:21px;font-weight:800;padding:8px 10px 24px}.side button{display:block;width:100%;padding:12px;border:0;border-radius:8px;background:transparent;color:#dbe4f4;text-align:left;margin:3px 0;cursor:pointer}.side button.active,.side button:hover{background:#2a3b56}
-main{min-width:0}.top{height:65px;background:white;border-bottom:1px solid var(--line);padding:20px 28px;font-weight:650}
-.content{padding:26px;max-width:1400px;margin:auto}.head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:20px}h1{margin:0 0 5px;font-size:28px}.muted{color:var(--muted)}
-.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:18px}.card,.panel{background:white;border:1px solid var(--line);border-radius:12px;padding:17px}.label{font-size:12px;color:var(--muted)}.num{font-size:27px;font-weight:750;margin-top:8px}
-.btn{border:1px solid var(--line);background:white;border-radius:8px;padding:10px 14px;cursor:pointer;font-weight:650}.primary{background:var(--blue);color:white;border-color:var(--blue)}
-input,select,textarea{padding:10px;border:1px solid #d8e0eb;border-radius:8px;width:100%;font:inherit}.tools{display:flex;gap:10px;margin-bottom:14px}.tools input{max-width:400px}
-table{width:100%;border-collapse:collapse;white-space:nowrap}th,td{text-align:left;padding:12px 9px;border-bottom:1px solid #edf0f4}th{font-size:11px;color:var(--muted)}.scroll{overflow:auto}.pill{background:#edf2ff;color:#3157b7;border-radius:20px;padding:4px 9px;font-size:12px}
-.hidden{display:none!important}.modal{display:none;position:fixed;inset:0;background:#0008;align-items:center;justify-content:center;padding:16px}.modal.open{display:flex}.dialog{background:white;border-radius:14px;padding:22px;width:min(560px,100%);max-height:95vh;overflow:auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:650}.wide{grid-column:1/-1}.actions{display:flex;justify-content:flex-end;gap:9px;margin-top:18px}.empty{text-align:center;padding:35px;color:var(--muted)}
-@media(max-width:760px){.app{display:block}.side{padding:12px;display:flex;overflow:auto;gap:5px}.logo{display:none}.side button{white-space:nowrap;width:auto}.cards{grid-template-columns:repeat(2,1fr)}.content{padding:16px 12px}.head{align-items:flex-start}h1{font-size:23px}.grid{grid-template-columns:1fr}.wide{grid-column:auto}.top{padding:20px 14px}}
-</style></head>
-<body><div class="app">
-<aside class="side"><div class="logo">Мастер мебельщик</div>
-<button class="active" data-tab="home">▦ Обзор</button><button data-tab="clients">♙ Клиенты</button><button data-tab="leads">◉ Заявки</button><button data-tab="orders">▤ Заказы</button><button data-tab="calendar">▦ Календарь</button><button data-tab="measure">⌖ Замеры и проекты</button><button data-tab="calc">▱ Расчёты</button><button data-tab="production">⚙ Производство</button><button data-tab="finance">₽ Финансы</button><button data-tab="team">♧ Сотрудники</button><button data-tab="settings">⚙ Настройки</button></aside>
-<main><header class="top">Мастер мебельщик / <span id="where">Обзор</span><span style="float:right;font-weight:400"><span id="userEmail"></span> <button class="btn" onclick="signOut()">Выйти</button></span></header><div class="content">
-<section id="home"><div class="head"><div><h1>Обзор</h1><div class="muted">Сводка по мебельному бизнесу</div></div><button class="btn primary" onclick="showForm()">＋ Новый клиент</button></div>
-<div class="cards"><div class="card"><div class="label">Клиенты</div><div class="num" id="count">0</div></div><div class="card"><div class="label">Заявки</div><div class="num" id="leadsCount">0</div></div><div class="card"><div class="label">Заказы в работе</div><div class="num">0</div></div><div class="card"><div class="label">Оплаты</div><div class="num">0 ₽</div></div></div>
-<div class="panel"><h3>Быстрые действия</h3><button class="btn" onclick="showForm()">Добавить клиента</button> <button class="btn" onclick="tab('leads')">Перейти к заявкам</button><p class="muted">На следующих этапах подключим заказы, календарь, расчёты, производство и финансы.</p><p id="connectionState" style="background:#eaf7ef;padding:12px;border-radius:8px;color:#17633a">Подключение к облачной базе проверяется…</p></div></section>
-<section id="clients" class="hidden"><div class="head"><div><h1>Клиенты</h1><div class="muted">Клиентская база</div></div><button class="btn primary" onclick="showForm()">＋ Добавить клиента</button></div><div class="panel"><div class="tools"><input id="search" placeholder="Поиск: имя, телефон, email" oninput="render()"><select id="status" onchange="render()" style="max-width:170px"><option value="">Все статусы</option><option>Новый</option><option>В работе</option><option>Постоянный</option></select></div><div class="scroll"><table><thead><tr><th>КЛИЕНТ</th><th>ТЕЛЕФОН</th><th>EMAIL</th><th>ИСТОЧНИК</th><th>ОТВЕТСТВЕННЫЙ</th><th>СТАТУС</th><th></th></tr></thead><tbody id="rows"></tbody></table></div></div></section>
-<section id="leads" class="hidden"><h1>Заявки</h1><div class="panel">Воронка продаж: новая заявка → контакт → потребности → расчёт → замер → проект → согласование → договор.</div></section>
-<section id="orders" class="hidden"><h1>Заказы</h1><div class="panel">Здесь будет карточка заказа, состав мебели, договор, сроки, платежи и производство.</div></section>
-<section id="calendar" class="hidden"><h1>Календарь</h1><div class="panel">Замеры, встречи, доставка и монтаж.</div></section>
-<section id="measure" class="hidden"><h1>Замеры и проекты</h1><div class="panel">Размеры в миллиметрах, фото объекта, LIDAR, чертежи и версии проекта.</div></section>
-<section id="calc" class="hidden"><h1>Расчёты</h1><div class="panel">Расчёт деталей, материалов, фурнитуры, кромки и раскроя.</div></section>
-<section id="production" class="hidden"><h1>Производство</h1><div class="panel">Этапы изготовления, исполнители, контроль качества и монтаж.</div></section>
-<section id="finance" class="hidden"><h1>Финансы</h1><div class="panel">Поступления, расходы, себестоимость и прибыль по заказам.</div></section>
-<section id="team" class="hidden"><h1>Сотрудники</h1><div class="panel">Роли и права доступа будут доступны после настройки авторизации.</div></section>
-<section id="settings" class="hidden"><h1>Настройки</h1><div class="panel">Валюта: ₽. Единицы: мм. Формат листа: 2800 × 2070 мм. ЛДСП 16 мм, ЛМДФ 19 мм, ХДФ 3 мм. Кромка 0,8 мм.</div></section>
+:root{--nav:#142033;--nav2:#20334f;--blue:#285fe8;--bg:#f3f5f9;--line:#e3e8ef;--muted:#748094;--ink:#1d2939;--green:#16834a;--red:#c0392b}
+*{box-sizing:border-box}body{margin:0;font:15px -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
+button,input,select,textarea{font:inherit}button{cursor:pointer}
+.app{min-height:100vh;display:grid;grid-template-columns:245px 1fr}.side{background:var(--nav);color:#fff;padding:20px 13px;display:flex;flex-direction:column}
+.logo{font-size:21px;font-weight:800;line-height:1.2;padding:8px 10px 24px}.navbtn{display:block;width:100%;padding:12px 13px;border:0;border-radius:9px;background:transparent;color:#dbe4f4;text-align:left;margin:2px 0}.navbtn.active,.navbtn:hover{background:var(--nav2);color:#fff}
+main{min-width:0}.top{min-height:65px;background:#fff;border-bottom:1px solid var(--line);padding:17px 25px;font-weight:650;display:flex;justify-content:space-between;align-items:center;gap:12px}.top-right{display:flex;align-items:center;gap:10px;font-weight:400}.content{padding:25px;max-width:1600px;margin:auto}.head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:19px}h1{margin:0 0 5px;font-size:28px}.muted{color:var(--muted)}.small{font-size:12px;color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-bottom:18px}.card,.panel{background:#fff;border:1px solid var(--line);border-radius:13px;padding:17px}.label{font-size:12px;color:var(--muted)}.num{font-size:28px;font-weight:760;margin-top:8px}.btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:9px;padding:10px 14px;font-weight:650}.btn:hover{filter:brightness(.98)}.primary{background:var(--blue);color:#fff;border-color:var(--blue)}.danger{color:var(--red)}.tools{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}.tools input{max-width:420px}
+input,select,textarea{padding:10px 11px;border:1px solid #d6deea;border-radius:8px;width:100%;background:#fff;color:var(--ink)}textarea{resize:vertical}table{width:100%;border-collapse:collapse;white-space:nowrap}th,td{text-align:left;padding:12px 9px;border-bottom:1px solid #edf0f4}th{font-size:11px;color:var(--muted);letter-spacing:.04em}.scroll{overflow:auto}.pill{display:inline-block;background:#edf2ff;color:#3157b7;border-radius:20px;padding:4px 9px;font-size:12px}.empty{text-align:center;padding:35px;color:var(--muted)}
+.hidden{display:none!important}.modal{display:none;position:fixed;inset:0;background:#10182899;align-items:center;justify-content:center;padding:15px;z-index:50}.modal.open{display:flex}.dialog{background:#fff;border-radius:15px;padding:22px;width:min(650px,100%);max-height:94vh;overflow:auto;box-shadow:0 20px 60px #0003}.dialog h2{margin:0 0 18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700}.wide{grid-column:1/-1}.actions{display:flex;justify-content:flex-end;gap:9px;margin-top:18px}.notice{padding:12px 14px;border-radius:9px;background:#eef7f1;color:#17633a}.error{color:#b42318}
+.pipeline{display:grid;grid-template-columns:repeat(4,minmax(235px,1fr));gap:12px;overflow-x:auto;padding-bottom:10px;margin-top:15px}.stage{background:#eaf0f7;border:1px solid #dfe6ef;border-radius:12px;padding:11px;min-height:190px}.stage-head{font-size:13px;font-weight:750;display:flex;justify-content:space-between;gap:8px;padding:3px 3px 8px}.deal{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0;box-shadow:0 1px 2px #1522380a}.deal-title{font-weight:750;margin-bottom:6px}.deal-meta{font-size:12px;color:var(--muted);line-height:1.55}.deal-amount{font-weight:800;margin-top:8px}.deal-controls{display:flex;gap:7px;align-items:center;margin-top:10px}.deal-controls select{padding:7px;font-size:12px;min-width:0}.deal-controls button{padding:7px 9px;font-size:12px}
+.auth-wrap{position:fixed;inset:0;background:#f3f5f9;z-index:100;display:flex;align-items:center;justify-content:center;padding:18px}.auth-card{width:min(440px,100%);background:#fff;border:1px solid var(--line);border-radius:16px;padding:25px;box-shadow:0 12px 40px #15223812}.auth-card h2{margin:0 0 8px}.auth-card .field{margin-top:13px}.auth-actions{display:flex;justify-content:space-between;gap:10px;margin-top:18px}.auth-actions button{flex:1}
+.module-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.module-item{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}
+@media(max-width:900px){.app{grid-template-columns:205px 1fr}.cards{grid-template-columns:repeat(2,1fr)}.content{padding:18px}}
+@media(max-width:680px){.app{display:block}.side{padding:9px;display:flex;flex-direction:row;overflow-x:auto;gap:4px;position:sticky;top:0;z-index:5}.logo{display:none}.navbtn{white-space:nowrap;width:auto;padding:10px}.top{padding:13px;min-height:55px}.top-right{font-size:12px}.content{padding:15px 11px}.head{align-items:flex-start}h1{font-size:23px}.cards{gap:8px}.card{padding:13px}.num{font-size:24px}.grid{grid-template-columns:1fr}.wide{grid-column:auto}.pipeline{grid-template-columns:repeat(4,250px)}.module-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="side">
+  <div class="logo">Мастер<br>мебельщик</div>
+  <button class="navbtn active" data-tab="home">▦ Обзор</button>
+  <button class="navbtn" data-tab="clients">♙ Клиенты</button>
+  <button class="navbtn" data-tab="leads">◉ Сделки / воронка</button>
+  <button class="navbtn" data-tab="orders">▤ Заказы</button>
+  <button class="navbtn" data-tab="calendar">▦ Календарь</button>
+  <button class="navbtn" data-tab="measure">⌖ Замеры и проекты</button>
+  <button class="navbtn" data-tab="calc">▱ Расчёты</button>
+  <button class="navbtn" data-tab="production">⚙ Производство</button>
+  <button class="navbtn" data-tab="finance">₽ Финансы</button>
+  <button class="navbtn" data-tab="team">♧ Сотрудники</button>
+  <button class="navbtn" data-tab="settings">⚙ Настройки</button>
+</aside>
+<main>
+<header class="top"><div>Мастер мебельщик / <span id="where">Обзор</span></div><div class="top-right"><span id="userEmail"></span><button class="btn" onclick="signOut()">Выйти</button></div></header>
+<div class="content">
+<section id="home">
+  <div class="head"><div><h1>Обзор</h1><div class="muted">Сводка по мебельному бизнесу</div></div><button class="btn primary" onclick="showClientForm()">＋ Новый клиент</button></div>
+  <div class="cards">
+    <div class="card"><div class="label">Клиенты</div><div class="num" id="clientCount">0</div></div>
+    <div class="card"><div class="label">Сделки</div><div class="num" id="dealCount">0</div></div>
+    <div class="card"><div class="label">Сумма активных сделок</div><div class="num" id="dealTotal">0 ₽</div></div>
+    <div class="card"><div class="label">Новые заявки</div><div class="num" id="newDealCount">0</div></div>
+  </div>
+  <div class="panel"><h3>Быстрые действия</h3><button class="btn" onclick="showClientForm()">Добавить клиента</button> <button class="btn" onclick="tab('leads');showDealForm()">Создать сделку</button><p class="muted">Начни с клиента или сделки. Данные сохраняются в облачной базе Supabase.</p><p id="connectionState" class="notice">Проверяем подключение…</p></div>
+</section>
+<section id="clients" class="hidden">
+  <div class="head"><div><h1>Клиенты</h1><div class="muted">Единая клиентская база</div></div><button class="btn primary" onclick="showClientForm()">＋ Добавить клиента</button></div>
+  <div class="panel"><div class="tools"><input id="clientSearch" placeholder="Поиск: имя, телефон, email" oninput="renderClients()"><select id="clientStatus" onchange="renderClients()" style="max-width:180px"><option value="">Все статусы</option><option>Новый</option><option>В работе</option><option>Постоянный</option></select></div><div class="scroll"><table><thead><tr><th>КЛИЕНТ</th><th>ТЕЛЕФОН</th><th>EMAIL</th><th>ИСТОЧНИК</th><th>ОТВЕТСТВЕННЫЙ</th><th>СТАТУС</th><th></th></tr></thead><tbody id="clientRows"></tbody></table></div></div>
+</section>
+<section id="leads" class="hidden">
+  <div class="head"><div><h1>Воронка продаж</h1><div class="muted">Путь клиента от заявки до договора</div></div><button class="btn primary" onclick="showDealForm()">＋ Новая сделка</button></div>
+  <div class="panel"><div class="tools"><input id="dealSearch" placeholder="Поиск по сделкам, клиентам, телефону" oninput="renderDeals()"></div><div id="dealSummary" class="muted">Загрузка сделок…</div></div>
+  <div id="pipeline" class="pipeline"></div>
+</section>
+<section id="orders" class="hidden"><div class="head"><div><h1>Заказы</h1><div class="muted">Договоры и выполнение заказов</div></div></div><div class="panel"><p>Раздел заказов подготовлен для следующего этапа разработки. Здесь будут номер заказа, изделия и помещения, спецификация, сроки, договор, этапы оплаты и связь с производством.</p></div></section>
+<section id="calendar" class="hidden"><h1>Календарь</h1><div class="panel">Следующий этап: встречи, замеры, контрольные даты, доставка и монтаж.</div></section>
+<section id="measure" class="hidden"><h1>Замеры и проекты</h1><div class="panel">Следующий этап: размеры в миллиметрах, фото объекта, LIDAR, чертежи, версии проекта и согласование с клиентом.</div></section>
+<section id="calc" class="hidden"><h1>Расчёты</h1><div class="panel">Следующий этап: деталировка, материалы, фурнитура, кромка, себестоимость, цена, прибыль и карта раскроя.</div></section>
+<section id="production" class="hidden"><h1>Производство</h1><div class="panel">Следующий этап: раскрой → кромка → присадка → фрезеровка → сборка → контроль качества → упаковка → доставка → монтаж.</div></section>
+<section id="finance" class="hidden"><h1>Финансы</h1><div class="panel">Следующий этап: авансы, платежи, расходы, себестоимость, долги и прибыль по каждому заказу.</div></section>
+<section id="team" class="hidden"><h1>Сотрудники</h1><div class="panel">Следующий этап: сотрудники, роли, права доступа, назначение исполнителей и журнал действий.</div></section>
+<section id="settings" class="hidden"><h1>Настройки</h1><div class="module-grid"><div class="module-item"><b>Валюта</b><p>Российский рубль (₽)</p></div><div class="module-item"><b>Единицы измерения</b><p>Миллиметры (мм)</p></div><div class="module-item"><b>Формат листа</b><p>2800 × 2070 мм</p></div><div class="module-item"><b>Материалы по умолчанию</b><p>ЛДСП 16 мм · ЛМДФ 19 мм · ХДФ 3 мм · кромка 0,8 мм</p></div></div></section>
 </div></main></div>
-<div id="authGate" style="position:fixed;inset:0;background:#f4f6fa;z-index:20;display:flex;align-items:center;justify-content:center;padding:18px"><div class="panel" style="width:min(440px,100%)"><h2>Мастер мебельщик</h2><p class="muted">Вход в CRM и облачную базу</p><form id="authForm"><label class="field">Email<input id="authEmail" type="email" required autocomplete="email"></label><label class="field" style="margin-top:12px">Пароль<input id="authPassword" type="password" required minlength="6" autocomplete="current-password"></label><div class="actions" style="justify-content:space-between"><button type="button" class="btn" onclick="signUp()">Создать аккаунт</button><button class="btn primary">Войти</button></div><p id="authMessage" class="muted"></p></form></div></div>
-<div class="modal" id="modal"><div class="dialog"><h2>Новый клиент</h2><form id="form"><div class="grid">
-<label class="field wide">ФИО / Компания *<input name="name" required></label><label class="field">Телефон *<input name="phone" required></label><label class="field">Email<input name="email" type="email"></label>
+
+<div class="auth-wrap" id="authGate"><div class="auth-card"><h2>Мастер мебельщик</h2><p class="muted">Вход в CRM и облачную базу</p><form id="authForm"><label class="field">Email<input id="authEmail" type="email" required autocomplete="email"></label><label class="field">Пароль<input id="authPassword" type="password" required minlength="6" autocomplete="current-password"></label><div class="auth-actions"><button type="button" class="btn" onclick="signUp()">Создать аккаунт</button><button class="btn primary">Войти</button></div><p id="authMessage" class="muted"></p></form></div></div>
+
+<div class="modal" id="clientModal"><div class="dialog"><h2>Карточка клиента</h2><form id="clientForm"><input type="hidden" name="id"><div class="grid">
+<label class="field wide">ФИО / Компания *<input name="full_name" required></label>
+<label class="field">Телефон *<input name="phone" required></label><label class="field">Email<input name="email" type="email"></label>
 <label class="field">Источник<select name="source"><option>Рекомендация</option><option>Телефон</option><option>Сайт</option><option>WhatsApp</option><option>Telegram</option><option>Социальные сети</option><option>Повторный клиент</option><option>Другое</option></select></label>
 <label class="field">Статус<select name="status"><option>Новый</option><option>В работе</option><option>Постоянный</option></select></label>
-<label class="field">Ответственный<input name="manager"></label><label class="field">Адрес объекта<input name="address"></label><label class="field wide">Комментарий<textarea name="notes" rows="3"></textarea></label>
-</div><div class="actions"><button type="button" class="btn" onclick="hideForm()">Отмена</button><button class="btn primary">Сохранить клиента</button></div></form></div></div>
+<label class="field">Ответственный<input name="manager"></label><label class="field">Адрес объекта<input name="address"></label>
+<label class="field wide">Комментарий<textarea name="notes" rows="3"></textarea></label></div><div class="actions"><button type="button" class="btn" onclick="hideClientForm()">Отмена</button><button class="btn primary">Сохранить</button></div></form></div></div>
+
+<div class="modal" id="dealModal"><div class="dialog"><h2 id="dealModalTitle">Новая сделка</h2><form id="dealForm"><input type="hidden" name="id"><div class="grid">
+<label class="field wide">Название сделки *<input name="title" required placeholder="Например, Кухня в квартиру"></label>
+<label class="field">Клиент *<input name="client_name" required list="clientOptions" placeholder="Имя клиента"></label><datalist id="clientOptions"></datalist>
+<label class="field">Телефон<input name="phone"></label>
+<label class="field">Источник<select name="source"><option>Рекомендация</option><option>Телефон</option><option>Сайт</option><option>WhatsApp</option><option>Telegram</option><option>Социальные сети</option><option>Повторный клиент</option><option>Другое</option></select></label>
+<label class="field">Этап<select name="stage" id="dealStage"></select></label>
+<label class="field">Сумма, ₽<input name="amount" type="number" min="0" step="0.01" value="0"></label>
+<label class="field">Ответственный<input name="manager"></label>
+<label class="field">Следующий контакт<input name="next_contact_at" type="datetime-local"></label>
+<label class="field wide">Комментарий<textarea name="notes" rows="3"></textarea></label>
+</div><div class="actions"><button type="button" class="btn" onclick="hideDealForm()">Отмена</button><button class="btn primary">Сохранить сделку</button></div></form></div></div>
+
 <script>
-// Supabase public browser configuration. Publishable key is designed for client-side use.
-const SUPABASE_URL = 'https://zxgkodaeynzcprhnymee.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_-vLSsEdL_fmBciXRltuNEg_xcR77onn';
-const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-let clients=[];
-const names={home:'Обзор',clients:'Клиенты',leads:'Заявки',orders:'Заказы',calendar:'Календарь',measure:'Замеры и проекты',calc:'Расчёты',production:'Производство',finance:'Финансы',team:'Сотрудники',settings:'Настройки'};
-function message(t){document.getElementById('authMessage').textContent=t}
-async function signUp(){const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value; if(!email||password.length<6){message('Укажи email и пароль не короче 6 символов.');return;} const {error}=await db.auth.signUp({email,password});message(error?error.message:'Аккаунт создан. Если включено подтверждение email, проверь почту, затем войди.');}
-async function signOut(){await db.auth.signOut();location.reload()}
-document.getElementById('authForm').onsubmit=async e=>{e.preventDefault();const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;const {error}=await db.auth.signInWithPassword({email,password});if(error){message(error.message);return;}await initApp();};
-async function initApp(){const {data:{session}}=await db.auth.getSession();if(!session){document.getElementById('authGate').style.display='flex';return;}document.getElementById('authGate').style.display='none';document.getElementById('userEmail').textContent=session.user.email||'';await loadClients();document.getElementById('connectionState').textContent='Подключено к Supabase. Клиенты сохраняются в облачной базе.';}
-async function loadClients(){const {data,error}=await db.from('clients').select('*').order('created_at',{ascending:false});if(error){document.getElementById('connectionState').textContent='Ошибка загрузки клиентов: '+error.message;return;}clients=(data||[]).map(c=>({id:c.id,name:c.full_name,phone:c.phone,email:c.email,source:c.source,status:c.status||'Новый',manager:c.manager||'',address:c.address,notes:c.notes,created:c.created_at}));saveCounters();render();}
-function tab(id){Object.keys(names).forEach(k=>document.getElementById(k).classList.toggle('hidden',k!==id));document.querySelectorAll('.side button').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));document.getElementById('where').textContent=names[id];if(id==='clients')render()}
-document.querySelectorAll('.side button').forEach(b=>b.onclick=()=>tab(b.dataset.tab));
-function showForm(){document.getElementById('form').reset();document.getElementById('modal').classList.add('open')}function hideForm(){document.getElementById('modal').classList.remove('open')}
-document.getElementById('form').onsubmit=async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));const {data:{user}}=await db.auth.getUser();const row={full_name:f.name,phone:f.phone,email:f.email||null,source:f.source,status:f.status,manager:f.manager||null,address:f.address||null,notes:f.notes||null,created_by:user?.id||null};const {error}=await db.from('clients').insert(row);if(error){alert('Не удалось сохранить клиента: '+error.message);return;}hideForm();await loadClients();tab('clients')};
-function saveCounters(){document.getElementById('count').textContent=clients.length;document.getElementById('leadsCount').textContent='—'}
-function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function render(){let q=(document.getElementById('search').value||'').toLowerCase(),st=document.getElementById('status').value;let list=clients.filter(c=>(!st||c.status===st)&&[c.name,c.phone,c.email].join(' ').toLowerCase().includes(q));document.getElementById('rows').innerHTML=list.length?list.map(c=>`<tr><td><b>${esc(c.name)}</b><br><small class="muted">${new Date(c.created).toLocaleDateString('ru-RU')}</small></td><td>${esc(c.phone)}</td><td>${esc(c.email||'—')}</td><td>${esc(c.source)}</td><td>${esc(c.manager||'—')}</td><td><span class="pill">${esc(c.status)}</span></td><td><button class="btn" onclick="removeClient('${c.id}')">Удалить</button></td></tr>`).join(''):'<tr><td colspan="7" class="empty">Клиентов пока нет. Нажми «Добавить клиента».</td></tr>'}
-async function removeClient(id){if(!confirm('Удалить карточку клиента?'))return;const {error}=await db.from('clients').delete().eq('id',id);if(error){alert('Ошибка удаления: '+error.message);return;}await loadClients()}
-saveCounters();
-db.auth.onAuthStateChange((_event,session)=>{if(session)initApp();else document.getElementById('authGate').style.display='flex'});
+const SUPABASE_URL='https://zxgkodaeynzcprhnymee.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_-vLSsEdL_fmBciXRltuNEg_xcR77onn';
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+const stages=['Новая заявка','Первичный контакт','Выяснение потребностей','Замер','3D-проект','Расчёт и КП','Согласование','Договор и предоплата'];
+const tabNames={home:'Обзор',clients:'Клиенты',leads:'Воронка продаж',orders:'Заказы',calendar:'Календарь',measure:'Замеры и проекты',calc:'Расчёты',production:'Производство',finance:'Финансы',team:'Сотрудники',settings:'Настройки'};
+let clients=[],deals=[];
+const $=id=>document.getElementById(id);
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function money(v){return Number(v||0).toLocaleString('ru-RU',{maximumFractionDigits:2})+' ₽';}
+function setAuthMessage(t,isError=false){$('authMessage').textContent=t;$('authMessage').className=isError?'error':'muted';}
+async function signUp(){const email=$('authEmail').value.trim(),password=$('authPassword').value;if(!email||password.length<6){setAuthMessage('Укажи email и пароль не короче 6 символов.',true);return;}const {error}=await db.auth.signUp({email,password});setAuthMessage(error?error.message:'Аккаунт создан. Если подтверждение отключено, теперь можно войти. Если включено — проверь почту.',!!error);}
+async function signOut(){await db.auth.signOut();location.reload();}
+$('authForm').addEventListener('submit',async e=>{e.preventDefault();const {error}=await db.auth.signInWithPassword({email:$('authEmail').value.trim(),password:$('authPassword').value});if(error){setAuthMessage(error.message,true);return;}await initApp();});
+async function initApp(){const {data:{session},error}=await db.auth.getSession();if(error){$('connectionState').textContent=error.message;return;}if(!session){$('authGate').style.display='flex';return;}$('authGate').style.display='none';$('userEmail').textContent=session.user.email||'';await Promise.all([loadClients(),loadDeals()]);$('connectionState').textContent='Подключено к Supabase. Клиенты и сделки сохраняются в облачной базе.';}
+function tab(id){Object.keys(tabNames).forEach(k=>$(k).classList.toggle('hidden',k!==id));document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));$('where').textContent=tabNames[id];if(id==='clients')renderClients();if(id==='leads')renderDeals();}
+document.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.tab)));
+async function loadClients(){const {data,error}=await db.from('clients').select('*').order('created_at',{ascending:false});if(error){$('connectionState').textContent='Ошибка загрузки клиентов: '+error.message;return;}clients=data||[];renderClients();updateDashboard();fillClientOptions();}
+function showClientForm(client=null){$('clientForm').reset();$('clientForm').elements.id.value=client?.id||'';if(client)Object.entries(client).forEach(([k,v])=>{if($('clientForm').elements[k])$('clientForm').elements[k].value=v??'';});$('clientModal').classList.add('open');}
+function hideClientForm(){$('clientModal').classList.remove('open');}
+$('clientForm').addEventListener('submit',async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));const {data:{user}}=await db.auth.getUser();const row={full_name:f.full_name,phone:f.phone,email:f.email||null,source:f.source,status:f.status,manager:f.manager||null,address:f.address||null,notes:f.notes||null};let req;if(f.id)req=db.from('clients').update(row).eq('id',f.id);else req=db.from('clients').insert({...row,created_by:user?.id||null});const {error}=await req;if(error){alert('Не удалось сохранить клиента: '+error.message);return;}hideClientForm();await loadClients();});
+function renderClients(){const q=($('clientSearch')?.value||'').toLowerCase(),status=$('clientStatus')?.value||'';const list=clients.filter(c=>(!status||c.status===status)&&[c.full_name,c.phone,c.email,c.manager].join(' ').toLowerCase().includes(q));$('clientRows').innerHTML=list.length?list.map(c=>`<tr><td><b>${esc(c.full_name)}</b><br><span class="small">${c.created_at?new Date(c.created_at).toLocaleDateString('ru-RU'):''}</span></td><td>${esc(c.phone)}</td><td>${esc(c.email||'—')}</td><td>${esc(c.source||'—')}</td><td>${esc(c.manager||'—')}</td><td><span class="pill">${esc(c.status||'Новый')}</span></td><td><button class="btn" onclick="editClient('${c.id}')">Изменить</button> <button class="btn danger" onclick="removeClient('${c.id}')">Удалить</button></td></tr>`).join(''):'<tr><td colspan="7" class="empty">Клиентов пока нет.</td></tr>';updateDashboard();}
+function editClient(id){const c=clients.find(x=>x.id===id);if(c)showClientForm(c);}
+async function removeClient(id){if(!confirm('Удалить карточку клиента?'))return;const {error}=await db.from('clients').delete().eq('id',id);if(error){alert('Ошибка удаления: '+error.message);return;}await loadClients();}
+function fillClientOptions(){$('clientOptions').innerHTML=clients.map(c=>`<option value="${esc(c.full_name)}"></option>`).join('');}
+function fillStageOptions(selected=stages[0]){$('dealStage').innerHTML=stages.map(s=>`<option ${s===selected?'selected':''}>${esc(s)}</option>`).join('');}
+async function loadDeals(){const {data,error}=await db.from('crm_deals').select('*').order('created_at',{ascending:false});if(error){$('dealSummary').textContent='Не удалось загрузить сделки: '+error.message;return;}deals=data||[];renderDeals();updateDashboard();}
+function showDealForm(deal=null){$('dealForm').reset();$('dealForm').elements.id.value=deal?.id||'';$('dealModalTitle').textContent=deal?'Изменить сделку':'Новая сделка';fillStageOptions(deal?.stage||stages[0]);if(deal)Object.entries(deal).forEach(([k,v])=>{const el=$('dealForm').elements[k];if(el)el.value=k==='next_contact_at'&&v?new Date(v).toISOString().slice(0,16):v??'';});$('dealModal').classList.add('open');}
+function hideDealForm(){$('dealModal').classList.remove('open');}
+$('dealForm').addEventListener('submit',async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));const {data:{user}}=await db.auth.getUser();const row={title:f.title,client_name:f.client_name,phone:f.phone||null,source:f.source,stage:f.stage,amount:Number(f.amount||0),manager:f.manager||null,next_contact_at:f.next_contact_at?new Date(f.next_contact_at).toISOString():null,notes:f.notes||null,updated_at:new Date().toISOString()};let req;if(f.id)req=db.from('crm_deals').update(row).eq('id',f.id);else req=db.from('crm_deals').insert({...row,created_by:user?.id||null});const {error}=await req;if(error){alert('Не удалось сохранить сделку: '+error.message);return;}hideDealForm();await loadDeals();});
+function renderDeals(){const q=($('dealSearch')?.value||'').toLowerCase();const list=deals.filter(d=>[d.title,d.client_name,d.phone,d.manager].join(' ').toLowerCase().includes(q));$('dealSummary').textContent=`Сделок: ${list.length} · Общая сумма: ${money(list.reduce((s,d)=>s+Number(d.amount||0),0))}`;$('pipeline').innerHTML=stages.map(stage=>{const group=list.filter(d=>d.stage===stage);return `<div class="stage"><div class="stage-head"><span>${esc(stage)}</span><span>${group.length}</span></div>${group.map(d=>`<article class="deal"><div class="deal-title">${esc(d.title)}</div><div>${esc(d.client_name)}</div><div class="deal-meta">${esc(d.phone||'Телефон не указан')}<br>Ответственный: ${esc(d.manager||'—')}<br>${d.next_contact_at?'Контакт: '+new Date(d.next_contact_at).toLocaleString('ru-RU'):''}</div><div class="deal-amount">${money(d.amount)}</div><div class="deal-controls"><select aria-label="Этап сделки" onchange="moveDeal('${d.id}',this.value)">${stages.map(s=>`<option ${s===d.stage?'selected':''}>${esc(s)}</option>`).join('')}</select><button class="btn" onclick="editDeal('${d.id}')">✎</button><button class="btn danger" onclick="removeDeal('${d.id}')">×</button></div></article>`).join('')||'<div class="small">Нет сделок</div>'}</div>`;}).join('');updateDashboard();}
+function editDeal(id){const d=deals.find(x=>x.id===id);if(d)showDealForm(d);}
+async function moveDeal(id,stage){const {error}=await db.from('crm_deals').update({stage,updated_at:new Date().toISOString()}).eq('id',id);if(error){alert('Не удалось изменить этап: '+error.message);return;}await loadDeals();}
+async function removeDeal(id){if(!confirm('Удалить сделку?'))return;const {error}=await db.from('crm_deals').delete().eq('id',id);if(error){alert('Ошибка удаления: '+error.message);return;}await loadDeals();}
+function updateDashboard(){$('clientCount').textContent=clients.length;$('dealCount').textContent=deals.length;$('dealTotal').textContent=money(deals.reduce((s,d)=>s+Number(d.amount||0),0));$('newDealCount').textContent=deals.filter(d=>d.stage===stages[0]).length;}
+db.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT')$('authGate').style.display='flex';});
 initApp();
-</script></body></html>
+</script>
+</body>
+</html>
