@@ -236,6 +236,9 @@ try {
     }
   }
 
+  window.checkYandexDiskStatus = checkYandexDiskStatus;
+  window.connectYandexDisk = connectYandexDisk;
+
   function ensureUI() {
     const section = $('orders');
     if (!section) return;
@@ -256,8 +259,8 @@ try {
     $('orderDrawer').addEventListener('click', e => { if(e.target.id==='orderDrawer') closeDrawer(); });
     $('orderSearch').addEventListener('input', render);
     $('orderFilter').addEventListener('change', render);
-    $('yandexConnectBtn').addEventListener('click', connectYandexDisk);
-    $('yandexStatusBtn').addEventListener('click', checkYandexDiskStatus);
+    $('yandexConnectBtn').addEventListener('click', () => window.connectYandexDisk());
+    $('yandexStatusBtn').addEventListener('click', () => window.checkYandexDiskStatus());
     document.querySelectorAll('[data-otab]').forEach(b => b.addEventListener('click',()=>showTab(b.dataset.otab)));
     $('orderForm').addEventListener('submit', save);
     $('orderForm').addEventListener('change', e => {
