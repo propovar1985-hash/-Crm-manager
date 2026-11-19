@@ -210,7 +210,7 @@ try {
     section.innerHTML = `
       <div class="head"><div><h1>Заказы</h1><div class="muted">Единая карточка заказа: клиент, объект, проект, материалы, документы и производство</div></div><button class="btn primary" id="orderNew">＋ Новый заказ</button></div>
       <div class="panel">
-        <div class="order-toolbar"><input id="orderSearch" placeholder="Поиск по номеру, клиенту, адресу или изделию"><select id="orderFilter" style="max-width:220px"><option value="">Все этапы</option>${stages.map(s=>`<option>${esc(s)}</option>`).join('')}</select></div>
+        <div class="order-toolbar"><input id="orderSearch" placeholder="Поиск по номеру, клиенту, адресу или изделию"><select id="orderFilter" style="max-width:220px"><option value="">Все этапы</option>${stages.map(s=>`<option>${esc(s)}</option>`).join('')}</select><button type="button" class="btn" id="yandexConnectBtn">Подключить Яндекс Диск</button><button type="button" class="btn" id="yandexStatusBtn">Проверить подключение</button><span id="yandexDiskStatus" class="small">Яндекс Диск не проверен</span></div>
         <div class="scroll"><table class="order-table"><thead><tr><th>НОМЕР</th><th>КЛИЕНТ</th><th>ИЗДЕЛИЕ</th><th>ЭТАП</th><th>СРОК</th><th></th></tr></thead><tbody id="orderRows"><tr><td colspan="6">Загрузка…</td></tr></tbody></table></div>
       </div>
       <div class="order-drawer" id="orderDrawer"><div class="order-drawer-panel">
@@ -224,6 +224,8 @@ try {
     $('orderDrawer').addEventListener('click', e => { if(e.target.id==='orderDrawer') closeDrawer(); });
     $('orderSearch').addEventListener('input', render);
     $('orderFilter').addEventListener('change', render);
+    $('yandexConnectBtn').addEventListener('click', connectYandexDisk);
+    $('yandexStatusBtn').addEventListener('click', checkYandexDiskStatus);
     document.querySelectorAll('[data-otab]').forEach(b => b.addEventListener('click',()=>showTab(b.dataset.otab)));
     $('orderForm').addEventListener('submit', save);
     $('orderForm').addEventListener('change', e => {
@@ -560,6 +562,37 @@ window.__fullOrdersModuleEmbedded=true;
     const pending=pendingOrderFiles[kind].map((f,i)=>'<div class="order-file-item"><span>'+esc(f.name)+' · '+(f.size/1048576).toFixed(1)+' МБ</span><button type="button" class="btn" data-remove-file="'+kind+'" data-index="'+i+'">Убрать</button></div>').join('');
     el.innerHTML=existing+pending;
     el.querySelectorAll('[data-remove-file]').forEach(b=>b.onclick=()=>{pendingOrderFiles[kind].splice(Number(b.dataset.index),1);renderOrderFiles(kind);});
+  }
+  async function checkYandexDiskStatus(){
+    const status=$('yandexDiskStatus');
+    if(status)status.textContent='Проверяем…';
+    try{
+      const {data,error}=await db.functions.invoke('super-handler',{body:{action:'status'}});
+      if(error)throw error;
+      if(status)status.textContent=data?.connected?'Яндекс Диск подключён':'Яндекс Диск не подключён';
+    }catch(err){
+      console.error('Yandex status error:',err);
+      if(status)status.textContent='Ошибка проверки: '+(err?.message||String(err));
+    }
+  }
+  async function connectYandexDisk(){
+    const button=$('yandexConnectBtn');
+    const status=$('yandexDiskStatus');
+    if(button){button.disabled=true;button.textContent='Подключаем…';}
+    try{
+      const {data,error}=await db.functions.invoke('super-handler',{body:{action:'authorize'}});
+      if(error)throw error;
+      if(!data?.url)throw new Error(data?.error||'Сервис не вернул ссылку авторизации.');
+      const popup=window.open(data.url,'_blank');
+      if(!popup)window.location.href=data.url;
+      if(status)status.textContent='Завершите вход в Яндекс в открывшейся вкладке, затем нажмите «Проверить подключение».';
+    }catch(err){
+      console.error('Yandex connect error:',err);
+      alert('Не удалось начать подключение Яндекс Диска: '+(err?.message||String(err)));
+      if(status)status.textContent='Ошибка подключения';
+    }finally{
+      if(button){button.disabled=false;button.textContent='Подключить Яндекс Диск';}
+    }
   }
   async function loadOrderFiles(id){
     savedOrderFiles={lidar:[],project:[]};
