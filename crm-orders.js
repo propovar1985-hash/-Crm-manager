@@ -182,22 +182,32 @@
     const {data,error}=await db.from('furniture_order_events').select('*').eq('order_id',activeId).order('created_at',{ascending:false});
     $('orderHistory').innerHTML=error?`<p class="error">${esc(error.message)}</p>`:(data?.length?data.map(x=>`<div class="order-event"><b>${esc(x.event_type)}</b><div>${esc(x.details||'')}</div><div class="small">${x.created_at?new Date(x.created_at).toLocaleString('ru-RU'):''}</div></div>`).join(''):'История пока пуста.');
   }
-  let initialized=false;
+  let uiInitialized=false;
+  let dataLoaded=false;
   function init() {
-    if(initialized||!window.__crmAuthenticated)return;
     const nav=document.querySelector('[data-tab="orders"]');
     if(!nav||!$('orders')||typeof db==='undefined')return;
-    initialized=true;
-    ensureUI();
-    const originalTab=window.tab;
-    if(typeof originalTab==='function')window.tab=function(id){originalTab(id);if(id==='orders')load();};
-    if(window.tab&&document.querySelector('[data-tab="orders"]'))load();
+    if(!uiInitialized){
+      uiInitialized=true;
+      ensureUI();
+      const originalTab=window.tab;
+      if(typeof originalTab==='function'&&!window.__ordersTabWrapped){
+        window.tab=function(id){originalTab(id);if(id==='orders')load();};
+        window.__ordersTabWrapped=true;
+      }
+    }
+    if(window.__crmAuthenticated&&!dataLoaded){
+      dataLoaded=true;
+      load();
+    }
   }
   function waitForAuth(){
     if(window.__crmAuthenticated){init();return;}
     window.addEventListener('crm:authenticated',init,{once:true});
   }
   window.initOrdersModule = init;
-  window.addEventListener('load', waitForAuth, {once:true});
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',waitForAuth,{once:true});else waitForAuth();
+  // Render the orders interface immediately; database loading waits for authentication.
+  init();
+  window.addEventListener('crm:authenticated',init);
+  window.addEventListener('load',init,{once:true});
 })();
