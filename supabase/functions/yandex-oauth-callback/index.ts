@@ -12,7 +12,7 @@ const PUBLISHABLE_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const CLIENT_ID = Deno.env.get("YANDEX_CLIENT_ID")!;
 const CLIENT_SECRET = Deno.env.get("YANDEX_CLIENT_SECRET")!;
 const ENCRYPTION_KEY = Deno.env.get("YANDEX_TOKEN_ENCRYPTION_KEY")!;
-const REDIRECT_URI = "https://zxgkodaeynzcprhnymee.supabase.co/functions/v1/yandex-oauth-callback";
+const REDIRECT_URI = "https://zxgkodaeynzcprhnymee.supabase.co/functions/v1/super-handler";
 const ROOT_PUBLIC_URL = "https://disk.yandex.ru/d/UXgmsg4woy_67g";
 
 const admin = createClient(PROJECT_URL, SERVICE_KEY, {
