@@ -204,33 +204,35 @@ try {
   `;
   document.head.appendChild(style);
 
+  async function callYandexFunction(action){
+    const {data:sessionData,error:sessionError}=await db.auth.getSession();
+    if(sessionError) throw new Error(sessionError.message||String(sessionError));
+    const accessToken=sessionData?.session?.access_token;
+    if(!accessToken) throw new Error('Сессия CRM не найдена. Выйдите и войдите в CRM заново.');
+    const res=await fetch(SUPABASE_URL+'/functions/v1/super-handler',{
+      method:'POST',
+      headers:{
+        'Authorization':'Bearer '+accessToken,
+        'apikey':SUPABASE_PUBLISHABLE_KEY,
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify({action})
+    });
+    const raw=await res.text();
+    let payload={};
+    try{payload=raw?JSON.parse(raw):{};}catch(_){payload={error:raw||('HTTP '+res.status)};}
+    if(!res.ok) throw new Error(payload.error||payload.message||('Ошибка Edge Function HTTP '+res.status));
+    if(payload?.error) throw new Error(payload.error);
+    return payload;
+  }
   async function yandexFunctionError(err){
-    const safeJson = value => {
-      try { return JSON.stringify(value, (key, val) => val instanceof Error ? {name:val.name,message:val.message,stack:val.stack} : val, 2); }
-      catch (_) { return String(value); }
-    };
-    let detail = err?.message || '';
-    const ctx = err?.context;
-    if (ctx && typeof ctx.text === 'function') {
-      try {
-        const body = await ctx.clone().text();
-        if (body) {
-          try { const parsed = JSON.parse(body); detail = parsed.error || parsed.message || body; }
-          catch (_) { detail = body; }
-        }
-        return 'HTTP ' + (ctx.status || '') + ': ' + detail;
-      } catch (_) {}
-    }
-    if (!detail && ctx) detail = safeJson(ctx);
-    if (!detail || detail === '[object Object]') detail = safeJson(err);
-    return String(detail || 'Неизвестная ошибка');
+    return err instanceof Error ? err.message : (typeof err==='string' ? err : JSON.stringify(err));
   }
   async function checkYandexDiskStatus(){
     const status=$('yandexDiskStatus');
     if(status)status.textContent='Проверяем…';
     try{
-      const {data,error}=await db.functions.invoke('super-handler',{body:{action:'status'}});
-      if(error)throw error;
+      const data=await callYandexFunction('status');
       if(status)status.textContent=data?.connected?'Яндекс Диск подключён':'Яндекс Диск не подключён';
     }catch(err){
       console.error('Yandex status error:',err);
@@ -242,9 +244,8 @@ try {
     const status=$('yandexDiskStatus');
     if(button){button.disabled=true;button.textContent='Подключаем…';}
     try{
-      const {data,error}=await db.functions.invoke('super-handler',{body:{action:'authorize'}});
-      if(error)throw error;
-      if(!data?.url)throw new Error(data?.error||'Сервис не вернул ссылку авторизации.');
+      const data=await callYandexFunction('authorize');
+      if(!data?.url)throw new Error('Сервис не вернул ссылку авторизации.');
       const popup=window.open(data.url,'_blank');
       if(!popup)window.location.href=data.url;
       if(status)status.textContent='Завершите вход в Яндекс в открывшейся вкладке, затем нажмите «Проверить подключение».';
