@@ -34,7 +34,6 @@ input,select,textarea{padding:10px 11px;border:1px solid #d6deea;border-radius:8
   <button class="navbtn" data-tab="measure">⌖ Замеры и проекты</button>
   <button class="navbtn" data-tab="calc">▱ Расчёты</button>
   <button class="navbtn" data-tab="production">⚙ Производство</button>
-  <button class="navbtn" data-tab="finance">₽ Финансы</button>
   <button class="navbtn" data-tab="team">♧ Сотрудники</button>
   <button class="navbtn" data-tab="settings">⚙ Настройки</button>
 </aside>
@@ -46,7 +45,6 @@ input,select,textarea{padding:10px 11px;border:1px solid #d6deea;border-radius:8
   <div class="cards">
     <div class="card"><div class="label">Клиенты</div><div class="num" id="clientCount">0</div></div>
     <div class="card"><div class="label">Сделки</div><div class="num" id="dealCount">0</div></div>
-    <div class="card"><div class="label">Сумма активных сделок</div><div class="num" id="dealTotal">0 ₽</div></div>
     <div class="card"><div class="label">Новые заявки</div><div class="num" id="newDealCount">0</div></div>
   </div>
   <div class="panel"><h3>Быстрые действия</h3><button class="btn" onclick="showClientForm()">Добавить клиента</button> <button class="btn" onclick="tab('leads');showDealForm()">Создать сделку</button><p class="muted">Начни с клиента или сделки. Данные сохраняются в облачной базе Supabase.</p><p id="connectionState" class="notice">Проверяем подключение…</p></div>
@@ -63,9 +61,8 @@ input,select,textarea{padding:10px 11px;border:1px solid #d6deea;border-radius:8
 <section id="orders" class="hidden"><div class="head"><div><h1>Заказы</h1><div class="muted">Договоры и выполнение заказов</div></div></div><div class="panel"><p>Раздел заказов подготовлен для следующего этапа разработки. Здесь будут номер заказа, изделия и помещения, спецификация, сроки, договор, этапы оплаты и связь с производством.</p></div></section>
 <section id="calendar" class="hidden"><h1>Календарь</h1><div class="panel">Следующий этап: встречи, замеры, контрольные даты, доставка и монтаж.</div></section>
 <section id="measure" class="hidden"><h1>Замеры и проекты</h1><div class="panel">Следующий этап: размеры в миллиметрах, фото объекта, LIDAR, чертежи, версии проекта и согласование с клиентом.</div></section>
-<section id="calc" class="hidden"><h1>Расчёты</h1><div class="panel">Следующий этап: деталировка, материалы, фурнитура, кромка, себестоимость, цена, прибыль и карта раскроя.</div></section>
+
 <section id="production" class="hidden"><h1>Производство</h1><div class="panel">Следующий этап: раскрой → кромка → присадка → фрезеровка → сборка → контроль качества → упаковка → доставка → монтаж.</div></section>
-<section id="finance" class="hidden"><h1>Финансы</h1><div class="panel">Следующий этап: авансы, платежи, расходы, себестоимость, долги и прибыль по каждому заказу.</div></section>
 <section id="team" class="hidden"><h1>Сотрудники</h1><div class="panel">Следующий этап: сотрудники, роли, права доступа, назначение исполнителей и журнал действий.</div></section>
 <section id="settings" class="hidden"><h1>Настройки</h1><div class="module-grid"><div class="module-item"><b>Валюта</b><p>Российский рубль (₽)</p></div><div class="module-item"><b>Единицы измерения</b><p>Миллиметры (мм)</p></div><div class="module-item"><b>Формат листа</b><p>2800 × 2070 мм</p></div><div class="module-item"><b>Материалы по умолчанию</b><p>ЛДСП 16 мм · ЛМДФ 19 мм · ХДФ 3 мм · кромка 0,8 мм</p></div></div></section>
 </div></main></div>
@@ -97,7 +94,7 @@ const SUPABASE_URL='https://zxgkodaeynzcprhnymee.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_-vLSsEdL_fmBciXRltuNEg_xcR77onn';
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
 const stages=['Новая заявка','Первичный контакт','Выяснение потребностей','Замер','3D-проект','Расчёт и КП','Согласование','Договор и предоплата'];
-const tabNames={home:'Обзор',clients:'Клиенты',leads:'Воронка продаж',orders:'Заказы',calendar:'Календарь',measure:'Замеры и проекты',calc:'Расчёты',production:'Производство',finance:'Финансы',team:'Сотрудники',settings:'Настройки'};
+const tabNames={home:'Обзор',clients:'Клиенты',leads:'Воронка продаж',orders:'Заказы',calendar:'Календарь',measure:'Замеры и проекты',calc:'Расчёты',production:'Производство',team:'Сотрудники',settings:'Настройки'};
 let clients=[],deals=[];
 const $=id=>document.getElementById(id);
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -167,7 +164,7 @@ function renderDeals(){const q=($('dealSearch')?.value||'').toLowerCase();const 
 function editDeal(id){const d=deals.find(x=>x.id===id);if(d)showDealForm(d);}
 async function moveDeal(id,stage){const {error}=await db.from('crm_deals').update({stage,updated_at:new Date().toISOString()}).eq('id',id);if(error){alert('Не удалось изменить этап: '+error.message);return;}await loadDeals();}
 async function removeDeal(id){if(!confirm('Удалить сделку?'))return;const {error}=await db.from('crm_deals').delete().eq('id',id);if(error){alert('Ошибка удаления: '+error.message);return;}await loadDeals();}
-function updateDashboard(){$('clientCount').textContent=clients.length;$('dealCount').textContent=deals.length;$('dealTotal').textContent=money(deals.reduce((s,d)=>s+Number(d.amount||0),0));$('newDealCount').textContent=deals.filter(d=>d.stage===stages[0]).length;}
+function updateDashboard(){$('clientCount').textContent=clients.length;$('dealCount').textContent=deals.length;$('newDealCount').textContent=deals.filter(d=>d.stage===stages[0]).length;}
 db.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT')$('authGate').style.display='flex';});
 initApp();
 </script>
