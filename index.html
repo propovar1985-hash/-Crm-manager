@@ -481,7 +481,7 @@ window.__fullOrdersModuleEmbedded=true;
     section.innerHTML = `
       <div class="head"><div><h1>Заказы</h1><div class="muted">Единая карточка заказа: клиент, объект, проект, материалы, документы и производство</div></div><button class="btn primary" id="orderNew">＋ Новый заказ</button></div>
       <div class="panel">
-        <div class="order-toolbar"><input id="orderSearch" placeholder="Поиск по номеру, клиенту, адресу или изделию"><select id="orderFilter" style="max-width:220px"><option value="">Все этапы</option>${stages.map(s=>`<option>${esc(s)}</option>`).join('')}</select></div>
+        <div class="order-toolbar"><input id="orderSearch" placeholder="Поиск по номеру, клиенту, адресу или изделию"><select id="orderFilter" style="max-width:220px"><option value="">Все этапы</option>${stages.map(s=>`<option>${esc(s)}</option>`).join('')}</select><button type="button" class="btn" id="yandexConnectBtn">Подключить Яндекс Диск</button><button type="button" class="btn" id="yandexStatusBtn">Проверить подключение</button><span id="yandexDiskStatus" class="small">Яндекс Диск не проверен</span></div>
         <div class="scroll"><table class="order-table"><thead><tr><th>НОМЕР</th><th>КЛИЕНТ</th><th>ИЗДЕЛИЕ</th><th>ЭТАП</th><th>СРОК</th><th></th></tr></thead><tbody id="orderRows"><tr><td colspan="6">Загрузка…</td></tr></tbody></table></div>
       </div>
       <div class="order-drawer" id="orderDrawer"><div class="order-drawer-panel">
@@ -495,6 +495,8 @@ window.__fullOrdersModuleEmbedded=true;
     $('orderDrawer').addEventListener('click', e => { if(e.target.id==='orderDrawer') closeDrawer(); });
     $('orderSearch').addEventListener('input', render);
     $('orderFilter').addEventListener('change', render);
+    $('yandexConnectBtn').addEventListener('click', connectYandexDisk);
+    $('yandexStatusBtn').addEventListener('click', checkYandexDiskStatus);
     document.querySelectorAll('[data-otab]').forEach(b => b.addEventListener('click',()=>showTab(b.dataset.otab)));
     $('orderForm').addEventListener('submit', save);
     section.addEventListener('click',e=>{const z=e.target.closest('.order-upload-zone');if(z&&!e.target.closest('a,button'))z.querySelector('input[type=file]')?.click();});
