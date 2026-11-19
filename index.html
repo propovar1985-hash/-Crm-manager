@@ -170,8 +170,32 @@ db.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT')$('authGate'
 initApp();
 </script>
 <script src="./crm-enhancements.js"></script>
-<script src="./crm-orders.js?v=20261119-4"></script>
+<script src="./crm-orders.js?v=20261119-5"></script>
 <script src="./crm-production.js"></script>
 <script src="./crm-rest.js"></script>
+<script>
+(function(){
+  function verifyOrdersModule(){
+    const section=document.getElementById('orders');
+    if(!section)return;
+    if(typeof window.initOrdersModule!=='function'){
+      section.innerHTML='<div class="head"><div><h1>Заказы</h1><div class="muted">Проверка подключения</div></div></div><div class="panel error">Модуль crm-orders.js не загрузился. Проверьте доступность файла и его подключение.</div>';
+      return;
+    }
+    try{window.initOrdersModule();}catch(e){
+      section.innerHTML='<div class="head"><div><h1>Заказы</h1><div class="muted">Ошибка запуска</div></div></div><div class="panel error"></div>';
+      const box=section.querySelector('.panel.error');
+      if(box)box.textContent='Ошибка запуска модуля заказов: '+(e&&e.message?e.message:String(e));
+      return;
+    }
+    if(section.textContent.includes('Раздел заказов подготовлен')){
+      section.innerHTML='<div class="head"><div><h1>Заказы</h1><div class="muted">Модуль не смог заменить заглушку</div></div></div><div class="panel error">Файл модуля загружен, но интерфейс не инициализирован. Проверьте консоль браузера (F12 → Console).</div>';
+    }
+  }
+  window.addEventListener('load',verifyOrdersModule);
+  window.addEventListener('crm:authenticated',verifyOrdersModule);
+  document.addEventListener('DOMContentLoaded',verifyOrdersModule);
+})();
+</script>
 </body>
 </html>
