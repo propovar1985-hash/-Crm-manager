@@ -56,6 +56,15 @@
     $('orderFilter').addEventListener('change', render);
     document.querySelectorAll('[data-otab]').forEach(b => b.addEventListener('click',()=>showTab(b.dataset.otab)));
     $('orderForm').addEventListener('submit', save);
+    $('orderForm').addEventListener('change', e => {
+      if(e.target.name!=='client_name')return;
+      const source=typeof clients!=='undefined'&&Array.isArray(clients)?clients:[];
+      const client=source.find(x=>x.full_name===e.target.value);
+      if(!client)return;
+      const form=$('orderForm');
+      if(client.phone&&!form.elements.phone.value)form.elements.phone.value=client.phone;
+      if(client.address&&!form.elements.address.value)form.elements.address.value=client.address;
+    });
   }
 
   const fields = {
@@ -107,6 +116,12 @@
     document.querySelectorAll('[data-otab]').forEach(b=>b.classList.toggle('primary',b.dataset.otab===tab));
     if(tab==='history' && activeId) loadHistory();
   }
+  function refreshClientOptions() {
+    const list=$('orderClientOptions');
+    if(!list)return;
+    const source=typeof clients!=='undefined'&&Array.isArray(clients)?clients:[];
+    list.innerHTML=source.map(c=>`<option value="${esc(c.full_name)}"></option>`).join('');
+  }
   function openDrawer(order=null) {
     activeId=order?.id||null;
     $('orderForm').reset();
@@ -114,6 +129,7 @@
     $('orderTitle').textContent=order?.title||'Новый заказ';
     $('orderNumber').textContent=order?.order_no||'НОВЫЙ ЗАКАЗ';
     showTab('main');
+    refreshClientOptions();
     if(order) populateTab(order);
     $('orderDrawer').classList.add('open');
   }
@@ -142,17 +158,25 @@
     Object.keys(fields).forEach(()=>{});
     const allowed=['order_no','stage','client_name','phone','address','furniture_type','title','manager','due_date','amount','payment_status','description','length_mm','height_mm','depth_mm','measure_date','lidar_url','project_url','project_notes','body_material','facades','worktop','edge_band','hardware','supplier','specification','documents_url','production_start','production_due','production_stage','quality_notes','delivery_date','installation_date','installation_notes'];
     allowed.forEach(k=>{if(f[k]!==undefined)row[k]=f[k]===''?null:f[k];});
-    ['length_mm','height_mm','depth_mm','amount'].forEach(k=>{if(row[k]!==null&&row[k]!==undefined)row[k]=Number(row[k]);});
+    ['length_mm','height_mm','depth_mm'].forEach(k=>{if(row[k]!==null&&row[k]!==undefined)row[k]=Number(row[k]);});
+    row.amount=Number(f.amount||0);
+    if(row.order_no!==null)row.order_no=String(row.order_no).trim()||null;
     row.updated_at=new Date().toISOString();
-    let result;
-    if(f.id) result=await db.from('furniture_orders').update(row).eq('id',f.id).select().single();
-    else result=await db.from('furniture_orders').insert({...row,created_by:user?.id||null}).select().single();
-    if(result.error){alert('Не удалось сохранить заказ: '+result.error.message);return;}
-    const saved=result.data;
-    await db.from('furniture_order_events').insert({order_id:saved.id,event_type:f.id?'Изменение заказа':'Создание заказа',details:'Карточка заказа сохранена',created_by:user?.id||null});
-    await load();
-    activeId=saved.id;$('orderNumber').textContent=saved.order_no||'ЗАКАЗ';$('orderTitle').textContent=saved.title||'Заказ';
-    alert('Заказ сохранён.');
+    try {
+      let result;
+      if(f.id) result=await db.from('furniture_orders').update(row).eq('id',f.id).select().single();
+      else result=await db.from('furniture_orders').insert({...row,created_by:user?.id||null}).select().single();
+      if(result.error){alert('Не удалось сохранить заказ: '+result.error.message);return;}
+      const saved=result.data;
+      const eventResult=await db.from('furniture_order_events').insert({order_id:saved.id,event_type:f.id?'Изменение заказа':'Создание заказа',details:'Карточка заказа сохранена',created_by:user?.id||null});
+      if(eventResult.error)console.warn('Order saved, history event failed:',eventResult.error.message);
+      await load();
+      activeId=saved.id;$('orderForm').elements.id.value=saved.id;$('orderNumber').textContent=saved.order_no||'ЗАКАЗ';$('orderTitle').textContent=saved.title||'Заказ';
+      alert('Заказ сохранён.');
+    } catch(err) {
+      console.error('Order save error:',err);
+      alert('Ошибка при сохранении заказа: '+(err?.message||String(err)));
+    }
   }
   async function loadHistory() {
     const {data,error}=await db.from('furniture_order_events').select('*').eq('order_id',activeId).order('created_at',{ascending:false});
