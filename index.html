@@ -139,6 +139,7 @@ async function initApp(){
     await Promise.all([loadClients(),loadDeals()]);
     $('connectionState').textContent='Подключено к Supabase. Клиенты и сделки сохраняются в облачной базе.';
     window.dispatchEvent(new CustomEvent('crm:authenticated'));
+    if (typeof window.initOrdersModule === 'function') window.initOrdersModule();
   }catch(err){
     console.error('CRM initialization error:',err);
     setAuthMessage('Не удалось открыть CRM: '+(err?.message||String(err)),true);
