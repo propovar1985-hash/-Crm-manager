@@ -85,14 +85,17 @@
   const {data,error}=await db.from('furniture_quality_checks').select('*,furniture_orders(order_no,title,client_name)').order('created_at',{ascending:false}).limit(100);
   $('prodQcRows').innerHTML=error?`<p class="error">${esc(error.message)}</p>`:(data?.length?data.map(x=>`<div class="prod-card"><b>${esc(x.furniture_orders?.order_no||'Заказ')} · ${esc(x.furniture_orders?.title||'')}</b><div>${esc(x.result)} — ${esc(x.notes||'Без комментария')}</div><div class="small">${x.created_at?new Date(x.created_at).toLocaleString('ru-RU'):''}</div></div>`).join(''):'Проверок пока нет.');
  }
+ let initialized=false;
  function init(){
-  if(typeof db==='undefined'||!$('production'))return;
+  if(initialized||!window.__crmAuthenticated||typeof db==='undefined'||!$('production'))return;
+  initialized=true;
   ensure();
-  const nav=document.querySelector('[data-tab="production"]');
-  if(nav)nav.addEventListener('click',load);
   const original=window.tab;
   if(typeof original==='function')window.tab=function(id){original(id);if(id==='production')load();};
-  load();
  }
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+ function waitForAuth(){
+  if(window.__crmAuthenticated){init();return;}
+  window.addEventListener('crm:authenticated',init,{once:true});
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',waitForAuth,{once:true});else waitForAuth();
 })();
