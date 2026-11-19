@@ -204,6 +204,21 @@ try {
   `;
   document.head.appendChild(style);
 
+  async function yandexFunctionError(err){
+    let detail=err?.message||String(err);
+    try{
+      const ctx=err?.context;
+      if(ctx && typeof ctx.clone==='function'){
+        const body=await ctx.clone().text();
+        if(body){
+          try{const parsed=JSON.parse(body);detail=parsed.error||parsed.message||body;}
+          catch{detail=body.slice(0,1200);}
+        }
+        detail='HTTP '+(ctx.status||'')+': '+detail;
+      }
+    }catch{}
+    return detail;
+  }
   async function checkYandexDiskStatus(){
     const status=$('yandexDiskStatus');
     if(status)status.textContent='Проверяем…';
@@ -213,7 +228,7 @@ try {
       if(status)status.textContent=data?.connected?'Яндекс Диск подключён':'Яндекс Диск не подключён';
     }catch(err){
       console.error('Yandex status error:',err);
-      if(status)status.textContent='Ошибка проверки: '+(err?.message||String(err));
+      if(status)status.textContent='Ошибка проверки: '+await yandexFunctionError(err);
     }
   }
   async function connectYandexDisk(){
@@ -229,7 +244,7 @@ try {
       if(status)status.textContent='Завершите вход в Яндекс в открывшейся вкладке, затем нажмите «Проверить подключение».';
     }catch(err){
       console.error('Yandex connect error:',err);
-      alert('Не удалось начать подключение Яндекс Диска: '+(err?.message||String(err)));
+      alert('Не удалось начать подключение Яндекс Диска: '+await yandexFunctionError(err));
       if(status)status.textContent='Ошибка подключения';
     }finally{
       if(button){button.disabled=false;button.textContent='Подключить Яндекс Диск';}
