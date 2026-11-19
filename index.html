@@ -204,6 +204,38 @@ try {
   `;
   document.head.appendChild(style);
 
+  async function checkYandexDiskStatus(){
+    const status=$('yandexDiskStatus');
+    if(status)status.textContent='Проверяем…';
+    try{
+      const {data,error}=await db.functions.invoke('super-handler',{body:{action:'status'}});
+      if(error)throw error;
+      if(status)status.textContent=data?.connected?'Яндекс Диск подключён':'Яндекс Диск не подключён';
+    }catch(err){
+      console.error('Yandex status error:',err);
+      if(status)status.textContent='Ошибка проверки: '+(err?.message||String(err));
+    }
+  }
+  async function connectYandexDisk(){
+    const button=$('yandexConnectBtn');
+    const status=$('yandexDiskStatus');
+    if(button){button.disabled=true;button.textContent='Подключаем…';}
+    try{
+      const {data,error}=await db.functions.invoke('super-handler',{body:{action:'authorize'}});
+      if(error)throw error;
+      if(!data?.url)throw new Error(data?.error||'Сервис не вернул ссылку авторизации.');
+      const popup=window.open(data.url,'_blank');
+      if(!popup)window.location.href=data.url;
+      if(status)status.textContent='Завершите вход в Яндекс в открывшейся вкладке, затем нажмите «Проверить подключение».';
+    }catch(err){
+      console.error('Yandex connect error:',err);
+      alert('Не удалось начать подключение Яндекс Диска: '+(err?.message||String(err)));
+      if(status)status.textContent='Ошибка подключения';
+    }finally{
+      if(button){button.disabled=false;button.textContent='Подключить Яндекс Диск';}
+    }
+  }
+
   function ensureUI() {
     const section = $('orders');
     if (!section) return;
