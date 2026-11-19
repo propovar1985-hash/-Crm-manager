@@ -115,7 +115,7 @@
     }
     // Финансовый модуль исключён по согласованному ТЗ.
     document.querySelectorAll('[data-tab="finance"],#finance').forEach(x=>x.remove());
-    document.querySelectorAll('.card').forEach(card => { const label=card.querySelector('.label'); if(label && label.textContent.includes('Сумма активных сделок')) card.remove(); });
+    document.querySelectorAll('.card').forEach(card => { const label=card.querySelector('.label'); if(label && label.textContent.includes('Сумма активных сделок')) card.classList.add('hidden'); });
     try { delete tabNames.finance; } catch (_) {}
     bindStars();
     const clientsBox=$('clientRows'), pipeline=$('pipeline');
