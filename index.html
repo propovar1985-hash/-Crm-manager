@@ -401,26 +401,87 @@ try {
 <script src="./crm-rest.js"></script>
 <script>
 (function(){
-  function verifyOrdersModule(){
-    const section=document.getElementById('orders');
-    if(!section)return;
-    if(typeof window.initOrdersModule!=='function'){
-      section.innerHTML='<div class="head"><div><h1>Заказы</h1><div class="muted">Проверка подключения</div></div></div><div class="panel error">Модуль заказов не запустился: '+(window.__ordersBootError||'скрипт не выполнился')+'</div>';
-      return;
-    }
-    try{window.initOrdersModule();}catch(e){
-      section.innerHTML='<div class="head"><div><h1>Заказы</h1><div class="muted">Ошибка запуска</div></div></div><div class="panel error"></div>';
-      const box=section.querySelector('.panel.error');
-      if(box)box.textContent='Ошибка запуска модуля заказов: '+(e&&e.message?e.message:String(e));
-      return;
-    }
-    if(section.textContent.includes('Раздел заказов подготовлен')){
-      section.innerHTML='<div class="head"><div><h1>Заказы</h1><div class="muted">Модуль не смог заменить заглушку</div></div></div><div class="panel error">Файл модуля загружен, но интерфейс не инициализирован. Проверьте консоль браузера (F12 → Console).</div>';
-    }
+  const $ = id => document.getElementById(id);
+  const section = $('orders');
+  if (!section) return;
+
+  function renderOrdersFallback(){
+    section.innerHTML = `
+      <div class="head">
+        <div><h1>Заказы</h1><div class="muted">Карточки заказов и выполнение</div></div>
+        <button class="btn primary" id="fallbackOrderNew">＋ Новый заказ</button>
+      </div>
+      <div class="panel">
+        <div class="tools"><input id="fallbackOrderSearch" placeholder="Поиск по номеру, клиенту, изделию"></div>
+        <div class="scroll"><table style="width:100%;border-collapse:collapse">
+          <thead><tr><th>Номер</th><th>Клиент</th><th>Изделие</th><th>Этап</th><th>Срок</th></tr></thead>
+          <tbody id="fallbackOrderRows"><tr><td colspan="5">Загрузка заказов…</td></tr></tbody>
+        </table></div>
+      </div>
+      <div class="panel" id="fallbackOrderFormPanel" style="display:none;margin-top:14px">
+        <h2>Новый заказ</h2>
+        <form id="fallbackOrderForm" class="grid">
+          <label>Клиент *<input name="client_name" required></label>
+          <label>Название изделия *<input name="title" required placeholder="Например, кухня"></label>
+          <label>Телефон<input name="phone"></label>
+          <label>Адрес объекта<input name="address"></label>
+          <label>Тип мебели<select name="furniture_type"><option>Кухня</option><option>Шкаф</option><option>Гардеробная</option><option>Комод / тумба</option><option>Другая корпусная мебель</option></select></label>
+          <label>Этап<select name="stage"><option>Новый</option><option>Замер</option><option>Проектирование</option><option>Согласование</option><option>Ожидает предоплату</option><option>В производстве</option><option>Контроль качества</option><option>Готов к доставке</option><option>Доставка</option><option>Монтаж</option><option>Завершён</option></select></label>
+          <label>Срок<input name="due_date" type="date"></label>
+          <label>Стоимость, ₽<input name="amount" type="number" min="0" step="0.01"></label>
+          <label class="wide">Описание<textarea name="description"></textarea></label>
+          <div class="wide actions"><button type="button" class="btn" id="fallbackOrderCancel">Отмена</button><button class="btn primary">Сохранить заказ</button></div>
+        </form>
+      </div>`;
+    $('fallbackOrderNew').onclick=()=>{$('fallbackOrderFormPanel').style.display='block';};
+    $('fallbackOrderCancel').onclick=()=>{$('fallbackOrderFormPanel').style.display='none';};
+    $('fallbackOrderSearch').oninput=renderRows;
+    $('fallbackOrderForm').onsubmit=saveOrder;
+    renderRows();
   }
-  window.addEventListener('load',verifyOrdersModule);
-  window.addEventListener('crm:authenticated',verifyOrdersModule);
-  document.addEventListener('DOMContentLoaded',verifyOrdersModule);
+
+  let cachedOrders=[];
+  function renderRows(){
+    const q=($('fallbackOrderSearch')?.value||'').toLowerCase();
+    const rows=cachedOrders.filter(o=>[o.order_no,o.client_name,o.title,o.address].join(' ').toLowerCase().includes(q));
+    $('fallbackOrderRows').innerHTML=rows.length?rows.map(o=>`<tr>
+      <td>${escapeHtml(o.order_no||'—')}</td><td>${escapeHtml(o.client_name||'')}</td>
+      <td>${escapeHtml(o.title||'')}</td><td>${escapeHtml(o.stage||'Новый')}</td>
+      <td>${escapeHtml(o.due_date||'—')}</td></tr>`).join(''):'<tr><td colspan="5">Заказов пока нет</td></tr>';
+  }
+  function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  async function loadOrders(){
+    if(typeof db==='undefined'||!window.__crmAuthenticated)return;
+    const {data,error}=await db.from('furniture_orders').select('*').order('created_at',{ascending:false});
+    if(error){$('fallbackOrderRows').innerHTML='<tr><td colspan="5" class="error"></td></tr>';$('fallbackOrderRows').querySelector('.error').textContent='Ошибка загрузки заказов: '+error.message+' (проверьте SQL-миграцию supabase-orders.sql)';return;}
+    cachedOrders=data||[];renderRows();
+  }
+  async function saveOrder(e){
+    e.preventDefault();
+    const f=new FormData(e.currentTarget);
+    const row=Object.fromEntries(f.entries());
+    row.amount=Number(row.amount||0);
+    if(!row.due_date)row.due_date=null;
+    try{
+      const {data,error}=await db.from('furniture_orders').insert(row).select().single();
+      if(error)throw error;
+      await db.from('furniture_order_events').insert({order_id:data.id,event_type:'Создание заказа',details:'Карточка заказа создана'});
+      $('fallbackOrderForm').reset();$('fallbackOrderFormPanel').style.display='none';
+      await loadOrders();
+      alert('Заказ сохранён');
+    }catch(err){alert('Не удалось сохранить заказ: '+(err.message||String(err)));}
+  }
+
+  function boot(){
+    if(typeof window.initOrdersModule==='function'){
+      try{window.initOrdersModule();}catch(e){console.error('Orders module:',e);}
+    }
+    if(!section.querySelector('#orderNew')) renderOrdersFallback();
+    if(window.__crmAuthenticated)loadOrders();
+  }
+  document.addEventListener('DOMContentLoaded',boot);
+  window.addEventListener('load',boot,{once:true});
+  window.addEventListener('crm:authenticated',loadOrders);
 })();
 </script>
 </body>
