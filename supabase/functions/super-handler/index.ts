@@ -20,9 +20,18 @@ const admin = createClient(PROJECT_URL, SERVICE_KEY, {
 });
 
 function response(body: unknown, status = 200, extra: Record<string, string> = {}) {
-  return new Response(typeof body === "string" ? body : JSON.stringify(body), {
+  const isHtml = typeof body === "string";
+  const payload = isHtml
+    ? new TextEncoder().encode("<!doctype html><html lang=\"ru\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Яндекс Диск</title></head><body>" + body + "</body></html>")
+    : JSON.stringify(body);
+  return new Response(payload, {
     status,
-    headers: { ...cors, "Content-Type": typeof body === "string" ? "text/html; charset=utf-8" : "application/json", ...extra },
+    headers: {
+      ...cors,
+      "Content-Type": isHtml ? "text/html; charset=utf-8" : "application/json; charset=utf-8",
+      "Cache-Control": "no-store",
+      ...extra,
+    },
   });
 }
 async function sha256(s: string) {
