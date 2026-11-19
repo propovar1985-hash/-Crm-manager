@@ -38,8 +38,9 @@ function unb64(s: string) {
   return Uint8Array.from(atob(s), c => c.charCodeAt(0));
 }
 async function cryptoKey() {
-  const raw = new TextEncoder().encode(ENCRYPTION_KEY);
-  if (raw.length !== 32) throw new Error("YANDEX_TOKEN_ENCRYPTION_KEY должен содержать ровно 32 символа.");
+  const hex = ENCRYPTION_KEY.trim();
+  if (!/^[0-9a-fA-F]{64}$/.test(hex)) throw new Error("YANDEX_TOKEN_ENCRYPTION_KEY должен быть 64-значной HEX-строкой.");
+  const raw = new Uint8Array(hex.match(/.{2}/g)!.map(v => parseInt(v, 16)));
   return crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["encrypt", "decrypt"]);
 }
 async function encryptToken(token: string) {
