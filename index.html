@@ -171,6 +171,8 @@ initApp();
 </script>
 <script src="./crm-enhancements.js"></script>
 <script>
+window.__ordersModuleStarted=true;
+try {
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
@@ -389,6 +391,11 @@ initApp();
   window.addEventListener('load',init,{once:true});
 })();
 
+} catch (e) {
+ window.__ordersBootError=e&&e.message?e.message:String(e);
+ console.error('Orders module failed before initialization:',e);
+}
+
 </script>
 <script src="./crm-production.js"></script>
 <script src="./crm-rest.js"></script>
@@ -398,7 +405,7 @@ initApp();
     const section=document.getElementById('orders');
     if(!section)return;
     if(typeof window.initOrdersModule!=='function'){
-      section.innerHTML='<div class="head"><div><h1>Заказы</h1><div class="muted">Проверка подключения</div></div></div><div class="panel error">Модуль crm-orders.js не загрузился. Проверьте доступность файла и его подключение.</div>';
+      section.innerHTML='<div class="head"><div><h1>Заказы</h1><div class="muted">Проверка подключения</div></div></div><div class="panel error">Модуль заказов не запустился: '+(window.__ordersBootError||'скрипт не выполнился')+'</div>';
       return;
     }
     try{window.initOrdersModule();}catch(e){
