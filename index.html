@@ -209,7 +209,7 @@ try {
     if(sessionError) throw new Error(sessionError.message||String(sessionError));
     const accessToken=sessionData?.session?.access_token;
     if(!accessToken) throw new Error('Сессия CRM не найдена. Выйдите и войдите в CRM заново.');
-    const res=await fetch(SUPABASE_URL+'/functions/v1/yandex-oauth-callback',{
+    const res=await fetch(SUPABASE_URL+'/functions/v1/super-handler',{
       method:'POST',
       headers:{
         'Authorization':'Bearer '+accessToken,
@@ -627,7 +627,7 @@ window.__fullOrdersModuleEmbedded=true;
     if(sessionError)throw new Error(sessionError.message||String(sessionError));
     const accessToken=sessionData?.session?.access_token;
     if(!accessToken)throw new Error('Сессия CRM не найдена. Выйдите и войдите в CRM заново.');
-    const res=await fetch(SUPABASE_URL+'/functions/v1/yandex-oauth-callback',{
+    const res=await fetch(SUPABASE_URL+'/functions/v1/super-handler',{
       method:'POST',
       headers:{'Authorization':'Bearer '+accessToken,'apikey':SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},
       body:JSON.stringify({action})
