@@ -622,12 +622,27 @@ window.__fullOrdersModuleEmbedded=true;
     el.innerHTML=existing+pending;
     el.querySelectorAll('[data-remove-file]').forEach(b=>b.onclick=()=>{pendingOrderFiles[kind].splice(Number(b.dataset.index),1);renderOrderFiles(kind);});
   }
+  async function callYandexFunction(action){
+    const {data:sessionData,error:sessionError}=await db.auth.getSession();
+    if(sessionError)throw new Error(sessionError.message||String(sessionError));
+    const accessToken=sessionData?.session?.access_token;
+    if(!accessToken)throw new Error('Сессия CRM не найдена. Выйдите и войдите в CRM заново.');
+    const res=await fetch(SUPABASE_URL+'/functions/v1/yandex-oauth-callback',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+accessToken,'apikey':SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({action})
+    });
+    const raw=await res.text();
+    let payload={};
+    try{payload=raw?JSON.parse(raw):{};}catch(_){payload={error:raw||('HTTP '+res.status)};}
+    if(!res.ok||payload?.error)throw new Error(payload.error||payload.message||('Ошибка Edge Function HTTP '+res.status));
+    return payload;
+  }
   async function checkYandexDiskStatus(){
     const status=$('yandexDiskStatus');
     if(status)status.textContent='Проверяем…';
     try{
-      const {data,error}=await db.functions.invoke('super-handler',{body:{action:'status'}});
-      if(error)throw error;
+      const data=await callYandexFunction('status');
       if(status)status.textContent=data?.connected?'Яндекс Диск подключён':'Яндекс Диск не подключён';
     }catch(err){
       console.error('Yandex status error:',err);
@@ -639,8 +654,7 @@ window.__fullOrdersModuleEmbedded=true;
     const status=$('yandexDiskStatus');
     if(button){button.disabled=true;button.textContent='Подключаем…';}
     try{
-      const {data,error}=await db.functions.invoke('super-handler',{body:{action:'authorize'}});
-      if(error)throw error;
+      const data=await callYandexFunction('authorize');
       if(!data?.url)throw new Error(data?.error||'Сервис не вернул ссылку авторизации.');
       const popup=window.open(data.url,'_blank');
       if(!popup)window.location.href=data.url;
