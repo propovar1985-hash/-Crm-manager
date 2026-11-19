@@ -139,6 +139,7 @@ Deno.serve(async (req) => {
     }
     return response({ error: "Неизвестное действие" }, 400);
   } catch (e) {
-    return response({ error: String(e) }, 400);
+    console.error("Yandex Disk function request failed:", e);
+    return response({ error: e instanceof Error ? e.message : String(e) }, 400);
   }
 });
