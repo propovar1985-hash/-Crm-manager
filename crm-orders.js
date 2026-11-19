@@ -197,5 +197,7 @@
     if(window.__crmAuthenticated){init();return;}
     window.addEventListener('crm:authenticated',init,{once:true});
   }
+  window.initOrdersModule = init;
+  window.addEventListener('load', waitForAuth, {once:true});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',waitForAuth,{once:true});else waitForAuth();
 })();
