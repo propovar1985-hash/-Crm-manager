@@ -635,7 +635,11 @@ window.__fullOrdersModuleEmbedded=true;
     const raw=await res.text();
     let payload={};
     try{payload=raw?JSON.parse(raw):{};}catch(_){payload={error:raw||('HTTP '+res.status)};}
-    if(!res.ok||payload?.error)throw new Error(payload.error||payload.message||('Ошибка Edge Function HTTP '+res.status));
+    if(!res.ok||payload?.error){
+      const detail=payload?.error ?? payload?.message ?? payload;
+      const message=typeof detail==='string'?detail:(detail&&typeof detail==='object'?(detail.message||detail.msg||JSON.stringify(detail)):String(detail));
+      throw new Error(message||('Ошибка Edge Function HTTP '+res.status));
+    }
     return payload;
   }
   async function checkYandexDiskStatus(){
@@ -661,7 +665,8 @@ window.__fullOrdersModuleEmbedded=true;
       if(status)status.textContent='Завершите вход в Яндекс в открывшейся вкладке, затем нажмите «Проверить подключение».';
     }catch(err){
       console.error('Yandex connect error:',err);
-      alert('Не удалось начать подключение Яндекс Диска: '+(err?.message||String(err)));
+      const detail=err?.message ?? err?.error_description ?? err?.error ?? err;
+      alert('Не удалось начать подключение Яндекс Диска: '+(typeof detail==='string'?detail:JSON.stringify(detail)));
       if(status)status.textContent='Ошибка подключения';
     }finally{
       if(button){button.disabled=false;button.textContent='Подключить Яндекс Диск';}
