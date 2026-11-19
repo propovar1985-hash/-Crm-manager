@@ -158,13 +158,20 @@
     const {data,error}=await db.from('furniture_order_events').select('*').eq('order_id',activeId).order('created_at',{ascending:false});
     $('orderHistory').innerHTML=error?`<p class="error">${esc(error.message)}</p>`:(data?.length?data.map(x=>`<div class="order-event"><b>${esc(x.event_type)}</b><div>${esc(x.details||'')}</div><div class="small">${x.created_at?new Date(x.created_at).toLocaleString('ru-RU'):''}</div></div>`).join(''):'История пока пуста.');
   }
+  let initialized=false;
   function init() {
+    if(initialized||!window.__crmAuthenticated)return;
     const nav=document.querySelector('[data-tab="orders"]');
     if(!nav||!$('orders')||typeof db==='undefined')return;
+    initialized=true;
     ensureUI();
     const originalTab=window.tab;
     if(typeof originalTab==='function')window.tab=function(id){originalTab(id);if(id==='orders')load();};
-    load();
+    if(window.tab&&document.querySelector('[data-tab="orders"]'))load();
   }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+  function waitForAuth(){
+    if(window.__crmAuthenticated){init();return;}
+    window.addEventListener('crm:authenticated',init,{once:true});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',waitForAuth,{once:true});else waitForAuth();
 })();
