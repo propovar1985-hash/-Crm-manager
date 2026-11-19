@@ -74,13 +74,19 @@
    $('articleList').innerHTML=articles.map(x=>`<div class="rest-item"><b>${esc(x.title)}</b><div class="small">${esc(x.role||'Для всех')} · ${esc(x.updated_at||'')}</div><p>${esc(x.body||'')}</p></div>`).join('')||'<div class="empty">Инструкций пока нет.</div>';
    $('articleAdd').onclick=async()=>{const title=prompt('Название инструкции');if(!title)return;const role=prompt('Для какой должности?')||'Для всех';const body=prompt('Текст инструкции');if(!body)return;const u=await currentUser();const {error}=await db.from('furniture_knowledge').insert({title,role,body,created_by:u?.id||null});if(error)alert(error.message);else{articles=await loadTable('furniture_knowledge');renderKnowledge();}};
  }
+ let initialized=false;
  async function init(){
-   if(typeof db==='undefined')return;
+   if(initialized||!window.__crmAuthenticated||typeof db==='undefined')return;
+   initialized=true;
    ensureExtraSections();
    tasks=await loadTable('furniture_tasks');cases=await loadTable('furniture_service_cases');materials=await loadTable('furniture_catalog');articles=await loadTable('furniture_knowledge');
    renderTasks();renderService();renderCatalog();renderKnowledge();
    const oldTab=window.tab;
    if(typeof oldTab==='function'&&!window.__restTabWrapped){window.tab=function(id){oldTab(id);if(['tasks','service','catalog','knowledge'].includes(id)){const el=$(id);if(el)el.classList.remove('hidden');}};window.__restTabWrapped=true;}
  }
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+ function waitForAuth(){
+   if(window.__crmAuthenticated){init();return;}
+   window.addEventListener('crm:authenticated',init,{once:true});
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',waitForAuth,{once:true});else waitForAuth();
 })();
