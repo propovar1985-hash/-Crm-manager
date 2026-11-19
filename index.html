@@ -105,8 +105,49 @@ function money(v){return Number(v||0).toLocaleString('ru-RU',{maximumFractionDig
 function setAuthMessage(t,isError=false){$('authMessage').textContent=t;$('authMessage').className=isError?'error':'muted';}
 async function signUp(){const email=$('authEmail').value.trim(),password=$('authPassword').value;if(!email||password.length<6){setAuthMessage('Укажи email и пароль не короче 6 символов.',true);return;}const {error}=await db.auth.signUp({email,password});setAuthMessage(error?error.message:'Аккаунт создан. Если подтверждение отключено, теперь можно войти. Если включено — проверь почту.',!!error);}
 async function signOut(){await db.auth.signOut();location.reload();}
-$('authForm').addEventListener('submit',async e=>{e.preventDefault();const {error}=await db.auth.signInWithPassword({email:$('authEmail').value.trim(),password:$('authPassword').value});if(error){setAuthMessage(error.message,true);return;}await initApp();});
-async function initApp(){const {data:{session},error}=await db.auth.getSession();if(error){$('connectionState').textContent=error.message;return;}if(!session){$('authGate').style.display='flex';return;}$('authGate').style.display='none';$('userEmail').textContent=session.user.email||'';await Promise.all([loadClients(),loadDeals()]);$('connectionState').textContent='Подключено к Supabase. Клиенты и сделки сохраняются в облачной базе.';}
+window.__crmAuthenticated = false;
+$('authForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const form=e.currentTarget;
+  const submitButton=form.querySelector('button[type="submit"],button:not([type])');
+  const email=$('authEmail').value.trim();
+  const password=$('authPassword').value;
+  if(!email||!password){setAuthMessage('Укажи email и пароль.',true);return;}
+  if(submitButton){submitButton.disabled=true;submitButton.textContent='Входим…';}
+  setAuthMessage('Проверяем данные…');
+  try{
+    const {data,error}=await db.auth.signInWithPassword({email,password});
+    if(error){setAuthMessage('Не удалось войти: '+error.message,true);return;}
+    if(!data?.session){setAuthMessage('Вход не завершён: Supabase не вернул активную сессию.',true);return;}
+    await initApp();
+  }catch(err){
+    console.error('CRM sign-in error:',err);
+    setAuthMessage('Ошибка подключения при входе: '+(err?.message||String(err)),true);
+  }finally{
+    if(submitButton){submitButton.disabled=false;submitButton.textContent='Войти';}
+  }
+});
+async function initApp(){
+  try{
+    const {data:{session},error}=await db.auth.getSession();
+    if(error)throw error;
+    if(!session){
+      window.__crmAuthenticated=false;
+      $('authGate').style.display='flex';
+      return;
+    }
+    window.__crmAuthenticated=true;
+    $('authGate').style.display='none';
+    $('userEmail').textContent=session.user.email||'';
+    await Promise.all([loadClients(),loadDeals()]);
+    $('connectionState').textContent='Подключено к Supabase. Клиенты и сделки сохраняются в облачной базе.';
+    window.dispatchEvent(new CustomEvent('crm:authenticated'));
+  }catch(err){
+    console.error('CRM initialization error:',err);
+    setAuthMessage('Не удалось открыть CRM: '+(err?.message||String(err)),true);
+    $('authGate').style.display='flex';
+  }
+}
 function tab(id){Object.keys(tabNames).forEach(k=>$(k).classList.toggle('hidden',k!==id));document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));$('where').textContent=tabNames[id];if(id==='clients')renderClients();if(id==='leads')renderDeals();}
 document.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.tab)));
 async function loadClients(){const {data,error}=await db.from('clients').select('*').order('created_at',{ascending:false});if(error){$('connectionState').textContent='Ошибка загрузки клиентов: '+error.message;return;}clients=data||[];renderClients();updateDashboard();fillClientOptions();}
