@@ -188,12 +188,21 @@
     const nav=document.querySelector('[data-tab="orders"]');
     if(!nav||!$('orders')||typeof db==='undefined')return;
     if(!uiInitialized){
-      uiInitialized=true;
-      ensureUI();
-      const originalTab=window.tab;
-      if(typeof originalTab==='function'&&!window.__ordersTabWrapped){
-        window.tab=function(id){originalTab(id);if(id==='orders')load();};
-        window.__ordersTabWrapped=true;
+      try {
+        ensureUI();
+        uiInitialized=true;
+        const originalTab=window.tab;
+        if(typeof originalTab==='function'&&!window.__ordersTabWrapped){
+          window.tab=function(id){originalTab(id);if(id==='orders')load();};
+          window.__ordersTabWrapped=true;
+        }
+      } catch(err) {
+        console.error('Orders module UI error:',err);
+        const section=$('orders');
+        if(section) section.innerHTML='<div class="head"><div><h1>Заказы</h1><div class="muted">Ошибка запуска модуля заказов</div></div></div><div class="panel error" id="ordersBootError"></div>';
+        const box=$('ordersBootError');
+        if(box) box.textContent='Не удалось запустить интерфейс заказов: '+(err?.message||String(err));
+        return;
       }
     }
     if(window.__crmAuthenticated&&!dataLoaded){
