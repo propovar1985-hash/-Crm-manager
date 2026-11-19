@@ -241,7 +241,7 @@ try {
     main: `<div class="order-section">
       <label>Номер заказа<input name="order_no" placeholder="Присвоится автоматически"></label>
       <label>Этап<select name="stage">${stages.map(s=>`<option>${esc(s)}</option>`).join('')}</select></label>
-      <label>Клиент *<input name="client_name" required list="orderClientOptions"><datalist id="orderClientOptions">${(window.clients||[]).map(c=>`<option>${esc(c.full_name)}</option>`).join('')}</datalist></label>
+      <label>Клиент *<input name="client_name" required list="orderClientOptions"><datalist id="orderClientOptions">${(typeof clients!=='undefined'&&Array.isArray(clients)?clients:[]).map(c=>`<option>${esc(c.full_name)}</option>`).join('')}</datalist></label>
       <label>Телефон<input name="phone"></label><label class="wide">Адрес объекта<input name="address"></label>
       <label>Тип мебели<select name="furniture_type"><option>Кухня</option><option>Шкаф</option><option>Гардеробная</option><option>Комод / тумба</option><option>Мебель для ванной</option><option>Другая корпусная мебель</option></select></label>
       <label>Название изделия<input name="title" required placeholder="Например, кухня в квартиру"></label>
