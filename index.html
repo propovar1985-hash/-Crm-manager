@@ -408,6 +408,8 @@ window.__fullOrdersModuleEmbedded=true;
   const stages = ['Новый','Замер','Проектирование','Согласование','Ожидает предоплату','В производстве','Контроль качества','Готов к доставке','Доставка','Монтаж','Завершён','Отменён'];
   let orders = [];
   let activeId = null;
+  const pendingOrderFiles={lidar:[],project:[]};
+  let savedOrderFiles={lidar:[],project:[]};
 
   const style = document.createElement('style');
   style.textContent = `
@@ -428,6 +430,12 @@ window.__fullOrdersModuleEmbedded=true;
     .order-section label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700}
     .order-section textarea{min-height:80px}
     .order-event{padding:10px 0;border-bottom:1px solid var(--line)}
+    .order-upload-zone{border:2px dashed #b9c7dc;border-radius:12px;padding:16px;background:#f8faff;display:flex;flex-direction:column;gap:6px;cursor:pointer}
+    .order-upload-zone span{font-size:12px;color:var(--muted)}
+    .order-upload-zone.dragover{border-color:var(--blue);background:#eef3ff}
+    .order-file-list{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+    .order-file-item{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1px solid var(--line);padding:7px 9px;border-radius:8px;font-size:12px}
+    .order-file-item a{overflow-wrap:anywhere}
     @media(max-width:600px){.order-drawer-panel{padding:15px}.order-section{grid-template-columns:1fr}.order-section .wide{grid-column:auto}}
   `;
   document.head.appendChild(style);
@@ -454,6 +462,10 @@ window.__fullOrdersModuleEmbedded=true;
     $('orderFilter').addEventListener('change', render);
     document.querySelectorAll('[data-otab]').forEach(b => b.addEventListener('click',()=>showTab(b.dataset.otab)));
     $('orderForm').addEventListener('submit', save);
+    section.addEventListener('click',e=>{const z=e.target.closest('.order-upload-zone');if(z&&!e.target.closest('a,button'))z.querySelector('input[type=file]')?.click();});
+    section.addEventListener('change',e=>{const i=e.target.closest('[data-file-input]');if(i&&i.files?.length){queueOrderFiles(i.dataset.fileInput,i.files);i.value='';}});
+    ['dragenter','dragover'].forEach(n=>section.addEventListener(n,e=>{const z=e.target.closest('.order-upload-zone');if(z){e.preventDefault();z.classList.add('dragover');}}));
+    ['dragleave','drop'].forEach(n=>section.addEventListener(n,e=>{const z=e.target.closest('.order-upload-zone');if(z){e.preventDefault();z.classList.remove('dragover');if(n==='drop'&&e.dataTransfer?.files?.length)queueOrderFiles(z.dataset.uploadKind,e.dataTransfer.files);}}));
     $('orderForm').addEventListener('change', e => {
       if(e.target.name!=='client_name')return;
       const source=typeof clients!=='undefined'&&Array.isArray(clients)?clients:[];
@@ -484,6 +496,8 @@ window.__fullOrdersModuleEmbedded=true;
       <label class="wide">Ссылка на LiDAR / облако файлов<input name="lidar_url" type="url" placeholder="https://…"></label>
       <label class="wide">Ссылка на 3D-проект / чертежи<input name="project_url" type="url" placeholder="https://…"></label>
       <label class="wide">Комментарий по замеру и проекту<textarea name="project_notes"></textarea></label>
+      <div class="wide order-upload-zone" data-upload-kind="lidar" tabindex="0"><b>Файлы LiDAR</b><span>Перетащите сюда файл замера или нажмите для выбора</span><input type="file" data-file-input="lidar" multiple hidden><div class="order-file-list" id="orderFilesLidar"></div></div>
+      <div class="wide order-upload-zone" data-upload-kind="project" tabindex="0"><b>Файлы проекта и чертежи</b><span>Перетащите сюда файлы БАЗИС, PDF, DWG, изображения и другие материалы</span><input type="file" data-file-input="project" multiple hidden><div class="order-file-list" id="orderFilesProject"></div></div>
     </div>`,
     materials: `<div class="order-section">
       <label>Корпус / ЛДСП<input name="body_material" placeholder="Например, EGGER 16 мм"></label>
@@ -522,6 +536,7 @@ window.__fullOrdersModuleEmbedded=true;
   }
   function openDrawer(order=null) {
     activeId=order?.id||null;
+    pendingOrderFiles.lidar=[];pendingOrderFiles.project=[];savedOrderFiles={lidar:[],project:[]};
     $('orderForm').reset();
     $('orderForm').elements.id.value=activeId||'';
     $('orderTitle').textContent=order?.title||'Новый заказ';
@@ -530,13 +545,47 @@ window.__fullOrdersModuleEmbedded=true;
     refreshClientOptions();
     if(order) populateTab(order);
     $('orderDrawer').classList.add('open');
+    if(order?.id)loadOrderFiles(order.id);else{renderOrderFiles('lidar');renderOrderFiles('project');}
   }
   function populateTab(order=null) {
     const o=order||orders.find(x=>x.id===activeId);
     if(!o)return;
     Object.entries(o).forEach(([k,v])=>{const el=$('orderForm').elements[k];if(el)el.value=v??'';});
   }
-  function closeDrawer(){ $('orderDrawer').classList.remove('open'); activeId=null; }
+  function closeDrawer(){ $('orderDrawer').classList.remove('open'); activeId=null; pendingOrderFiles.lidar=[];pendingOrderFiles.project=[]; }
+  function queueOrderFiles(kind,list){
+    if(!pendingOrderFiles[kind])return;
+    for(const file of Array.from(list||[])){if(file.size>100*1024*1024){alert('Файл '+file.name+' больше 100 МБ.');continue;}pendingOrderFiles[kind].push(file);}
+    renderOrderFiles(kind);
+  }
+  function renderOrderFiles(kind){
+    const el=$(kind==='lidar'?'orderFilesLidar':'orderFilesProject');if(!el)return;
+    const existing=savedOrderFiles[kind].map(f=>'<div class="order-file-item"><a href="'+esc(f.signedUrl||'#')+'" target="_blank" rel="noopener">'+esc(f.file_name)+'</a><span>Загружен</span></div>').join('');
+    const pending=pendingOrderFiles[kind].map((f,i)=>'<div class="order-file-item"><span>'+esc(f.name)+' · '+(f.size/1048576).toFixed(1)+' МБ</span><button type="button" class="btn" data-remove-file="'+kind+'" data-index="'+i+'">Убрать</button></div>').join('');
+    el.innerHTML=existing+pending;
+    el.querySelectorAll('[data-remove-file]').forEach(b=>b.onclick=()=>{pendingOrderFiles[kind].splice(Number(b.dataset.index),1);renderOrderFiles(kind);});
+  }
+  async function loadOrderFiles(id){
+    savedOrderFiles={lidar:[],project:[]};
+    const {data,error}=await db.from('furniture_order_files').select('*').eq('order_id',id).order('created_at');
+    if(error){console.warn('Order files:',error.message);return;}
+    for(const f of data||[]){const {data:link}=await db.storage.from('order-files').createSignedUrl(f.storage_path,3600);f.signedUrl=link?.signedUrl||'#';if(savedOrderFiles[f.category])savedOrderFiles[f.category].push(f);}
+    renderOrderFiles('lidar');renderOrderFiles('project');
+  }
+  async function uploadPendingOrderFiles(id){
+    for(const kind of ['lidar','project']){
+      for(const file of pendingOrderFiles[kind]){
+        const name=file.name.replace(/[^a-zA-Z0-9._-]+/g,'_').slice(-120)||'file';
+        const path=id+'/'+kind+'/'+crypto.randomUUID()+'_'+name;
+        const {error}=await db.storage.from('order-files').upload(path,file,{upsert:false});
+        if(error)throw new Error('Загрузка '+file.name+': '+error.message);
+        const {error:metaError}=await db.from('furniture_order_files').insert({order_id:id,category:kind,file_name:file.name,storage_path:path,mime_type:file.type||null,file_size:file.size});
+        if(metaError)throw new Error('Файл загружен, но не привязан к заказу: '+metaError.message);
+      }
+      pendingOrderFiles[kind]=[];
+    }
+    await loadOrderFiles(id);
+  }
   async function load() {
     const {data,error}=await db.from('furniture_orders').select('*').order('created_at',{ascending:false});
     if(error){$('orderRows').innerHTML=`<tr><td colspan="6" class="error">Ошибка загрузки: ${esc(error.message)}. Проверьте установку SQL-миграции.</td></tr>`;return;}
@@ -566,6 +615,7 @@ window.__fullOrdersModuleEmbedded=true;
       else result=await db.from('furniture_orders').insert({...row,created_by:user?.id||null}).select().single();
       if(result.error){alert('Не удалось сохранить заказ: '+result.error.message);return;}
       const saved=result.data;
+      await uploadPendingOrderFiles(saved.id);
       const eventResult=await db.from('furniture_order_events').insert({order_id:saved.id,event_type:f.id?'Изменение заказа':'Создание заказа',details:'Карточка заказа сохранена',created_by:user?.id||null});
       if(eventResult.error)console.warn('Order saved, history event failed:',eventResult.error.message);
       await load();
