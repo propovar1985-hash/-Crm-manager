@@ -37,7 +37,8 @@
   $('mNew').onclick=()=>open();$('mClose').onclick=close;$('mCancel').onclick=close;
   $('mModal').onclick=e=>{if(e.target.id==='mModal')close()};
   $('mSearch').oninput=render;$('mRefresh').onclick=load;$('mForm').onsubmit=save;
-  $('mLidar').onchange=()=>{$('mFiles').textContent=Array.from($('mLidar').files).map(f=>f.name+' ('+(f.size/1048576).toFixed(1)+' МБ)').join('\n')||'Файлы не выбраны'};
+  $('mLidar').onchange=()=>{$('mFiles').textContent=Array.from($('mLidar').files).map(f=>f.name+' ('+(f.size/1048576).toFixed(1)+' МБ)').join(' 
+')||'Файлы не выбраны'};
  }
  async function load(){
   const [a,b]=await Promise.all([db.from('furniture_measurements').select('*').order('created_at',{ascending:false}),db.from('furniture_orders').select('id,order_no,title,client_name').order('created_at',{ascending:false})]);
@@ -85,5 +86,7 @@
  }
  const original=window.tab;
  if(typeof original==='function'&&!window.__measureTabWrapped){window.tab=function(id){original(id);if(id==='measure')init()};window.__measureTabWrapped=true}
- document.addEventListener('click',e=>{if(e.target.closest('[data-tab="measure"]')){ensure();if(window.__crmAuthenticated)init();}});\n ensure();\n window.addEventListener('crm:authenticated',init);if(window.__crmAuthenticated)init();
+ document.addEventListener('click',e=>{if(e.target.closest('[data-tab="measure"]')){ensure();if(window.__crmAuthenticated)init();}}); 
+ ensure(); 
+ window.addEventListener('crm:authenticated',init);if(window.__crmAuthenticated)init();
 })();
