@@ -122,6 +122,38 @@ function buildRows(){
  add('Задняя стенка','ХДФ 3 мм',W,H,1,false);
  return rows;
 }
+
+function snapshotCabinet(){
+ return {number:cabinetNo,width:val('wbW',300,6000),height:val('wbH',300,3000),depth:val('wbD',200,1200),sections:Math.max(1,Math.round(states.length/rowCount)),rows:rowCount,doors:val('wbDoors',0,8),doorMat:$('wbDoorMat').value,states:states.slice()};
+}
+function sketchSvg(item,small){
+ var W=item.width,H=item.height,N=item.sections,R=item.rows,doorCount=item.doors;
+ var x=105,y=24,w=230,h=220,cellW=w/N,cellH=h/R,parts='';
+ parts+='<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="3" fill="#fff" stroke="#344256" stroke-width="5"/>';
+ for(var s=1;s<N;s++)parts+='<line x1="'+(x+s*cellW)+'" y1="'+y+'" x2="'+(x+s*cellW)+'" y2="'+(y+h)+'" stroke="#64748b" stroke-width="4"/>';
+ for(var s=0;s<N;s++)for(var r=0;r<R;r++){
+  var k=item.states[s*R+r],cx=x+s*cellW+3,cy=y+r*cellH+3,cw=cellW-6,ch=cellH-6;
+  if(k==='shelves')parts+='<rect x="'+cx+'" y="'+(cy+ch*.58)+'" width="'+cw+'" height="5" rx="2" fill="#3b82f6"/><rect x="'+cx+'" y="'+(cy+ch*.58+5)+'" width="'+cw+'" height="'+(ch*.3)+'" fill="#dbeafe"/>';
+  else if(k==='drawers')parts+='<rect x="'+(cx+2)+'" y="'+(cy+ch*.22)+'" width="'+(cw-4)+'" height="'+(ch*.62)+'" rx="3" fill="#bbf7d0" stroke="#16a34a" stroke-width="2"/><line x1="'+(cx+cw*.35)+'" y1="'+(cy+ch*.4)+'" x2="'+(cx+cw*.65)+'" y2="'+(cy+ch*.4)+'" stroke="#15803d" stroke-width="3"/>';
+  else parts+='<rect x="'+cx+'" y="'+cy+'" width="'+cw+'" height="'+ch+'" fill="#f8fafc"/>';
+ }
+ parts+='<rect x="'+(x-5)+'" y="'+(y-5)+'" width="'+(w+10)+'" height="'+(h+10)+'" rx="4" fill="none" stroke="#26364a" stroke-width="2"/>';
+ if(doorCount>0){
+  var doorW=(w/doorCount);
+  for(var d=0;d<doorCount;d++){
+   parts+='<rect x="'+(x+d*doorW+2)+'" y="'+(y+2)+'" width="'+(doorW-4)+'" height="'+(h-4)+'" rx="2" fill="'+(['#dbeafe','#e0e7ff','#d1fae5','#fef3c7'][d%4])+'" fill-opacity=".24" stroke="'+(['#60a5fa','#818cf8','#34d399','#f59e0b'][d%4])+'" stroke-width="1.4"/>';
+   parts+='<line x1="'+(x+d*doorW+doorW*.82)+'" y1="'+(y+h*.45)+'" x2="'+(x+d*doorW+doorW*.82)+'" y2="'+(y+h*.58)+'" stroke="#64748b" stroke-width="2"/>';
+  }
+ }
+ var font=small?9:12;
+ return '<svg viewBox="0 0 440 290" role="img" aria-label="2D эскиз шкафа '+item.number+'" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="wbSketchBg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eff6ff"/><stop offset="1" stop-color="#ecfdf5"/></linearGradient></defs><rect x="1" y="1" width="438" height="288" rx="12" fill="url(#wbSketchBg)"/>'+parts+'<text x="220" y="17" text-anchor="middle" font-size="'+font+'" fill="#334155" font-weight="700">'+item.width+' мм</text><text x="350" y="135" font-size="'+font+'" fill="#334155" transform="rotate(90 350 135)">'+item.height+' мм</text><text x="220" y="270" text-anchor="middle" font-size="'+font+'" fill="#475569">Шкаф '+item.number+' · глубина '+item.depth+' мм · '+item.sections+' секц. · '+item.doors+' дверей</text></svg>';
+}
+function renderSketch(){
+ var current=snapshotCabinet();
+ $('wbSketch').innerHTML='<div class="wb-sketch-canvas">'+sketchSvg(current,false)+'</div>';
+ var all=cabinetSketches.concat([current]);
+ $('wbSketchGallery').innerHTML=all.map(function(item,i){return '<div class="wb-sketch-thumb '+(i===all.length-1?'active':'')+'">'+sketchSvg(item,true)+'<b>Шкаф '+item.number+'</b><br>'+item.width+' × '+item.height+' мм</div>';}).join('');
+}
 function apply(){
  var rows=buildRows();if(!rows)return;
  accumulated=accumulated.concat(rows);
