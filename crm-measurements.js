@@ -37,8 +37,7 @@
   $('mNew').onclick=()=>open();$('mClose').onclick=close;$('mCancel').onclick=close;
   $('mModal').onclick=e=>{if(e.target.id==='mModal')close()};
   $('mSearch').oninput=render;$('mRefresh').onclick=load;$('mForm').onsubmit=save;
-  $('mLidar').onchange=()=>{$('mFiles').textContent=Array.from($('mLidar').files).map(f=>f.name+' ('+(f.size/1048576).toFixed(1)+' МБ)').join(' 
-')||'Файлы не выбраны'};
+  $('mLidar').onchange=()=>{$('mFiles').textContent=Array.from($('mLidar').files).map(f=>f.name+' ('+(f.size/1048576).toFixed(1)+' МБ)').join(' · ')||'Файлы не выбраны'};
  }
  async function load(){
   const [a,b]=await Promise.all([db.from('furniture_measurements').select('*').order('created_at',{ascending:false}),db.from('furniture_orders').select('id,order_no,title,client_name').order('created_at',{ascending:false})]);
