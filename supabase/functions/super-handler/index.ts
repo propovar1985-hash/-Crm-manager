@@ -143,8 +143,18 @@ Deno.serve(async (req) => {
       return response({ connected: !!data, connected_at: data?.connected_at ?? null, token_expires_at: data?.token_expires_at ?? null });
     }
 
+    if (body.action === "disk_root") {
+      const publicKey = "https://disk.yandex.ru/d/UXgmsg4woy_67g";
+      const infoRes = await fetch("https://cloud-api.yandex.net/v1/disk/public/resources?public_key=" + encodeURIComponent(publicKey), {
+        headers: { Authorization: "OAuth " + await getUserToken(user.id) }
+      });
+      const info = await infoRes.json();
+      if (!infoRes.ok) throw new Error(info.message || "Не удалось открыть общую папку Яндекс Диска.");
+      return response({ path: info.path || info.name, name: info.name, type: info.type });
+    }
+
     if (body.action === "upload") {
-      return response({ error: "Загрузка будет включена после проверки доступа к корневой папке и настройки пути общей папки." }, 409);
+      return response({ error: "Загрузка ожидает передачи файла через multipart/form-data; используйте обновлённый интерфейс CRM." }, 501);
     }
     return response({ error: "Неизвестное действие" }, 400);
   } catch (e) {
