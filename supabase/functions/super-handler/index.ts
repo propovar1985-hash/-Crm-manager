@@ -184,12 +184,12 @@ Deno.serve(async (req) => {
       if (entityType === "order" && !orderId) throw new Error("Не указан заказ.");
       if (entityType === "measurement" && !measurementId) throw new Error("Не указан замер.");
       if (file.size > 90 * 1024 * 1024) throw new Error("Размер файла превышает лимит 90 МБ.");
-      const safe = (v: string) => v.replace(/[\\/:*?"<>|]+/g, "_").replace(/\\s+/g, " ").trim().slice(0, 90);
+      const safe = (v: string) => v.replace(/[\\/:*?"<>|]+/g, "_").replace(/\s+/g, " ").trim().slice(0, 90);
       const entityKey = entityType === "order" ? orderId : measurementId;
       const folderName = entityType === "order"
         ? safe([orderNo ? "Заказ " + orderNo : "Заказ", orderTitle].filter(Boolean).join(" — ")) || ("Заказ " + entityKey.slice(0, 8))
         : safe(["Замер", clientName, roomName].filter(Boolean).join(" — ")) || ("Замер " + entityKey.slice(0, 8));
-      const entityPath = rootPath.replace(/\\/$/, "") + "/" + folderName + " (" + entityKey.slice(0, 8) + ")";
+      const entityPath = rootPath.replace(/\/$/, "") + "/" + folderName + " (" + entityKey.slice(0, 8) + ")";
       const subPath = entityPath + "/" + (category === "lidar" ? "LiDAR" : "Проект");
       for (const path of [entityPath, subPath]) {
         const mkdir = await diskRequest("/resources?path=" + encodeURIComponent(path), token, { method: "PUT" });
