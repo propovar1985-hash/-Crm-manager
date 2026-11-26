@@ -16,7 +16,7 @@
  `;document.head.appendChild(css);
  function ensure(){
   const s=$('calc');if(!s)return;
-  s.innerHTML=`<div class="head"><div><h1>Просчёты мебели</h1><div class="muted">Расчёт материалов, кромки, фурнитуры и стоимости по деталям</div></div><button class="btn primary" id="cNew">＋ Новый просчёт</button></div>
+  s.innerHTML=`<div class="head"><div><h1>Просчёты мебели</h1><div class="muted">Расчёт материалов, кромки, фурнитуры и стоимости по деталям</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="cWardrobe">▦ Конструктор шкафа</button><button class="btn primary" id="cNew">＋ Новый просчёт</button></div></div>
   <div class="panel"><div class="c-toolbar"><input id="cSearch" placeholder="Поиск по клиенту или изделию"><button class="btn" id="cRefresh">Обновить</button></div><div id="cRows" class="c-list">Загрузка…</div></div>
   <div class="c-modal" id="cModal"><div class="c-panel"><div class="head"><div><div class="small" id="cNo">НОВЫЙ ПРОСЧЁТ</div><h2>Расчёт мебели</h2></div><button class="btn" id="cClose">Закрыть ✕</button></div>
   <form id="cForm"><input type="hidden" name="id"><div class="c-grid">
@@ -30,7 +30,7 @@
   <div class="c-grid">
   <label>Фурнитура, ₽<input name="fittings_cost" type="number" min="0" step="0.01" value="0"></label><label>Работа, ₽<input name="labor_cost" type="number" min="0" step="0.01" value="0"></label><label>Прочие затраты, ₽<input name="other_cost" type="number" min="0" step="0.01" value="0"></label><label class="wide">Примечание<textarea name="notes"></textarea></label></div>
   <div id="cSummary" class="c-summary"></div><div class="actions"><button type="button" class="btn" id="cCancel">Отмена</button><button class="btn primary">Сохранить просчёт</button></div></form></div></div>`;
-  $('cNew').onclick=()=>open();$('cClose').onclick=close;$('cCancel').onclick=close;$('cModal').onclick=e=>{if(e.target.id==='cModal')close()};
+  $('cNew').onclick=()=>open();$('cWardrobe').onclick=()=>{if(!active){$('cForm').reset();items=[blank()];costLines=[];fillSelects();$('cForm').elements.status.value='Черновик';$('cForm').elements.markup_percent.value=30;$('cNo').textContent='НОВЫЙ ПРОСЧЁТ';$('cModal').classList.add('open');}window.dispatchEvent(new CustomEvent('crm:open-wardrobe-builder'));};$('cClose').onclick=close;$('cCancel').onclick=close;$('cModal').onclick=e=>{if(e.target.id==='cModal')close()};
   $('cSearch').oninput=render;$('cRefresh').onclick=load;$('cAddItem').onclick=()=>{items.push(blank());drawItems()};$('cAddCost').onclick=()=>{costLines.push(blankCost());drawCosts()};
   $('cForm').onsubmit=save;$('cForm').oninput=summary;
  }
@@ -113,6 +113,7 @@
   if(lineInsert.error){alert('Просчёт сохранён, но позиции сметы не записались: '+lineInsert.error.message);return}
   await load();close();alert('Просчёт сохранён.');
  }
+ window.addEventListener('crm:wardrobe-generated',e=>{const d=e.detail||{};if(!Array.isArray(d.items))return;items=d.items;drawItems();if(d.title&&$('cForm')?.elements.title&&!$('cForm').elements.title.value)$('cForm').elements.title.value=d.title;summary();});
  function init(){
   if(!window.__crmAuthenticated||typeof db==='undefined'||!$('calc'))return;
   if(!window.__calcUI){ensure();window.__calcUI=true}
