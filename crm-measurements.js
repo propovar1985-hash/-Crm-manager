@@ -43,12 +43,12 @@
 
   <div class="wide m-upload-zone" data-measure-upload="lidar" tabindex="0"><b>Файлы замера и LiDAR</b><span class="small">Перетащите сюда файлы или нажмите для выбора. До 90 МБ на файл.</span><input type="file" id="mLidar" multiple hidden><div id="mFilesLidar" class="m-file small">Файлы не выбраны</div></div>
   <div class="wide m-upload-zone" data-measure-upload="project" tabindex="0"><b>Проект, чертежи и документация</b><span class="small">PDF, DWG, файлы БАЗИС, изображения и другие документы.</span><input type="file" id="mProject" multiple hidden><div id="mFilesProject" class="m-file small">Файлы не выбраны</div></div>
-  <label class="wide">Дополнительная ссылка на проект / чертёж<input name="project_path" type="url" placeholder="https://…"></label>
+  <label class="wide">Дополнительная ссылка на проект / чертёж<input name="project_path" type="url" placeholder="https://…" id="mProjectPath"><span id="mProjectPathPreview" class="small"></span></label>
   </div><div class="actions"><button type="button" class="btn" id="mCancel">Отмена</button><button class="btn primary">Сохранить замер</button></div></form></div></div>`;
   $('mNew').onclick=()=>open();$('mClose').onclick=close;$('mCancel').onclick=close;
   $('mModal').onclick=e=>{if(e.target.id==='mModal')close()};
   $('mSearch').oninput=render;$('mRefresh').onclick=load;$('mForm').onsubmit=save;
-  renderChecklist();$('mChecklistNotes').addEventListener('input',e=>{checklistNotes=e.target.value;});
+  renderChecklist();$('mChecklistNotes').addEventListener('input',e=>{checklistNotes=e.target.value;});\n  $('mProjectPath').addEventListener('input',e=>renderProjectPathLink(e.target.value));
   ['lidar','project'].forEach(kind=>{const input=$(kind==='lidar'?'mLidar':'mProject');input.addEventListener('change',()=>{queueFiles(kind,input.files);input.value='';});});
   const modal=$('mModal');
   modal.addEventListener('click',e=>{const zone=e.target.closest('[data-measure-upload]');if(zone&&!e.target.closest('a,button'))zone.querySelector('input[type=file]').click();});
@@ -61,7 +61,7 @@
   if(a.error){$('mRows').innerHTML='<div class="error">Ошибка загрузки: '+esc(a.error.message)+'. Проверьте SQL-миграцию.</div>';return}
   rows=a.data||[];orders=b.data||[];render();
  }
- function queueFiles(kind,fileList){
+ function renderProjectPathLink(value){\n  const host=$('mProjectPathPreview');if(!host)return;\n  const raw=String(value||'').trim();\n  try{const url=new URL(raw);if(!['http:','https:'].includes(url.protocol)){host.textContent='';return;}host.innerHTML='<a href="'+esc(url.href)+'" target="_blank" rel="noopener noreferrer">Открыть проект / чертёж ↗</a>';}catch(_){host.textContent='';}\n }\n function queueFiles(kind,fileList){
   for(const file of Array.from(fileList||[])){if(file.size>90*1024*1024){alert('Файл '+file.name+' больше 90 МБ.');continue;}pendingFiles[kind].push(file);}
   renderFiles(kind);
  }
@@ -115,7 +115,7 @@
   const clientsList=(()=>{try{return Array.isArray(clients)?clients:[]}catch(_){return []}})();
   $('mClients').innerHTML=clientsList.map(c=>`<option value="${esc(c.full_name)}"></option>`).join('');
   if(row)Object.entries(row).forEach(([k,v])=>{if(form.elements[k])form.elements[k].value=v??''});
-  $('mModal').classList.add('open');renderFiles('lidar');renderFiles('project');renderChecklist();if(row?.id){await loadMeasurementFiles(row.id);await loadChecklist(row.id);}
+  renderProjectPathLink(form.elements.project_path.value);\n  $('mModal').classList.add('open');renderFiles('lidar');renderFiles('project');renderChecklist();if(row?.id){await loadMeasurementFiles(row.id);await loadChecklist(row.id);}
  }
  function close(){const done=Object.values(checklistState).filter(Boolean).length,total=checklistTotal(),left=total-done;if(left>0&&!confirm('В чек-листе замера осталось '+left+' непоставленных галочек из '+total+'. Замер ещё не завершён. Всё равно закрыть карточку?'))return;$('mModal').classList.remove('open');active=null}
  async function save(e){
