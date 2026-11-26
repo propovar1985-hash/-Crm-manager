@@ -3,12 +3,56 @@
 'use strict';
 var $=function(id){return document.getElementById(id);}, states=[], accumulated=[], cabinetNo=1, selectedSection=0, selectedRow=0, rowCount=4;
 var css=document.createElement('style');
-css.textContent='#wbModal{display:none;position:fixed;inset:0;z-index:110;background:#10182899;padding:12px;align-items:center;justify-content:center}#wbModal.open{display:flex}#wbPanel{background:#fff;border-radius:15px;width:min(1050px,100%);max-height:96vh;overflow:auto;padding:20px}.wb-layout{display:grid;grid-template-columns:minmax(240px,320px) minmax(0,1fr);gap:18px}.wb-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}.wb-fields label{font-size:12px;font-weight:700;display:flex;flex-direction:column;gap:5px}.wb-preview{border:1px solid #dce3ec;border-radius:12px;padding:14px;background:#f8fafc;min-width:0}.wb-cabinet{display:grid;grid-template-columns:repeat(var(--wb-cols),minmax(0,1fr));border:5px solid #475467;background:#e9edf2;min-height:300px;max-width:620px;margin:8px auto;gap:3px;padding:3px}.wb-section{display:grid;grid-template-rows:30px repeat(var(--wb-rows),minmax(40px,1fr));gap:3px;min-width:0}.wb-section-head{border:1px solid #c5ceda;background:#eef2f7;color:#344054;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;padding:4px}.wb-section-head.selected{background:#285fe8;color:#fff;border-color:#285fe8}.wb-cell{border:1px solid #98a2b3;background:#fff;color:#344054;border-radius:3px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;padding:5px;cursor:pointer;min-width:0}.wb-cell[data-kind="shelves"]{background:#e8f1ff;border-color:#5b8def}.wb-cell[data-kind="drawers"]{background:#e8f7ef;border-color:#38a169}.wb-cell.selected-cell{outline:2px solid #285fe8;outline-offset:-2px}.wb-section-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}.wb-section-tools .btn{padding:7px 11px}.wb-selected-label{font-size:12px;color:#475467;font-weight:700}.wb-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:#667085}.wb-total{font-size:13px;font-weight:700;margin-top:10px}@media(max-width:760px){.wb-layout{grid-template-columns:1fr}#wbPanel{padding:13px}.wb-cabinet{min-height:230px}.wb-section{grid-template-rows:28px repeat(var(--wb-rows),minmax(38px,1fr))}.wb-cell{font-size:10px;padding:2px}}';
+css.textContent=`
+#wbModal{display:none;position:fixed;inset:0;z-index:110;background:rgba(15,23,42,.68);backdrop-filter:blur(5px);padding:12px;align-items:center;justify-content:center}
+#wbModal.open{display:flex}
+#wbPanel{background:#f8fafc;border:1px solid #dbe4f0;border-radius:20px;width:min(1180px,100%);max-height:96vh;overflow:auto;padding:22px;box-shadow:0 24px 80px #0f172a55}
+#wbPanel .head{align-items:flex-start;margin-bottom:18px}
+#wbPanel h2{font-size:24px;color:#172554}
+.wb-eyebrow{display:inline-flex;align-items:center;gap:6px;background:#e0eaff;color:#2453bd;border-radius:30px;padding:6px 10px;font-size:11px;font-weight:800;letter-spacing:.05em}
+.wb-layout{display:grid;grid-template-columns:minmax(260px,340px) minmax(0,1fr);gap:16px;align-items:start}
+.wb-settings,.wb-preview{border:1px solid #e1e8f2;border-radius:16px;padding:16px;background:#fff;min-width:0}
+.wb-settings-title,.wb-preview-title{font-size:15px;font-weight:800;color:#24324a;margin-bottom:12px}
+.wb-fields{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.wb-fields label{font-size:12px;font-weight:750;color:#475467;display:flex;flex-direction:column;gap:6px}
+#wbPanel input,#wbPanel select{border:1px solid #d6dfeb;border-radius:9px;padding:10px;background:#fbfcfe;min-width:0}
+#wbPanel input:focus,#wbPanel select:focus{outline:2px solid #b9ceff;border-color:#4778ed}
+.wb-note{font-size:11px;line-height:1.55;color:#667085;background:#f1f5f9;border-radius:10px;padding:10px;margin:12px 0}
+.wb-settings-actions{display:flex;gap:8px;flex-wrap:wrap}
+.wb-preview{background:linear-gradient(145deg,#f4f8ff,#f8fbff)}
+.wb-preview-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.wb-pill{font-size:11px;font-weight:800;border-radius:20px;padding:6px 10px;background:#e7f7ee;color:#187345}
+.wb-section-tools{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:9px 0}
+.wb-section-tools .btn{padding:7px 10px;font-size:12px}
+.wb-selected-label{font-size:12px;color:#3157b7;font-weight:800;background:#e9f0ff;padding:7px 10px;border-radius:8px}
+.wb-row-tools{padding:9px 0;border-top:1px solid #e5ebf4;border-bottom:1px solid #e5ebf4}
+.wb-cabinet{display:grid;grid-template-columns:repeat(var(--wb-cols),minmax(0,1fr));border:7px solid #64748b;background:#cbd5e1;min-height:330px;max-width:680px;margin:14px auto;gap:4px;padding:4px;border-radius:8px;box-shadow:0 8px 20px #1e293b18}
+.wb-section{display:grid;grid-template-rows:30px repeat(var(--wb-rows),minmax(42px,1fr));gap:4px;min-width:0}
+.wb-section-head{border:1px solid #a8b8cf;background:#e7edf6;color:#334155;border-radius:6px;font-size:11px;font-weight:800;cursor:pointer;padding:4px}
+.wb-section-head.selected{background:#315fe8;color:#fff;border-color:#315fe8;box-shadow:0 2px 8px #315fe844}
+.wb-cell{border:1px solid #cbd5e1;background:#fff;color:#475569;border-radius:5px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;font-weight:700;padding:5px;cursor:pointer;min-width:0;transition:transform .12s,border-color .12s,box-shadow .12s}
+.wb-cell:hover{transform:translateY(-1px);box-shadow:0 3px 9px #1e293b16}
+.wb-cell[data-kind="shelves"]{background:#e5f0ff;border:1px solid #75a6f6;color:#1d4ed8}
+.wb-cell[data-kind="drawers"]{background:#e3f8ed;border:1px solid #61c38b;color:#167344}
+.wb-cell.selected-cell{outline:2px solid #315fe8;outline-offset:-2px}
+.wb-legend{display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:#475467;margin:10px 0}
+.wb-legend span{border-radius:20px;padding:6px 9px;background:#fff;border:1px solid #e2e8f0}
+.wb-legend .wb-legend-shelf{background:#e5f0ff;border-color:#b6d0ff;color:#1d4ed8}
+.wb-legend .wb-legend-drawer{background:#e3f8ed;border-color:#a8e3bf;color:#167344}
+.wb-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}
+.wb-stat{background:#fff;border:1px solid #e2eaf5;border-radius:10px;padding:9px}
+.wb-stat b{display:block;font-size:17px;color:#1e3a8a;margin-top:3px}
+.wb-stat span{font-size:10px;color:#667085}
+.wb-footer-note{font-size:11px;line-height:1.5;color:#667085;margin-top:12px}
+#wbPanel .actions{margin-top:16px}
+#wbPanel button:disabled{opacity:.4;cursor:not-allowed}
+@media(max-width:760px){.wb-layout{grid-template-columns:1fr}#wbPanel{padding:13px}.wb-cabinet{min-height:250px}.wb-section{grid-template-rows:28px repeat(var(--wb-rows),minmax(38px,1fr))}.wb-cell{font-size:10px;padding:2px}.wb-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+`;
 document.head.appendChild(css);
 function ensure(){
  if($('wbModal'))return;
  var el=document.createElement('div');el.id='wbModal';
- el.innerHTML='<div id="wbPanel"><div class="head"><div><div class="small">ПАРАМЕТРИЧЕСКИЙ КОНСТРУКТОР</div><h2 style="margin:4px 0">Распашной шкаф</h2><div class="muted">Выбирайте вертикальные и горизонтальные секции на схеме, затем настраивайте ячейки</div></div><button class="btn" id="wbClose">Закрыть ✕</button></div><div class="wb-layout"><div><div class="wb-fields"><label>Ширина, мм<input id="wbW" type="number" min="300" max="6000" value="2400"></label><label>Высота, мм<input id="wbH" type="number" min="300" max="3000" value="2400"></label><label>Глубина, мм<input id="wbD" type="number" min="200" max="1200" value="600"></label><label>Вертикальные секции<input id="wbN" type="number" min="1" max="8" value="3"></label><label>Горизонтальные секции<input id="wbRows" type="number" min="1" max="8" value="4"></label><label>Количество дверей<input id="wbDoors" type="number" min="0" max="8" value="3"></label><label>Материал дверей<select id="wbDoorMat"><option>ЛДСП 16 мм</option><option>ЛМДФ 19 мм</option><option>МДФ 19 мм</option></select></label></div><p class="small">Корпус: ЛДСП 16 мм · задняя стенка: ХДФ 3 мм · кромка: 0,8 мм. Схема предварительная, без конкретных монтажных зазоров и присадки.</p><div class="actions"><button class="btn" id="wbReset">Сбросить ячейки</button><button class="btn" id="wbAddCabinet">＋ Добавить ещё шкаф</button></div></div><div class="wb-preview"><b>Фронтальная схема шкафа</b><div class="wb-section-tools"><button type="button" class="btn" id="wbAddSection">＋ Вертикальная</button><button type="button" class="btn" id="wbRemoveSection">− Вертикальная</button><button type="button" class="btn" id="wbAddRow">＋ Горизонтальная</button><button type="button" class="btn" id="wbRemoveRow">− Горизонтальная</button><span class="wb-selected-label" id="wbSelectedLabel"></span></div><div id="wbRowSelectors" class="wb-section-tools"></div><div id="wbDrawing"></div><div class="wb-legend"><span>□ Пустая ячейка</span><span>▤ Полки</span><span>▥ Ящики</span></div><div class="wb-total" id="wbStats"></div></div></div><div class="actions"><button class="btn" id="wbCancel">Отмена</button><button class="btn primary" id="wbApply">Передать деталировку в просчёт</button></div><p class="small">Перед запуском в производство требуется проверка зазоров, соединений, присадки и выбранной фурнитуры.</p></div>';
+ el.innerHTML='<div id="wbPanel"><div class="head"><div><span class="wb-eyebrow">✦ КОНСТРУКТОР МЕБЕЛИ</span><h2 style="margin:8px 0 5px">Распашной шкаф</h2><div class="muted">Настройте размеры и соберите внутреннее наполнение прямо на схеме</div></div><button class="btn" id="wbClose">Закрыть ✕</button></div><div class="wb-layout"><div class="wb-settings"><div class="wb-settings-title">① Габариты и параметры</div><div class="wb-fields"><label>Ширина, мм<input id="wbW" type="number" min="300" max="6000" value="2400"></label><label>Высота, мм<input id="wbH" type="number" min="300" max="3000" value="2400"></label><label>Глубина, мм<input id="wbD" type="number" min="200" max="1200" value="600"></label><label>Вертикальные секции<input id="wbN" type="number" min="1" max="8" value="3"></label><label>Горизонтальные секции<input id="wbRows" type="number" min="1" max="8" value="4"></label><label>Количество дверей<input id="wbDoors" type="number" min="0" max="8" value="3"></label><label>Материал дверей<select id="wbDoorMat"><option>ЛДСП 16 мм</option><option>ЛМДФ 19 мм</option><option>МДФ 19 мм</option></select></label></div><div class="wb-note">Стандартная база: корпус ЛДСП 16 мм · задняя стенка ХДФ 3 мм · кромка 0,8 мм. Схема предварительная — перед производством проверяются зазоры и присадка.</div><div class="wb-settings-actions"><button class="btn" id="wbReset">Сбросить ячейки</button><button class="btn" id="wbAddCabinet">＋ Добавить ещё шкаф</button></div></div><div class="wb-preview"><div class="wb-preview-top"><div class="wb-preview-title">② Схема наполнения</div><span class="wb-pill">Интерактивный чертёж</span></div><div class="wb-section-tools"><button type="button" class="btn" id="wbAddSection">＋ Вертикальная</button><button type="button" class="btn" id="wbRemoveSection">− Вертикальная</button><button type="button" class="btn" id="wbAddRow">＋ Горизонтальная</button><button type="button" class="btn" id="wbRemoveRow">− Горизонтальная</button><span class="wb-selected-label" id="wbSelectedLabel"></span></div><div id="wbRowSelectors" class="wb-section-tools wb-row-tools"></div><div id="wbDrawing"></div><div class="wb-legend"><span>□ Свободно</span><span class="wb-legend-shelf">▤ Полки</span><span class="wb-legend-drawer">▥ Ящики</span></div><div class="wb-stats" id="wbStats"></div><div class="wb-footer-note">Нажмите на ячейку, чтобы переключать наполнение: свободно → полки → ящики. Выбранные секция и горизонталь подсвечиваются.</div></div></div><div class="actions"><button class="btn" id="wbCancel">Отмена</button><button class="btn primary" id="wbApply">Передать деталировку в просчёт</button></div><p class="small">Перед запуском в производство требуется проверка зазоров, соединений, присадки и выбранной фурнитуры.</p></div>';
  document.body.appendChild(el);
  $('wbClose').onclick=close;$('wbCancel').onclick=close;
  $('wbModal').onclick=function(e){if(e.target.id==='wbModal')close();};
@@ -57,7 +101,7 @@ function draw(){
  $('wbSelectedLabel').textContent='Выбрана секция '+(selectedSection+1)+' из '+n;
  $('wbRemoveSection').disabled=n<=1;$('wbRemoveRow').disabled=rowCount<=1;$('wbRows').value=rowCount;
  var sh=states.filter(function(x){return x==='shelves';}).length,dr=states.filter(function(x){return x==='drawers';}).length;
- $('wbStats').textContent='Шкаф №'+cabinetNo+' · Вертикальных: '+n+' · Горизонтальных: '+rowCount+' · Полок: '+sh+' · Уровней с ящиками: '+dr+' · Дверей: '+val('wbDoors',0,8);
+ $('wbStats').innerHTML='<div class="wb-stat"><span>Вертикальные секции</span><b>'+n+'</b></div><div class="wb-stat"><span>Горизонтальные уровни</span><b>'+rowCount+'</b></div><div class="wb-stat"><span>Ячейки с полками</span><b>'+sh+'</b></div><div class="wb-stat"><span>Ячейки с ящиками</span><b>'+dr+'</b></div>';
 }
 function open(){ensure();rowCount=4;states=Array(3*rowCount).fill('empty');accumulated=[];cabinetNo=1;selectedSection=0;selectedRow=0;draw();$('wbModal').classList.add('open');}
 function close(){if($('wbModal'))$('wbModal').classList.remove('open');}
