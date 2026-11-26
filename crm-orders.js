@@ -19,6 +19,7 @@
     .order-table th,.order-table td{padding:11px 9px;border-bottom:1px solid #edf0f4;text-align:left}
     .order-table th{font-size:11px;color:var(--muted)}
     .order-open{border:0;background:none;color:var(--blue);font-weight:700;padding:0;text-align:left}
+    .deadline-row{transition:background-color 1.2s ease}.deadline-row[style]{background:var(--deadline-bg)}.deadline-row[style] td{border-bottom-color:var(--deadline-border)}.deadline-row[style] td:nth-child(5){color:var(--deadline-text);font-weight:750}
     .order-drawer{position:fixed;inset:0;z-index:80;background:#10182888;display:none;justify-content:flex-end}
     .order-drawer.open{display:flex}
     .order-drawer-panel{background:#fff;width:min(760px,100%);height:100%;overflow:auto;padding:22px;box-shadow:-12px 0 40px #0002}
@@ -144,10 +145,24 @@
     if(error){$('orderRows').innerHTML=`<tr><td colspan="6" class="error">Ошибка загрузки: ${esc(error.message)}. Проверьте установку SQL-миграции.</td></tr>`;return;}
     orders=data||[];render();
   }
-  function render() {
+  function deadlineStyle(value){
+    if(!value)return '';
+    const m=String(value).slice(0,10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if(!m)return '';
+    const due=new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));
+    const today=new Date();today.setHours(0,0,0,0);
+    const days=Math.round((due-today)/86400000);
+    if(days>14)return '';
+    const t=Math.max(0,Math.min(1,(14-days)/14));
+    const hue=Math.round(48*(1-t));
+    const alpha=days<0?0.25:0.08+0.16*t;
+    const borderAlpha=days<0?0.62:0.24+0.25*t;
+    return ' style="--deadline-bg:hsla('+hue+',88%,55%,'+alpha+');--deadline-border:hsla('+hue+',78%,42%,'+borderAlpha+');--deadline-text:hsl('+hue+',65%,28%)"';
+  }
+    function render() {
     const q=($('orderSearch')?.value||'').toLocaleLowerCase('ru'), filter=$('orderFilter')?.value||'';
     const list=orders.filter(o=>(!filter||o.stage===filter)&&[o.order_no,o.client_name,o.title,o.address,o.phone].join(' ').toLocaleLowerCase('ru').includes(q));
-    $('orderRows').innerHTML=list.length?list.map(o=>`<tr><td><button class="order-open" data-id="${esc(o.id)}">${esc(o.order_no||'Без номера')}</button></td><td>${esc(o.client_name)}</td><td>${esc(o.title||o.furniture_type)}</td><td><span class="pill">${esc(o.stage)}</span></td><td>${esc(o.due_date||'—')}</td><td><button class="btn" data-edit="${esc(o.id)}">Открыть</button></td></tr>`).join(''):'<tr><td colspan="6" class="empty">Заказов пока нет. Нажмите «Новый заказ».</td></tr>';
+    $('orderRows').innerHTML=list.length?list.map(o=>`<tr class="deadline-row"${deadlineStyle(o.due_date)}><td><button class="order-open" data-id="${esc(o.id)}">${esc(o.order_no||'Без номера')}</button></td><td>${esc(o.client_name)}</td><td>${esc(o.title||o.furniture_type)}</td><td><span class="pill">${esc(o.stage)}</span></td><td>${esc(o.due_date||'—')}</td><td><button class="btn" data-edit="${esc(o.id)}">Открыть</button></td></tr>`).join(''):'<tr><td colspan="6" class="empty">Заказов пока нет. Нажмите «Новый заказ».</td></tr>';
     $('orderRows').querySelectorAll('[data-id],[data-edit]').forEach(b=>b.addEventListener('click',()=>openDrawer(orders.find(o=>o.id===b.dataset.id||o.id===b.dataset.edit))));
   }
   async function save(e) {
