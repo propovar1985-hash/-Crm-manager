@@ -286,6 +286,7 @@ try {
 
   window.checkYandexDiskStatus = checkYandexDiskStatus;
   window.connectYandexDisk = connectYandexDisk;
+  window.uploadYandexFile = uploadYandexFile;
 
   function ensureUI() {
     const section = $('orders');
@@ -732,7 +733,7 @@ window.__fullOrdersModuleEmbedded=true;
     if(orderError)throw new Error('Не удалось получить данные заказа для папки Яндекс Диска: '+orderError.message);
     for(const kind of ['lidar','project']){
       for(const file of pendingOrderFiles[kind]){
-        try{await uploadYandexFile(order,kind,file);}
+        try{if(typeof window.uploadYandexFile!=='function')throw new Error('Функция загрузки Яндекс Диска не инициализирована. Обновите CRM.');await window.uploadYandexFile(order,kind,file);}
         catch(err){throw new Error('Загрузка '+file.name+': '+(err?.message||String(err)));}
       }
       pendingOrderFiles[kind]=[];
