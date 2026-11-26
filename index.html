@@ -978,16 +978,20 @@ window.__fullOrdersModuleEmbedded=true;
     }catch(err){alert('Не удалось сохранить заказ: '+(err.message||String(err)));}
   }
 
+  let fallbackActive=false;
   function boot(){
     if(typeof window.initOrdersModule==='function'){
       try{window.initOrdersModule();}catch(e){console.error('Orders module:',e);}
     }
-    if(!section.querySelector('#orderNew')) renderOrdersFallback();
-    if(window.__crmAuthenticated)loadOrders();
+    if(!section.querySelector('#orderNew')){
+      renderOrdersFallback();
+      fallbackActive=true;
+      if(window.__crmAuthenticated)loadOrders();
+    }
   }
   document.addEventListener('DOMContentLoaded',boot);
   window.addEventListener('load',boot,{once:true});
-  window.addEventListener('crm:authenticated',loadOrders);
+  window.addEventListener('crm:authenticated',()=>{if(fallbackActive)loadOrders();});
 })();
 </script>
 <script src="./crm-calendar.js"></script>
