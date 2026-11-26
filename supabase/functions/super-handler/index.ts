@@ -130,7 +130,9 @@ Deno.serve(async (req) => {
   try {
     const user = await currentUser(req);
     if (req.method !== "POST") return response({ error: "Method not allowed" }, 405);
-    const body = await req.json().catch(() => ({}));
+    const contentType = req.headers.get("content-type") || "";
+    const form = contentType.includes("multipart/form-data") ? await req.formData() : null;
+    const body = form ? Object.fromEntries(form.entries()) : await req.json().catch(() => ({}));
 
     if (body.action === "authorize") {
       const state = crypto.randomUUID() + crypto.randomUUID();
@@ -154,19 +156,46 @@ Deno.serve(async (req) => {
       return response({ connected: !!data, connected_at: data?.connected_at ?? null, token_expires_at: data?.token_expires_at ?? null });
     }
 
-    if (body.action === "disk_root") {
-      const publicKey = "https://disk.yandex.ru/d/UXgmsg4woy_67g";
-      const infoRes = await fetch("https://cloud-api.yandex.net/v1/disk/public/resources?public_key=" + encodeURIComponent(publicKey), {
-        headers: { Authorization: "OAuth " + await getUserToken(user.id) }
-      });
-      const info = await infoRes.json();
-      if (!infoRes.ok) throw new Error(info.message || "Не удалось открыть общую папку Яндекс Диска.");
-      return response({ path: info.path || info.name, name: info.name, type: info.type });
+    if (body.action === "disk_root" || body.action === "upload") {
+      const token = await getUserToken(user.id);
+      const rootRes = await diskRequest("/public/resources?public_key=" + encodeURIComponent(ROOT_PUBLIC_URL), token);
+      const rootInfo = await rootRes.json();
+      if (!rootRes.ok) throw new Error(rootInfo.message || "Не удалось открыть общую папку Яндекс Диска.");
+      const rootPath = rootInfo.path;
+      if (!rootPath || !String(rootPath).startsWith("disk:/")) throw new Error("Яндекс не вернул путь общей папки. Проверьте доступ подключённого аккаунта.");
+      if (body.action === "disk_root") return response({ path: rootPath, name: rootInfo.name, type: rootInfo.type });
+      const file = form?.get("file");
+      if (!(file instanceof File)) throw new Error("Файл не передан в запросе.");
+      const category = String(form?.get("category") || "");
+      if (!["lidar", "project"].includes(category)) throw new Error("Неизвестный тип файла.");
+      const orderId = String(form?.get("order_id") || "").trim();
+      const orderNo = String(form?.get("order_no") || "").trim();
+      const orderTitle = String(form?.get("order_title") || "").trim();
+      if (!orderId) throw new Error("Не указан заказ.");
+      if (file.size > 90 * 1024 * 1024) throw new Error("Размер файла превышает лимит 90 МБ.");
+      const safe = (v: string) => v.replace(/[\\/:*?"<>|]+/g, "_").replace(/\s+/g, " ").trim().slice(0, 90);
+      const folderName = safe([orderNo ? "Заказ " + orderNo : "Заказ", orderTitle].filter(Boolean).join(" — ")) || ("Заказ " + orderId.slice(0, 8));
+      const orderPath = rootPath.replace(/\/$/, "") + "/" + folderName + " (" + orderId.slice(0, 8) + ")";
+      const subPath = orderPath + "/" + (category === "lidar" ? "LiDAR" : "Проект");
+      for (const path of [orderPath, subPath]) {
+        const mkdir = await diskRequest("/resources?path=" + encodeURIComponent(path), token, { method: "PUT" });
+        if (!mkdir.ok && mkdir.status !== 409) { const detail = await mkdir.json().catch(() => ({})); throw new Error(detail.message || "Не удалось создать папку заказа на Яндекс Диске."); }
+      }
+      const targetPath = subPath + "/" + crypto.randomUUID() + "_" + (safe(file.name) || "file");
+      const hrefRes = await diskRequest("/resources/upload?path=" + encodeURIComponent(targetPath) + "&overwrite=false", token);
+      const hrefData = await hrefRes.json();
+      if (!hrefRes.ok || !hrefData.href) throw new Error(hrefData.message || "Яндекс не выдал адрес загрузки файла.");
+      const putRes = await fetch(hrefData.href, { method: "PUT", body: file, headers: { "Content-Type": file.type || "application/octet-stream" } });
+      if (!putRes.ok) throw new Error("Яндекс Диск отклонил загрузку файла (HTTP " + putRes.status + ").");
+      const publicPath = targetPath.slice(rootPath.replace(/\/$/, "").length).replace(/^\//, "");
+      const linkRes = await diskRequest("/public/resources/download?public_key=" + encodeURIComponent(ROOT_PUBLIC_URL) + "&path=" + encodeURIComponent(publicPath), token);
+      const linkData = await linkRes.json().catch(() => ({}));
+      const externalUrl = linkRes.ok && linkData.href ? linkData.href : ROOT_PUBLIC_URL;
+      const { error: metaError } = await admin.from("furniture_order_files").insert({ order_id: orderId, category, file_name: file.name, storage_path: targetPath, mime_type: file.type || null, file_size: file.size, provider: "yandex", external_url: externalUrl });
+      if (metaError) throw new Error("Файл загружен на Яндекс Диск, но запись CRM не сохранена: " + metaError.message);
+      return response({ ok: true, file_name: file.name, external_url: externalUrl, path: targetPath });
     }
 
-    if (body.action === "upload") {
-      return response({ error: "Загрузка ожидает передачи файла через multipart/form-data; используйте обновлённый интерфейс CRM." }, 501);
-    }
     return response({ error: "Неизвестное действие" }, 400);
   } catch (e) {
     console.error("Yandex Disk function request failed:", e);
