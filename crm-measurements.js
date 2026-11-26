@@ -31,7 +31,7 @@
   <label class="wide">Окна, двери и проёмы<textarea name="openings_notes" rows="3"></textarea></label>
   <label class="wide">Коммуникации (вода, газ, электричество, вентиляция)<textarea name="utilities_notes" rows="3"></textarea></label>
   <label class="wide">Комментарий<textarea name="comments" rows="3"></textarea></label>
-  <label class="wide">Файл LiDAR / замера<input type="file" id="mLidar" multiple><span class="small">Поддерживаются файлы замеров и облака точек; максимальный размер одного файла — 500 МБ.</span><div id="mFiles" class="m-file small">Файлы не выбраны</div></label>
+  <label class="wide">Файл LiDAR / замера<input type="file" id="mLidar"><span class="small">Поддерживаются файлы замеров и облака точек; максимальный размер одного файла — 500 МБ.</span><div id="mFiles" class="m-file small">Файлы не выбраны</div></label>
   <label class="wide">Ссылка на проект / чертёж<input name="project_path" type="url" placeholder="https://…"></label>
   </div><div class="actions"><button type="button" class="btn" id="mCancel">Отмена</button><button class="btn primary">Сохранить замер</button></div></form></div></div>`;
   $('mNew').onclick=()=>open();$('mClose').onclick=close;$('mCancel').onclick=close;
