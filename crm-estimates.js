@@ -2,7 +2,7 @@
 (() => {
  'use strict';
  const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- let estimates=[],orders=[],measurements=[],active=null,items=[],costLines=[];
+ let estimates=[],orders=[],measurements=[],suppliers=[],active=null,items=[],costLines=[];
  const SHEET_AREA=5.796;
  const css=document.createElement('style');css.textContent=`
  #calc .c-toolbar{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}
@@ -26,7 +26,7 @@
   <label>Наценка, %<input name="markup_percent" type="number" min="0" step="0.1" value="30"></label>
   <label>Длина листа, мм<input name="sheet_length_mm" type="number" min="1" value="2800"></label><label>Ширина листа, мм<input name="sheet_width_mm" type="number" min="1" value="2070"></label>
   </div><h3>Детали</h3><div class="scroll"><table class="c-items"><thead><tr><th>Деталь</th><th>Материал</th><th>Ширина</th><th>Высота</th><th>Кол-во</th><th>Кромка, м</th><th>Цена м², ₽</th><th></th></tr></thead><tbody id="cItemRows"></tbody></table></div>
-  <div class="c-toolbar"><button type="button" class="btn" id="cAddItem">＋ Добавить деталь</button></div><h3>Материалы, фасады, фурнитура и работы</h3><div class="scroll"><table class="c-items"><thead><tr><th>Раздел</th><th>Позиция</th><th>Ед.</th><th>Кол-во</th><th>Цена, ₽</th><th>Наценка, %</th><th>Сумма, ₽</th><th></th></tr></thead><tbody id="cCostRows"></tbody></table></div><div class="c-toolbar"><button type="button" class="btn" id="cAddCost">＋ Добавить позицию</button></div>
+  <div class="c-toolbar"><button type="button" class="btn" id="cAddItem">＋ Добавить деталь</button></div><h3>Материалы, фасады, фурнитура и работы</h3><div class="scroll"><table class="c-items"><thead><tr><th>Раздел</th><th>Позиция</th><th>Поставщик</th><th>Ед.</th><th>Кол-во</th><th>Цена, ₽</th><th>Наценка, %</th><th>Сумма, ₽</th><th></th></tr></thead><tbody id="cCostRows"></tbody></table></div><div class="c-toolbar"><button type="button" class="btn" id="cAddCost">＋ Добавить позицию</button></div>
   <div class="c-grid">
   <label>Фурнитура, ₽<input name="fittings_cost" type="number" min="0" step="0.01" value="0"></label><label>Работа, ₽<input name="labor_cost" type="number" min="0" step="0.01" value="0"></label><label>Прочие затраты, ₽<input name="other_cost" type="number" min="0" step="0.01" value="0"></label><label class="wide">Примечание<textarea name="notes"></textarea></label></div>
   <div id="cSummary" class="c-summary"></div><div class="actions"><button type="button" class="btn" id="cCancel">Отмена</button><button class="btn primary">Сохранить просчёт</button></div></form></div></div>`;
@@ -36,8 +36,10 @@
  }
  const blank=()=>({item_name:'',material:'ЛДСП 16 мм',width_mm:0,height_mm:0,quantity:1,edge_m:0,material_price_m2:0});
  const costCategories=['Материалы','Облицовка и фасады','Фурнитура','Шкафы-купе','Лицевая фурнитура','Крепёж','Свет','Комплектующие','Работы и доставка'];
- const blankCost=()=>({category:'Фурнитура',item_name:'',unit:'шт',quantity:1,unit_price:0,markup_percent:0});
+ const blankCost=()=>({category:'Фурнитура',item_name:'',unit:'шт',quantity:1,unit_price:0,source_unit_price:0,markup_percent:0,supplier_id:'',supplier_name:'',supplier_discount_percent:0});
  function money(v){return Number(v||0).toLocaleString('ru-RU',{maximumFractionDigits:2})+' ₽'}
+ function supplierOptions(selected){return '<option value="">Не выбран</option>'+suppliers.filter(x=>x.is_active).map(x=>'<option value="'+esc(x.id)+'" '+(x.id===selected?'selected':'')+'>'+esc(x.name)+' · '+Number(x.discount_percent||0)+'%</option>').join('')}
+ function setCostSupplier(x,id){const p=suppliers.find(v=>v.id===id);x.supplier_id=p?.id||'';x.supplier_name=p?.name||'';x.supplier_discount_percent=Number(p?.discount_percent||0);const base=Number(x.source_unit_price??x.unit_price??0);x.source_unit_price=base;x.unit_price=base*(1-x.supplier_discount_percent/100)}
  function calc(){
   const f=$('cForm'),sheet=(Number(f.elements.sheet_length_mm.value||2800)*Number(f.elements.sheet_width_mm.value||2070))/1e6;
   const byMaterial={},edge=items.reduce((s,x)=>s+Number(x.edge_m||0)*Number(x.quantity||0),0);
@@ -64,9 +66,9 @@
   $('cItemRows').querySelectorAll('[data-del]').forEach(el=>el.onclick=()=>{items.splice(Number(el.dataset.del),1);drawItems();summary()});summary();
  }
  async function load(){
-  const [a,b,c]=await Promise.all([db.from('furniture_estimates').select('*').order('created_at',{ascending:false}),db.from('furniture_orders').select('id,order_no,title,client_name').order('created_at',{ascending:false}),db.from('furniture_measurements').select('id,client_name,room_name,measured_at').order('created_at',{ascending:false})]);
+  const [a,b,c,d]=await Promise.all([db.from('furniture_estimates').select('*').order('created_at',{ascending:false}),db.from('furniture_orders').select('id,order_no,title,client_name').order('created_at',{ascending:false}),db.from('furniture_measurements').select('id,client_name,room_name,measured_at').order('created_at',{ascending:false}),db.from('crm_suppliers').select('id,name,category,discount_percent,is_active').eq('is_active',true).order('name')]);
   if(a.error){$('cRows').innerHTML='<div class="error">Ошибка загрузки: '+esc(a.error.message)+'. Проверьте SQL-миграцию.</div>';return}
-  estimates=a.data||[];orders=b.data||[];measurements=c.data||[];render();
+  estimates=a.data||[];orders=b.data||[];measurements=c.data||[];suppliers=d.error?[]:(d.data||[]);render();
  }
  function render(){
   const q=($('cSearch')?.value||'').toLocaleLowerCase('ru');const list=estimates.filter(x=>[x.client_name,x.title,x.estimate_no].join(' ').toLocaleLowerCase('ru').includes(q));
@@ -90,8 +92,8 @@
  }
  function drawCosts(){
   const host=$('cCostRows');if(!host)return;
-  host.innerHTML=costLines.map((x,i)=>'<tr><td><select data-ci="'+i+'" data-ck="category">'+costCategories.map(v=>'<option '+(v===x.category?'selected':'')+'>'+esc(v)+'</option>').join('')+'</select></td><td><input data-ci="'+i+'" data-ck="item_name" value="'+esc(x.item_name)+'" placeholder="Наименование позиции"></td><td><input data-ci="'+i+'" data-ck="unit" value="'+esc(x.unit)+'" style="width:55px"></td><td><input data-ci="'+i+'" data-ck="quantity" type="number" min="0" step=".001" value="'+x.quantity+'"></td><td><input data-ci="'+i+'" data-ck="unit_price" type="number" min="0" step=".01" value="'+x.unit_price+'"></td><td><input data-ci="'+i+'" data-ck="markup_percent" type="number" min="0" step=".1" value="'+x.markup_percent+'"></td><td>'+money(Number(x.quantity||0)*Number(x.unit_price||0)*(1+Number(x.markup_percent||0)/100))+'</td><td><button type="button" class="btn danger" data-cdel="'+i+'">×</button></td></tr>').join('')||'<tr><td colspan="8" class="empty">Добавьте материалы, фурнитуру или работы.</td></tr>';
-  host.querySelectorAll('[data-ci]').forEach(el=>el.onchange=()=>{const x=costLines[Number(el.dataset.ci)];x[el.dataset.ck]=['category','item_name','unit'].includes(el.dataset.ck)?el.value:Number(el.value);drawCosts();summary()});
+  host.innerHTML=costLines.map((x,i)=>'<tr><td><select data-ci="'+i+'" data-ck="category">'+costCategories.map(v=>'<option '+(v===x.category?'selected':'')+'>'+esc(v)+'</option>').join('')+'</select></td><td><input data-ci="'+i+'" data-ck="item_name" value="'+esc(x.item_name)+'" placeholder="Наименование позиции"></td><td><select data-ci="'+i+'" data-ck="supplier_id">'+supplierOptions(x.supplier_id)+'</select><small>'+Number(x.supplier_discount_percent||0)+'% скидка · к расчёту '+money(x.unit_price)+'</small></td><td><input data-ci="'+i+'" data-ck="unit" value="'+esc(x.unit)+'" style="width:55px"></td><td><input data-ci="'+i+'" data-ck="quantity" type="number" min="0" step=".001" value="'+x.quantity+'"></td><td><input data-ci="'+i+'" data-ck="source_unit_price" type="number" min="0" step=".01" value="'+(x.source_unit_price??x.unit_price??0)+'"></td><td><input data-ci="'+i+'" data-ck="markup_percent" type="number" min="0" step=".1" value="'+x.markup_percent+'"></td><td>'+money(Number(x.quantity||0)*Number(x.unit_price||0)*(1+Number(x.markup_percent||0)/100))+'</td><td><button type="button" class="btn danger" data-cdel="'+i+'">×</button></td></tr>').join('')||'<tr><td colspan="9" class="empty">Добавьте материалы, фурнитуру или работы.</td></tr>';
+  host.querySelectorAll('[data-ci]').forEach(el=>el.onchange=()=>{const x=costLines[Number(el.dataset.ci)],k=el.dataset.ck;if(k==='supplier_id')setCostSupplier(x,el.value);else if(k==='source_unit_price'){x.source_unit_price=Number(el.value);x.unit_price=x.source_unit_price*(1-Number(x.supplier_discount_percent||0)/100)}else x[k]=['category','item_name','unit'].includes(k)?el.value:Number(el.value);drawCosts();summary()});
   host.querySelectorAll('[data-cdel]').forEach(el=>el.onclick=()=>{costLines.splice(Number(el.dataset.cdel),1);drawCosts();summary()});
  }
  function close(){$('cModal').classList.remove('open');active=null}
@@ -108,7 +110,7 @@
   if(ins.error){alert('Просчёт сохранён, но детали не записались: '+ins.error.message);return}
   const oldLines=await db.from('furniture_estimate_lines').delete().eq('estimate_id',id);
   if(oldLines.error){alert('Просчёт сохранён, но позиции сметы не обновились: '+oldLines.error.message);return}
-  const linePayload=costLines.filter(x=>x.item_name.trim()).map(x=>({...x,estimate_id:id}));
+  const linePayload=costLines.filter(x=>x.item_name.trim()).map(x=>({...x,source_unit_price:Number(x.source_unit_price??x.unit_price??0),unit_price:Number(x.unit_price||0),estimate_id:id}));
   const lineInsert=linePayload.length?await db.from('furniture_estimate_lines').insert(linePayload):{error:null};
   if(lineInsert.error){alert('Просчёт сохранён, но позиции сметы не записались: '+lineInsert.error.message);return}
   await load();close();alert('Просчёт сохранён.');
