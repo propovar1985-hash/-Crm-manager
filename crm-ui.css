@@ -1,0 +1,51 @@
+/* Shared minimal UI layer for all CRM modules */
+:root{
+ --nav:#172334;--nav2:#24364c;--blue:#315f9f;--bg:#f5f6f8;--line:#e4e7ec;
+ --muted:#737e8e;--ink:#202936;--green:#287a58;--red:#b54747;
+ --crm-radius:10px;
+}
+body{background:var(--bg);color:var(--ink)}
+.card,.panel,.supplier-card,.rest-card,.m-panel,.c-panel,.prod-col,.stage{
+ border:1px solid var(--line)!important;border-radius:var(--crm-radius)!important;
+ box-shadow:none!important;
+}
+.btn,button.navbtn,.order-tabs button,.order-open{
+ border-radius:8px!important;box-shadow:none!important;transition:background-color .15s,border-color .15s,color .15s;
+}
+.btn:not(.primary):not(.danger){background:#fff!important;border-color:#dfe3e8!important;color:#344054!important}
+.btn:not(.primary):not(.danger):hover{background:#f1f3f6!important;border-color:#cbd2dc!important}
+.btn.primary,.primary{background:#315f9f!important;border-color:#315f9f!important;color:#fff!important}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
+ outline:2px solid #9bb4d4!important;outline-offset:1px;
+}
+input,select,textarea{border:1px solid #d9dee6!important;border-radius:8px!important;background:#fff!important;color:var(--ink)!important;box-shadow:none!important}
+input:hover,select:hover,textarea:hover{border-color:#bfc8d4!important}
+table th{background:#f8f9fb;color:#687385!important;font-weight:650!important}
+table td,table th{border-bottom:1px solid #eceff3!important}
+.pill,.badge{border-radius:6px!important;background:#f0f2f5!important;color:#475467!important}
+.modal,.m-modal,.c-modal,.supplier-modal{backdrop-filter:blur(3px)}
+.dialog,.m-panel,.c-panel,.supplier-dialog,.order-drawer-panel{
+ border:1px solid var(--line)!important;border-radius:12px!important;box-shadow:0 16px 48px #10182818!important;
+}
+.head{margin-bottom:16px}
+h1{font-size:25px!important;font-weight:700!important;letter-spacing:-.025em}
+h2{letter-spacing:-.02em}
+/* Neutral stage cards instead of competing module palettes */
+.pipeline>.stage:nth-child(n),#production .prod-col{
+ background:#fff!important;border-color:var(--line)!important;
+}
+#production .prod-col-head{border-bottom:1px solid var(--line)!important}
+#production .prod-card{background:#fff!important;border:1px solid var(--line)!important;box-shadow:none!important}
+#production .prod-col.drop-target{outline:2px solid #a9bcd4!important;background:#f8fafc!important}
+/* Consistent compact selectors and tabs */
+.order-tabs button,.wb-section-head,.wb-cell,.cal-cell{box-shadow:none!important}
+.order-tabs button.primary{background:#315f9f!important;color:#fff!important}
+.wb-eyebrow,.wb-pill,.wb-selected-label{background:#f0f2f5!important;color:#475467!important;border:1px solid #e3e7ed!important}
+.wb-preview{background:#fff!important}
+.wb-cabinet{border-color:#8b95a3!important;background:#eef0f3!important;box-shadow:none!important}
+.wb-section-head.selected{background:#315f9f!important;border-color:#315f9f!important}
+.wb-cell[data-kind="shelves"],.wb-cell[data-kind="drawers"]{background:#f0f3f7!important;border-color:#cbd3de!important;color:#344054!important}
+.wb-cell.selected-cell{outline:2px solid #7894b7!important}
+.wb-legend .wb-legend-shelf,.wb-legend .wb-legend-drawer{background:#f5f6f8!important;border-color:#dfe3e8!important;color:#475467!important}
+.wb-stat{box-shadow:none!important;border-radius:8px!important}
+@media(max-width:760px){.content{padding:16px!important}.cards{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
