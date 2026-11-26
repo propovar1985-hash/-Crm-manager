@@ -69,7 +69,7 @@ function ensure(){
  $('wbAddRow').onclick=function(){setRowCount(rowCount+1);};
  $('wbRemoveRow').onclick=function(){setRowCount(rowCount-1);};
  $('wbReset').onclick=function(){states=states.map(function(){return 'empty';});draw();};
- $('wbApply').onclick=apply;
+ $('wbApply').onclick=function(e){if(e){e.preventDefault();e.stopPropagation();}try{var rows=buildRows();if(!rows){alert('Не удалось сформировать деталировку. Проверьте размеры шкафа.');return;}accumulated=accumulated.concat(rows);cabinetSketches.push(snapshotCabinet());var detail={title:'Шкафы: '+cabinetSketches.length,items:accumulated,sketches:cabinetSketches};var delivered=false;window.dispatchEvent(new CustomEvent('crm:wardrobe-generated',{detail:detail}));delivered=true;close();if(!document.getElementById('cModal')||!document.getElementById('cModal').classList.contains('open')){if(typeof window.tab==='function')window.tab('calc');alert('Деталировка сформирована. Если форма просчёта не открылась, перейдите в раздел «Расчёты» и проверьте список деталей.');}}catch(err){console.error('Wardrobe transfer failed:',err);alert('Ошибка передачи деталировки: '+(err&&err.message?err.message:err));}};
  $('wbAddCabinet').onclick=function(){var next=buildRows();if(!next)return;accumulated=accumulated.concat(next);cabinetSketches.push(snapshotCabinet());cabinetNo++;states=[];selectedSection=0;draw();};
 }
 function val(id,min,max){var n=Number($(id).value);return Math.max(min,Math.min(max,isFinite(n)?n:min));}
