@@ -85,5 +85,5 @@
  }
  const original=window.tab;
  if(typeof original==='function'&&!window.__measureTabWrapped){window.tab=function(id){original(id);if(id==='measure')init()};window.__measureTabWrapped=true}
- window.addEventListener('crm:authenticated',init);if(window.__crmAuthenticated)init();
+ document.addEventListener('click',e=>{if(e.target.closest('[data-tab="measure"]')){ensure();if(window.__crmAuthenticated)init();}});\n ensure();\n window.addEventListener('crm:authenticated',init);if(window.__crmAuthenticated)init();
 })();
