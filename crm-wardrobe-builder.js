@@ -33,11 +33,11 @@ function apply(){
  var iw=W-2*t-(N-1)*t,sw=iw/N,ih=H-2*t,rows=[];
  function add(name,mat,w,h,q,edge){rows.push({item_name:name,material:mat,width_mm:Math.max(1,Math.round(w)),height_mm:Math.max(1,Math.round(h)),quantity:q,edge_m:Number(edge.toFixed(3)),material_price_m2:0});}
  add('Боковина корпуса','ЛДСП 16 мм',D,H,2,H/1000);
- add('Крышка корпуса','ЛДСП 16 мм',D,W-2*t,1,(W-2*t)/1000);
- add('Дно корпуса','ЛДСП 16 мм',D,W-2*t,1,(W-2*t)/1000);
+ add('Крышка корпуса','ЛДСП 16 мм',W-2*t,D,1,(W-2*t)/1000);
+ add('Дно корпуса','ЛДСП 16 мм',W-2*t,D,1,(W-2*t)/1000);
  if(N>1)add('Внутренняя перегородка','ЛДСП 16 мм',D,ih,N-1,ih/1000);
- states.forEach(function(kind,i){var sec=Math.floor(i/2);if(kind==='shelves')add('Полка секции '+(sec+1),'ЛДСП 16 мм',D-20,sw-2,2,(sw-2)/1000);if(kind==='drawers')add('Фасад ящика секции '+(sec+1),'ЛДСП 16 мм',Math.max(1,sw-4),Math.max(1,ih/5),2,2*(sw-4+ih/5)/1000);});
- if(doors>0){var dw=(W-(doors+1)*3)/doors;add('Дверь распашная',$('wbDoorMat').value,H-6,dw,doors,2*((H-6)+dw)/1000);}
+ states.forEach(function(kind,i){var sec=Math.floor(i/2);if(kind==='shelves')add('Полка секции '+(sec+1),'ЛДСП 16 мм',sw-2,D-20,2,(sw-2)/1000);if(kind==='drawers')add('Фасад ящика секции '+(sec+1),'ЛДСП 16 мм',Math.max(1,sw-4),Math.max(1,ih/5),2,2*(sw-4+ih/5)/1000);});
+ if(doors>0){var dw=(W-(doors+1)*3)/doors;add('Дверь распашная',$('wbDoorMat').value,dw,H-6,doors,2*((H-6)+dw)/1000);}
  add('Задняя стенка','ХДФ 3 мм',W,H,1,0);
  window.dispatchEvent(new CustomEvent('crm:wardrobe-generated',{detail:{title:'Шкаф '+W+'×'+H+'×'+D+' мм',items:rows}}));
  close();
