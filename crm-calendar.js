@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const $=id=>document.getElementById(id);
-  const db=window.supabase.createClient(window.CRM_SUPABASE_URL,window.CRM_SUPABASE_KEY);
+  const db=window.crmDb;
   const types=['Встреча','Замер','Проектирование','Согласование','Производство','Доставка','Монтаж','Задача'];
   const colors={'Встреча':'#3b82f6','Замер':'#0d9488','Проектирование':'#8b5cf6','Согласование':'#db2777','Производство':'#d97706','Доставка':'#0891b2','Монтаж':'#65a30d','Задача':'#64748b','Сделка':'#2563eb','Заказ':'#0f766e'};
   let cursor=new Date(); cursor.setDate(1);
