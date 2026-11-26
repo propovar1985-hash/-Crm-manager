@@ -3,6 +3,15 @@
  'use strict';
  const $=id=>document.getElementById(id), esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  let rows=[], orders=[], active=null, pendingFiles={lidar:[],project:[]}, savedFiles={lidar:[],project:[]};
+ const checklistSections=[
+  {title:'1. Инструменты и оборудование',items:['Лазерная рулетка','Обычная рулетка','Строительный уровень','Угломер — проверить углы и отклонения','Угольник и карандаш','iPad Pro с LiDAR — сканирование помещения','Программа Bosch / MeasureOn — замеры и проект','Телефон или камера — фото- и видеофиксация']},
+  {title:'2. Общие размеры помещения',items:['Длина каждой стены','Высота помещения в нескольких точках','Ширина помещения в нескольких точках','Диагонали помещения — проверить геометрию','Размеры и расположение ниш, выступов и коробов','Проверить отклонения стен, пола и потолка']},
+  {title:'3. Проёмы и коммуникации',items:['Окна: ширина, высота, расстояния от углов и пола','Двери: ширина, высота, направление и сторона открывания','Радиаторы, трубы и стояки','Розетки, выключатели и выводы электрики','Вентиляция, газовые и водяные трубы (если есть)','Люки, счётчики и технические доступы']},
+  {title:'4. Пол, стены и потолок',items:['Перепады уровня пола','Неровности и завалы стен','Перепады высоты потолка','Плинтусы, карнизы и потолочные конструкции','Материал стен в местах крепления мебели']},
+  {title:'5. Условия установки мебели',items:['Место установки и точные границы мебели','Проверить открывание дверей, ящиков и техники','Учесть подоконники, откосы и наличники','Проверить возможность заноса мебели и крупных деталей','Уточнить, какие коммуникации нельзя перекрывать']},
+  {title:'6. Фотофиксация и итоговая проверка',items:['Общие фотографии помещения с каждого угла','Фотографии каждой стены прямо','Крупные планы розеток, труб, выступов и сложных узлов','Фото важных размеров с рулеткой','Сохранить LiDAR-скан и проект замера','Нанести все размеры на план или схему','Повторно проверить ключевые размеры перед уходом']}
+ ];
+ let checklistState={}, checklistNotes='';
  const css=document.createElement('style');
  css.textContent=`
  #measure .m-toolbar,#calc .m-toolbar{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}
@@ -12,7 +21,7 @@
  .m-list{display:grid;gap:9px}.m-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:13px;border:1px solid var(--line);border-radius:10px;background:#fff}
  .m-modal{position:fixed;inset:0;background:#10182888;z-index:90;display:none;justify-content:flex-end}.m-modal.open{display:flex}
  .m-panel{background:#fff;width:min(760px,100%);height:100%;overflow:auto;padding:22px}
- .m-panel h2{margin-top:0}.m-file{padding:10px;border:1px dashed #b9c5d6;border-radius:9px}.m-upload-zone{display:flex;flex-direction:column;gap:7px;padding:14px;border:1px dashed #aab8ca;border-radius:10px;background:#f8fafc;cursor:pointer}.m-upload-zone.dragover{border-color:#2563eb;background:#eff6ff}.m-file-item{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:6px 0;border-top:1px solid #e5e7eb}.m-file-item a{overflow-wrap:anywhere}
+ .m-panel h2{margin-top:0}.m-check-section{border:1px solid var(--line);border-radius:10px;padding:12px;margin:10px 0;background:#fff}.m-check-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}.m-check-item{display:flex;gap:9px;align-items:flex-start;padding:7px 0;font-size:14px;line-height:1.35}.m-check-item input{width:18px;height:18px;flex:0 0 18px;margin:0}.m-check-progress{height:8px;background:#e8edf4;border-radius:10px;overflow:hidden}.m-check-progress>span{display:block;height:100%;background:#16a36a;width:0}.m-check-summary{font-size:12px;color:var(--muted);margin-top:6px}.m-file{padding:10px;border:1px dashed #b9c5d6;border-radius:9px}.m-upload-zone{display:flex;flex-direction:column;gap:7px;padding:14px;border:1px dashed #aab8ca;border-radius:10px;background:#f8fafc;cursor:pointer}.m-upload-zone.dragover{border-color:#2563eb;background:#eff6ff}.m-file-item{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:6px 0;border-top:1px solid #e5e7eb}.m-file-item a{overflow-wrap:anywhere}
  @media(max-width:650px){.m-grid{grid-template-columns:1fr}.m-grid .wide{grid-column:auto}.m-row{align-items:flex-start;flex-direction:column}.m-panel{padding:14px}}
  `;
  document.head.appendChild(css);
@@ -31,6 +40,8 @@
   <label class="wide">Окна, двери и проёмы<textarea name="openings_notes" rows="3"></textarea></label>
   <label class="wide">Коммуникации (вода, газ, электричество, вентиляция)<textarea name="utilities_notes" rows="3"></textarea></label>
   <label class="wide">Комментарий<textarea name="comments" rows="3"></textarea></label>
+  <div class="wide" id="mChecklist"><div class="head"><div><b>Чек-лист замера</b><div class="small">Отмечайте пункты прямо во время замера. Отметки сохраняются в карточке.</div></div><b id="mChecklistCount">0 / 36</b></div><div class="m-check-progress"><span id="mChecklistBar"></span></div><div id="mChecklistSections"></div><label>Итоговые примечания по замеру<textarea id="mChecklistNotes" rows="3" placeholder="Что важно учесть при проектировании и монтаже…"></textarea></label></div>
+
   <div class="wide m-upload-zone" data-measure-upload="lidar" tabindex="0"><b>Файлы замера и LiDAR</b><span class="small">Перетащите сюда файлы или нажмите для выбора. До 90 МБ на файл.</span><input type="file" id="mLidar" multiple hidden><div id="mFilesLidar" class="m-file small">Файлы не выбраны</div></div>
   <div class="wide m-upload-zone" data-measure-upload="project" tabindex="0"><b>Проект, чертежи и документация</b><span class="small">PDF, DWG, файлы БАЗИС, изображения и другие документы.</span><input type="file" id="mProject" multiple hidden><div id="mFilesProject" class="m-file small">Файлы не выбраны</div></div>
   <label class="wide">Дополнительная ссылка на проект / чертёж<input name="project_path" type="url" placeholder="https://…"></label>
@@ -38,6 +49,7 @@
   $('mNew').onclick=()=>open();$('mClose').onclick=close;$('mCancel').onclick=close;
   $('mModal').onclick=e=>{if(e.target.id==='mModal')close()};
   $('mSearch').oninput=render;$('mRefresh').onclick=load;$('mForm').onsubmit=save;
+  renderChecklist();$('mChecklistNotes').addEventListener('input',e=>{checklistNotes=e.target.value;});
   ['lidar','project'].forEach(kind=>{const input=$(kind==='lidar'?'mLidar':'mProject');input.addEventListener('change',()=>{queueFiles(kind,input.files);input.value='';});});
   const modal=$('mModal');
   modal.addEventListener('click',e=>{const zone=e.target.closest('[data-measure-upload]');if(zone&&!e.target.closest('a,button'))zone.querySelector('input[type=file]').click();});
@@ -68,6 +80,28 @@
   for(const file of data||[]){if(savedFiles[file.category])savedFiles[file.category].push(file);}
   renderFiles('lidar');renderFiles('project');
  }
+ function checklistTotal(){return checklistSections.reduce((n,s)=>n+s.items.length,0)}
+ function renderChecklist(){
+  const host=$('mChecklistSections');if(!host)return;
+  host.innerHTML=checklistSections.map((section,si)=>{const done=section.items.filter((_,ii)=>checklistState[si+'_'+ii]).length;return '<section class="m-check-section"><div class="m-check-head"><b>'+esc(section.title)+'</b><span class="small">'+done+'/'+section.items.length+'</span></div>'+section.items.map((item,ii)=>{const key=si+'_'+ii;return '<label class="m-check-item"><input type="checkbox" data-check-id="'+key+'" '+(checklistState[key]?'checked':'')+'><span>'+esc(item)+'</span></label>'}).join('')+'</section>'}).join('');
+  host.querySelectorAll('[data-check-id]').forEach(input=>input.addEventListener('change',()=>{checklistState[input.dataset.checkId]=input.checked;updateChecklistProgress();const section=input.closest('.m-check-section');const labels=section.querySelectorAll('[data-check-id]');section.querySelector('.m-check-head .small').textContent=Array.from(labels).filter(x=>x.checked).length+'/'+labels.length;}));
+  updateChecklistProgress();$('mChecklistNotes').value=checklistNotes;
+ }
+ function updateChecklistProgress(){
+  const total=checklistTotal(),done=Object.values(checklistState).filter(Boolean).length;
+  $('mChecklistCount').textContent=done+' / '+total+' выполнено';$('mChecklistBar').style.width=(total?done/total*100:0)+'%';
+ }
+ async function loadChecklist(id){
+  checklistState={};checklistNotes='';
+  const {data,error}=await db.from('furniture_measurement_checklists').select('checklist,notes').eq('measurement_id',id).maybeSingle();
+  if(error){console.warn('Чек-лист замера не загружен:',error.message);return}
+  if(data){checklistState=data.checklist||{};checklistNotes=data.notes||''}
+  renderChecklist();
+ }
+ async function saveChecklist(id){
+  const {error}=await db.from('furniture_measurement_checklists').upsert({measurement_id:id,checklist:checklistState,notes:checklistNotes,updated_at:new Date().toISOString()},{onConflict:'measurement_id'});
+  if(error)throw error;
+ }
  function render(){
   const q=($('mSearch')?.value||'').toLocaleLowerCase('ru');
   const list=rows.filter(x=>[x.client_name,x.address,x.room_name,x.manager].join(' ').toLocaleLowerCase('ru').includes(q));
@@ -75,14 +109,14 @@
   $('mRows').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>open(rows.find(x=>x.id===b.dataset.edit)));
  }
  async function open(row=null){
-  active=row?.id||null;pendingFiles={lidar:[],project:[]};savedFiles={lidar:[],project:[]};$('mForm').reset();$('mForm').elements.id.value=active||'';
+  active=row?.id||null;pendingFiles={lidar:[],project:[]};savedFiles={lidar:[],project:[]};checklistState={};checklistNotes='';$('mForm').reset();$('mForm').elements.id.value=active||'';
   $('mHeading').textContent=row?'ЗАМЕР':'НОВЫЙ ЗАМЕР';
   const form=$('mForm'), sel=form.elements.order_id;
   sel.innerHTML='<option value="">Без привязки</option>'+orders.map(o=>`<option value="${esc(o.id)}">${esc(o.order_no||'Заказ')} · ${esc(o.client_name)} · ${esc(o.title)}</option>`).join('');
   const clientsList=(()=>{try{return Array.isArray(clients)?clients:[]}catch(_){return []}})();
   $('mClients').innerHTML=clientsList.map(c=>`<option value="${esc(c.full_name)}"></option>`).join('');
   if(row)Object.entries(row).forEach(([k,v])=>{if(form.elements[k])form.elements[k].value=v??''});
-  $('mModal').classList.add('open');renderFiles('lidar');renderFiles('project');if(row?.id)await loadMeasurementFiles(row.id);
+  $('mModal').classList.add('open');renderFiles('lidar');renderFiles('project');renderChecklist();if(row?.id){await loadMeasurementFiles(row.id);await loadChecklist(row.id);}
  }
  function close(){$('mModal').classList.remove('open');active=null}
  async function save(e){
@@ -91,6 +125,7 @@
   const result=active?await db.from('furniture_measurements').update(row).eq('id',active).select().single():await db.from('furniture_measurements').insert({...row,created_by:user?.id||null}).select().single();
   if(result.error){alert('Не удалось сохранить замер: '+result.error.message);return}
   const saved=result.data;
+  try{await saveChecklist(saved.id);}catch(err){alert('Замер сохранён, но чек-лист не записан: '+err.message+'. Выполните SQL-миграцию для чек-листа.');return;}
   for(const kind of ['lidar','project']){
    for(const file of pendingFiles[kind]){
     try{
