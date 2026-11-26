@@ -173,18 +173,27 @@ Deno.serve(async (req) => {
       if (!(file instanceof File)) throw new Error("Файл не передан в запросе.");
       const category = String(form?.get("category") || "");
       if (!["lidar", "project"].includes(category)) throw new Error("Неизвестный тип файла.");
+      const entityType = String(form?.get("entity_type") || "order");
       const orderId = String(form?.get("order_id") || "").trim();
+      const measurementId = String(form?.get("measurement_id") || "").trim();
       const orderNo = String(form?.get("order_no") || "").trim();
       const orderTitle = String(form?.get("order_title") || "").trim();
-      if (!orderId) throw new Error("Не указан заказ.");
+      const clientName = String(form?.get("client_name") || "").trim();
+      const roomName = String(form?.get("room_name") || "").trim();
+      if (entityType !== "order" && entityType !== "measurement") throw new Error("Неизвестный тип объекта.");
+      if (entityType === "order" && !orderId) throw new Error("Не указан заказ.");
+      if (entityType === "measurement" && !measurementId) throw new Error("Не указан замер.");
       if (file.size > 90 * 1024 * 1024) throw new Error("Размер файла превышает лимит 90 МБ.");
-      const safe = (v: string) => v.replace(/[\\/:*?"<>|]+/g, "_").replace(/\s+/g, " ").trim().slice(0, 90);
-      const folderName = safe([orderNo ? "Заказ " + orderNo : "Заказ", orderTitle].filter(Boolean).join(" — ")) || ("Заказ " + orderId.slice(0, 8));
-      const orderPath = rootPath.replace(/\/$/, "") + "/" + folderName + " (" + orderId.slice(0, 8) + ")";
-      const subPath = orderPath + "/" + (category === "lidar" ? "LiDAR" : "Проект");
-      for (const path of [orderPath, subPath]) {
+      const safe = (v: string) => v.replace(/[\\/:*?"<>|]+/g, "_").replace(/\\s+/g, " ").trim().slice(0, 90);
+      const entityKey = entityType === "order" ? orderId : measurementId;
+      const folderName = entityType === "order"
+        ? safe([orderNo ? "Заказ " + orderNo : "Заказ", orderTitle].filter(Boolean).join(" — ")) || ("Заказ " + entityKey.slice(0, 8))
+        : safe(["Замер", clientName, roomName].filter(Boolean).join(" — ")) || ("Замер " + entityKey.slice(0, 8));
+      const entityPath = rootPath.replace(/\\/$/, "") + "/" + folderName + " (" + entityKey.slice(0, 8) + ")";
+      const subPath = entityPath + "/" + (category === "lidar" ? "LiDAR" : "Проект");
+      for (const path of [entityPath, subPath]) {
         const mkdir = await diskRequest("/resources?path=" + encodeURIComponent(path), token, { method: "PUT" });
-        if (!mkdir.ok && mkdir.status !== 409) { const detail = await mkdir.json().catch(() => ({})); throw new Error(detail.message || "Не удалось создать папку заказа на Яндекс Диске."); }
+        if (!mkdir.ok && mkdir.status !== 409) { const detail = await mkdir.json().catch(() => ({})); throw new Error(detail.message || "Не удалось создать папку объекта на Яндекс Диске."); }
       }
       const targetPath = subPath + "/" + crypto.randomUUID() + "_" + (safe(file.name) || "file");
       const hrefRes = await diskRequest("/resources/upload?path=" + encodeURIComponent(targetPath) + "&overwrite=false", token);
@@ -203,8 +212,10 @@ Deno.serve(async (req) => {
       if (!externalUrl) {
         externalUrl = "https://disk.yandex.ru/client/disk/" + targetPath.replace(/^disk:\//, "").split("/").map(encodeURIComponent).join("/");
       }
-      const { error: metaError } = await admin.from("furniture_order_files").insert({ order_id: orderId, category, file_name: file.name, storage_path: targetPath, mime_type: file.type || null, file_size: file.size, provider: "yandex", external_url: externalUrl });
-      if (metaError) throw new Error("Файл загружен на Яндекс Диск, но запись CRM не сохранена: " + metaError.message);
+      const metadata = entityType === "order"
+        ? await admin.from("furniture_order_files").insert({ order_id: orderId, category, file_name: file.name, storage_path: targetPath, mime_type: file.type || null, file_size: file.size, provider: "yandex", external_url: externalUrl })
+        : await admin.from("furniture_measurement_files").insert({ measurement_id: measurementId, category, file_name: file.name, storage_path: targetPath, mime_type: file.type || null, file_size: file.size, provider: "yandex", external_url: externalUrl, created_by: user.id });
+      if (metadata.error) throw new Error("Файл загружен на Яндекс Диск, но запись CRM не сохранена: " + metadata.error.message);
       return response({ ok: true, file_name: file.name, external_url: externalUrl, path: targetPath });
     }
 
