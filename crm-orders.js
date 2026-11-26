@@ -7,7 +7,7 @@
   'use strict';
   const $ = id => document.getElementById(id);
   const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const stages = ['Просчёт','Замер','Проектирование','Согласование','Производство','Монтаж'];
+  const stages = ['Просчёт','Договор и оплата','Замер','Проектирование','Согласование','Производство','Монтаж'];
   let orders = [];
   let activeId = null;
 
