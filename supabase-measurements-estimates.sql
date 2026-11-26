@@ -11,7 +11,7 @@ create table if not exists public.furniture_measurements (
  room_length_mm integer,
  room_width_mm integer,
  room_height_mm integer,
- wall_dimensions jsonb not null default '[]'::jsonb,
+ wall_dimensions text,
  openings_notes text,
  utilities_notes text,
  comments text,
