@@ -71,6 +71,17 @@ async function currentUser(req: Request) {
   if (error || !data.user) throw new Error("Сессия CRM недействительна.");
   return data.user;
 }
+async function getUserToken(userId: string) {
+  const { data, error } = await admin
+    .from("yandex_disk_connections")
+    .select("access_token_ciphertext")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data?.access_token_ciphertext) throw new Error("Яндекс Диск не подключён. Сначала выполните авторизацию.");
+  return decryptToken(data.access_token_ciphertext);
+}
+
 async function diskRequest(path: string, token: string, init: RequestInit = {}) {
   return fetch("https://cloud-api.yandex.net/v1/disk" + path, {
     ...init,
