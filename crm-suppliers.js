@@ -92,10 +92,10 @@
   let panel=card.querySelector('.supplier-products');
   if(panel){panel.remove();return;}
   panel=document.createElement('div');panel.className='supplier-products';panel.textContent='Загрузка каталога…';card.appendChild(panel);
-  const {data,error}=await db.from('crm_supplier_products').select('product_name,article,unit,source_price,discount_percent,calc_price,availability,product_url,updated_at').eq('supplier_id',id).eq('is_active',true).order('product_name').limit(100);
+  const {data,error}=await db.from('crm_supplier_products').select('product_name,article,calc_price').eq('supplier_id',id).eq('is_active',true).order('product_name').limit(100);
   if(error){panel.textContent='Не удалось загрузить каталог: '+error.message;return;}
   if(!data?.length){panel.textContent='Каталог пока пуст. Нажмите «Загрузить цены».';return;}
-  panel.innerHTML='<b>Товары ('+data.length+' показано, максимум 100)</b><div style="overflow:auto;max-height:360px"><table><thead><tr><th>Артикул / товар</th><th>Цена источника</th><th>Цена в расчёте</th></tr></thead><tbody>'+data.map(p=>'<tr><td><a href="'+esc(p.product_url||'#')+'" target="_blank" rel="noopener noreferrer">'+esc(p.article||'')+' '+esc(p.product_name)+'</a><div class="small">'+esc(p.availability||'')+'</div></td><td>'+Number(p.source_price||0).toLocaleString('ru-RU')+' ₽</td><td><b>'+Number(p.calc_price||0).toLocaleString('ru-RU')+' ₽</b><div class="small">−'+Number(p.discount_percent||0)+'%</div></td></tr>').join('')+'</tbody></table></div>';
+  panel.innerHTML='<b>Товары ('+data.length+' показано, максимум 100)</b><div style="overflow:auto;max-height:360px"><table><thead><tr><th>Название</th><th>Артикул</th><th>Цена</th></tr></thead><tbody>'+data.map(p=>'<tr><td>'+esc(p.product_name)+'</td><td>'+esc(p.article||'')+'</td><td><b>'+Number(p.calc_price||0).toLocaleString('ru-RU')+' ₽</b></td></tr>').join('')+'</tbody></table></div>';
  }
  async function remove(id){
   const row=rows.find(x=>x.id===id);if(!row||!confirm('Удалить поставщика «'+row.name+'»?'))return;
