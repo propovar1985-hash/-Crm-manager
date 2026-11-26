@@ -35,25 +35,20 @@ input,select,textarea{padding:10px 11px;border:1px solid #d6deea;border-radius:8
 .calendar-nav,.calendar-filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .calendar-nav strong{min-width:170px;text-align:center;text-transform:capitalize}
 .calendar-filters select{width:auto;min-width:135px}
-.calendar-layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:14px}
+.calendar-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
 .calendar-main{min-width:0}
 .cal-weekdays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin-bottom:5px;text-align:center;color:var(--muted);font-size:12px;font-weight:700}
 .cal-month-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
-.cal-cell{min-width:0;min-height:112px;border:1px solid var(--line);border-radius:9px;padding:5px;background:#fff}
+.cal-cell{min-width:0;min-height:112px;border:1px solid var(--line);border-radius:9px;padding:5px;background:#fff;cursor:pointer;transition:background-color .15s,border-color .15s}.cal-cell:hover{background:#f1f5f9;border-color:var(--blue)}.cal-cell:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .cal-cell.out-month{background:#f7f8fa;color:#9aa4b2}
 .cal-cell.is-today{border:2px solid var(--blue)}
-.cal-date{border:0;background:transparent;font-weight:800;padding:3px 5px;border-radius:6px;margin-bottom:4px}
+.cal-date{display:block;font-weight:800;padding:3px 5px;border-radius:6px;margin-bottom:4px;pointer-events:none}
 .cal-day-heading{font-size:18px;font-weight:750;margin-bottom:12px}
 .cal-event{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;border:0;border-left:3px solid var(--event-color);background:color-mix(in srgb,var(--event-color) 10%,white);border-radius:5px;padding:5px 6px;margin:3px 0;min-width:0;overflow:hidden}
 .cal-event b,.cal-event small{display:block;max-width:100%;overflow-wrap:anywhere}
 .cal-event b{font-size:11px;line-height:1.25}
 .cal-event small,.cal-event-time{font-size:10px;color:var(--muted)}
-.calendar-side{min-width:0}
-.calendar-side h3{margin-top:0}
-.calendar-side .cal-event{margin:7px 0;padding:8px}
-.calendar-side .cal-event b{font-size:12px}
-.calendar-side .cal-event small{font-size:11px}
-@media(max-width:1050px){.calendar-layout{grid-template-columns:1fr}.calendar-side{display:none}}
+
 @media(max-width:680px){.calendar-toolbar{align-items:stretch}.calendar-nav{justify-content:space-between}.calendar-nav strong{flex:1}.calendar-filters{display:grid;grid-template-columns:1fr 1fr}.calendar-filters select{width:100%;min-width:0}.cal-cell{min-height:84px;padding:3px}.cal-event{padding:3px}.cal-event b{font-size:9px}.cal-event small,.cal-event-time{font-size:8px}.cal-month-grid{gap:3px}.cal-weekdays{gap:3px}}
 
 </style>
