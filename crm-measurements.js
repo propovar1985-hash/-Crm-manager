@@ -1,6 +1,7 @@
 /* CRM «Мастер мебельщик» — замеры и проекты */
 (() => {
  'use strict';
+ const db=window.crmDb;
  const $=id=>document.getElementById(id), esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  let rows=[], orders=[], active=null, pendingFiles={lidar:[],project:[]}, savedFiles={lidar:[],project:[]};
  const checklistSections=[
@@ -58,9 +59,21 @@
   ['dragleave','drop'].forEach(name=>modal.addEventListener(name,e=>{const zone=e.target.closest('[data-measure-upload]');if(zone){e.preventDefault();zone.classList.remove('dragover');if(name==='drop'&&e.dataTransfer?.files?.length)queueFiles(zone.dataset.measureUpload,e.dataTransfer.files);}}));
  }
  async function load(){
-  const [a,b]=await Promise.all([db.from('furniture_measurements').select('*').order('created_at',{ascending:false}),db.from('furniture_orders').select('id,order_no,title,client_name').order('created_at',{ascending:false})]);
-  if(a.error){$('mRows').innerHTML='<div class="error">Ошибка загрузки: '+esc(a.error.message)+'. Проверьте SQL-миграцию.</div>';return}
-  rows=a.data||[];orders=b.data||[];render();
+  const host=$('mRows');if(!host)return;
+  if(!db){host.innerHTML='<div class="error">Не найдено подключение к Supabase. Обновите страницу CRM и проверьте авторизацию.</div>';return;}
+  host.textContent='Загрузка замеров…';
+  try{
+   const [a,b]=await Promise.all([
+    db.from('furniture_measurements').select('*').order('created_at',{ascending:false}),
+    db.from('furniture_orders').select('id,order_no,title,client_name').order('created_at',{ascending:false})
+   ]);
+   if(a.error){host.innerHTML='<div class="error">Не удалось загрузить замеры: '+esc(a.error.message)+'. Проверьте таблицу furniture_measurements и права доступа.</div>';return;}
+   if(b.error)console.warn('Список заказов для замеров не загружен:',b.error.message);
+   rows=a.data||[];orders=b.data||[];render();
+  }catch(err){
+   console.error('CRM measurements load failed:',err);
+   host.innerHTML='<div class="error">Ошибка загрузки раздела «Замеры»: '+esc(err?.message||String(err))+'</div>';
+  }
  }
  function renderProjectPathLink(value){
   const host=$('mProjectPathPreview');if(!host)return;
@@ -144,8 +157,9 @@
   await loadMeasurementFiles(saved.id);await load();close();alert('Замер сохранён. Файлы отправлены на Яндекс Диск.');
  }
  function init(){
-  if(!window.__crmAuthenticated||typeof db==='undefined'||!$('measure'))return;
+  if(!$('measure'))return;
   if(!window.__measureUI){ensure();window.__measureUI=true}
+  if(!window.__crmAuthenticated){const host=$('mRows');if(host)host.textContent='Войдите в CRM, чтобы загрузить замеры.';return;}
   load();
  }
  const original=window.tab;
