@@ -31,14 +31,14 @@ function buildRows(){
  var W=val('wbW',300,6000),H=val('wbH',300,3000),D=val('wbD',200,1200),N=val('wbN',1,8),doors=val('wbDoors',0,8),t=16;
  if(W<=2*t||H<=2*t){alert('Габариты слишком малы для корпуса.');return null;}
  var iw=W-2*t-(N-1)*t,sw=iw/N,ih=H-2*t,rows=[],prefix='Шкаф '+cabinetNo+' — ';
- function add(name,mat,w,h,q,edge){rows.push({item_name:prefix+name,material:mat,width_mm:Math.max(1,Math.round(w)),height_mm:Math.max(1,Math.round(h)),quantity:q,edge_m:Number(edge.toFixed(3)),material_price_m2:0});}
- add('Боковина корпуса','ЛДСП 16 мм',D,H,2,H/1000);
- add('Крышка корпуса','ЛДСП 16 мм',W-2*t,D,1,(W-2*t)/1000);
- add('Дно корпуса','ЛДСП 16 мм',W-2*t,D,1,(W-2*t)/1000);
- if(N>1)add('Внутренняя перегородка','ЛДСП 16 мм',D,ih,N-1,ih/1000);
- states.forEach(function(kind,i){var sec=Math.floor(i/4),level=(i%4)+1;if(kind==='shelves')add('Полка секция '+(sec+1)+', уровень '+level,'ЛДСП 16 мм',sw-2,D-20,1,(sw-2)/1000);if(kind==='drawers')add('Фасад ящика секция '+(sec+1)+', уровень '+level,'ЛДСП 16 мм',Math.max(1,sw-4),Math.max(1,ih/5),1,2*(sw-4+ih/5)/1000);});
- if(doors>0){var dw=(W-(doors+1)*3)/doors;add('Дверь распашная',$('wbDoorMat').value,dw,H-6,doors,2*((H-6)+dw)/1000);}
- add('Задняя стенка','ХДФ 3 мм',W,H,1,0);
+ function add(name,mat,w,h,q,edgeAllSides){var ww=Math.max(1,Math.round(w)),hh=Math.max(1,Math.round(h));var edge=edgeAllSides?(2*(ww+hh)*q/1000):0;rows.push({item_name:prefix+name,material:mat,width_mm:ww,height_mm:hh,quantity:q,edge_m:Number(edge.toFixed(3)),material_price_m2:0});}
+ add('Боковина корпуса','ЛДСП 16 мм',D,H,2,true);
+ add('Крышка корпуса','ЛДСП 16 мм',W-2*t,D,1,true);
+ add('Дно корпуса','ЛДСП 16 мм',W-2*t,D,1,true);
+ if(N>1)add('Внутренняя перегородка','ЛДСП 16 мм',D,ih,N-1,true);
+ states.forEach(function(kind,i){var sec=Math.floor(i/4),level=(i%4)+1;if(kind==='shelves')add('Полка секция '+(sec+1)+', уровень '+level,'ЛДСП 16 мм',sw-2,D-20,1,true);if(kind==='drawers')add('Фасад ящика секция '+(sec+1)+', уровень '+level,'ЛДСП 16 мм',Math.max(1,sw-4),Math.max(1,ih/5),1,true);});
+ if(doors>0){var dw=(W-(doors+1)*3)/doors;add('Дверь распашная',$('wbDoorMat').value,dw,H-6,doors,true);}
+ add('Задняя стенка','ХДФ 3 мм',W,H,1,false);
  return rows;
 }
 function apply(){
