@@ -48,7 +48,8 @@
   $('mNew').onclick=()=>open();$('mClose').onclick=close;$('mCancel').onclick=close;
   $('mModal').onclick=e=>{if(e.target.id==='mModal')close()};
   $('mSearch').oninput=render;$('mRefresh').onclick=load;$('mForm').onsubmit=save;
-  renderChecklist();$('mChecklistNotes').addEventListener('input',e=>{checklistNotes=e.target.value;});\n  $('mProjectPath').addEventListener('input',e=>renderProjectPathLink(e.target.value));
+  renderChecklist();$('mChecklistNotes').addEventListener('input',e=>{checklistNotes=e.target.value;});
+  $('mProjectPath').addEventListener('input',e=>renderProjectPathLink(e.target.value));
   ['lidar','project'].forEach(kind=>{const input=$(kind==='lidar'?'mLidar':'mProject');input.addEventListener('change',()=>{queueFiles(kind,input.files);input.value='';});});
   const modal=$('mModal');
   modal.addEventListener('click',e=>{const zone=e.target.closest('[data-measure-upload]');if(zone&&!e.target.closest('a,button'))zone.querySelector('input[type=file]').click();});
@@ -61,7 +62,12 @@
   if(a.error){$('mRows').innerHTML='<div class="error">Ошибка загрузки: '+esc(a.error.message)+'. Проверьте SQL-миграцию.</div>';return}
   rows=a.data||[];orders=b.data||[];render();
  }
- function renderProjectPathLink(value){\n  const host=$('mProjectPathPreview');if(!host)return;\n  const raw=String(value||'').trim();\n  try{const url=new URL(raw);if(!['http:','https:'].includes(url.protocol)){host.textContent='';return;}host.innerHTML='<a href="'+esc(url.href)+'" target="_blank" rel="noopener noreferrer">Открыть проект / чертёж ↗</a>';}catch(_){host.textContent='';}\n }\n function queueFiles(kind,fileList){
+ function renderProjectPathLink(value){
+  const host=$('mProjectPathPreview');if(!host)return;
+  const raw=String(value||'').trim();
+  try{const url=new URL(raw);if(!['http:','https:'].includes(url.protocol)){host.textContent='';return;}host.innerHTML='<a href="'+esc(url.href)+'" target="_blank" rel="noopener noreferrer">Открыть проект / чертёж ↗</a>';}catch(_){host.textContent='';}
+ }
+ function queueFiles(kind,fileList){
   for(const file of Array.from(fileList||[])){if(file.size>90*1024*1024){alert('Файл '+file.name+' больше 90 МБ.');continue;}pendingFiles[kind].push(file);}
   renderFiles(kind);
  }
@@ -115,7 +121,8 @@
   const clientsList=(()=>{try{return Array.isArray(clients)?clients:[]}catch(_){return []}})();
   $('mClients').innerHTML=clientsList.map(c=>`<option value="${esc(c.full_name)}"></option>`).join('');
   if(row)Object.entries(row).forEach(([k,v])=>{if(form.elements[k])form.elements[k].value=v??''});
-  renderProjectPathLink(form.elements.project_path.value);\n  $('mModal').classList.add('open');renderFiles('lidar');renderFiles('project');renderChecklist();if(row?.id){await loadMeasurementFiles(row.id);await loadChecklist(row.id);}
+  renderProjectPathLink(form.elements.project_path.value);
+  $('mModal').classList.add('open');renderFiles('lidar');renderFiles('project');renderChecklist();if(row?.id){await loadMeasurementFiles(row.id);await loadChecklist(row.id);}
  }
  function close(){const done=Object.values(checklistState).filter(Boolean).length,total=checklistTotal(),left=total-done;if(left>0&&!confirm('В чек-листе замера осталось '+left+' непоставленных галочек из '+total+'. Замер ещё не завершён. Всё равно закрыть карточку?'))return;$('mModal').classList.remove('open');active=null}
  async function save(e){
