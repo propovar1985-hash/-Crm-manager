@@ -86,14 +86,22 @@ Deno.serve(async (req) => {
     if (authError || !auth.user) return reply({ error: "Требуется вход в CRM." }, 401);
     const body = await req.json();
     const supplierId = String(body.supplier_id || "");
-    const { data: supplier, error: supplierError } = await admin.from("crm_suppliers").select("*").eq("id", supplierId).single();
+    const { data: supplier, error: supplierError } = await admin.from("crm_suppliers").select("id,name,website_url,is_active,category").eq("id", supplierId).single();
     if (supplierError || !supplier) return reply({ error: "Поставщик не найден." }, 404);
+    if (!supplier.is_active) return reply({ error: "Поставщик отключён." }, 400);
     const host = new URL(supplier.website_url).hostname.replace(/^www\./, "");
     const config = SOURCES[host];
     if (!config) return reply({ error: "Для этого поставщика ещё не настроен проверенный источник автоматической загрузки." }, 422);
-      let rows: any[] = [];
+    let rows: any[] = [];
     let sourceDate: string | null = null;
-    const res = await fetch(config.url, { headers: { "User-Agent": "Mozilla/5.0 CRM Supplier Price Sync" }, redirect: "follow" });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25000);
+    let res: Response;
+    try {
+      res = await fetch(config.url, { headers: { "User-Agent": "Mozilla/5.0 CRM Supplier Price Sync", "Accept": config.kind === "xls" ? "application/vnd.ms-excel,application/octet-stream,*/*" : "text/html" }, redirect: "follow", signal: controller.signal });
+    } finally { clearTimeout(timeout); }
+    const finalHost = new URL(res.url || config.url).hostname.replace(/^www\./, "");
+    if (finalHost !== host) throw new Error("Сайт перенаправил запрос на другой домен. Импорт остановлен.");
     if (!res.ok) throw new Error("Сайт поставщика вернул HTTP " + res.status);
     if (config.kind === "xls") {
       rows = parseAmix(await res.arrayBuffer());
