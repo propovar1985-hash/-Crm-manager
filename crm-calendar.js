@@ -3,7 +3,7 @@
   const $=id=>document.getElementById(id);
   const db=window.crmDb;
   const types=['Встреча','Замер','Проектирование','Согласование','Производство','Доставка','Монтаж','Задача'];
-  const colors={'Встреча':'#3b82f6','Замер':'#0d9488','Проектирование':'#8b5cf6','Согласование':'#db2777','Производство':'#d97706','Доставка':'#0891b2','Монтаж':'#65a30d','Задача':'#64748b','Сделка':'#2563eb','Заказ':'#0f766e'};
+  const colors={'Встреча':'#3b82f6','Замер':'#0d9488','Проектирование':'#8b5cf6','Согласование':'#db2777','Производство':'#d97706','Доставка':'#0891b2','Монтаж':'#65a30d','Задача':'#64748b','Сделка':'#2563eb','Заказ':'#0f766e','Срок по договору':'#dc2626'};
   let cursor=new Date(); cursor.setDate(1);
   let mode='month', events=[], staff=[], editing=null;
   const pad=n=>String(n).padStart(2,'0');
@@ -16,7 +16,7 @@
     const section=$('calendar'); if(!section||section.dataset.ready)return; section.dataset.ready='1';
     section.innerHTML=`
       <div class="head calendar-head"><div><h1>Календарь мастерской</h1><div class="muted">Общее расписание всех сотрудников</div></div><button class="btn primary" id="calAdd">＋ Новое событие</button></div>
-      <div class="panel calendar-toolbar"><div class="calendar-nav"><button class="btn" id="calPrev">‹</button><button class="btn" id="calToday">Сегодня</button><button class="btn" id="calNext">›</button><strong id="calTitle"></strong></div><div class="calendar-filters"><select id="calMode"><option value="month">Месяц</option><option value="week">Неделя</option><option value="day">День</option></select><select id="calStaff"><option value="">Все сотрудники</option></select><select id="calType"><option value="">Все события</option><option>Встреча</option><option>Замер</option><option>Проектирование</option><option>Согласование</option><option>Производство</option><option>Доставка</option><option>Монтаж</option><option>Задача</option><option>Сделка</option><option>Заказ</option></select></div></div>
+      <div class="panel calendar-toolbar"><div class="calendar-nav"><button class="btn" id="calPrev">‹</button><button class="btn" id="calToday">Сегодня</button><button class="btn" id="calNext">›</button><strong id="calTitle"></strong></div><div class="calendar-filters"><select id="calMode"><option value="month">Месяц</option><option value="week">Неделя</option><option value="day">День</option></select><select id="calStaff"><option value="">Все сотрудники</option></select><select id="calType"><option value="">Все события</option><option>Встреча</option><option>Замер</option><option>Проектирование</option><option>Согласование</option><option>Производство</option><option>Доставка</option><option>Монтаж</option><option>Задача</option><option>Сделка</option><option>Заказ</option><option>Срок по договору</option></select></div></div>
       <div class="calendar-layout"><div class="panel calendar-main"><div id="calendarGrid"></div></div></div>
       <div class="modal" id="calModal"><div class="dialog"><h2 id="calModalTitle">Новое событие</h2><form id="calForm"><input type="hidden" name="id"><div class="grid">
       <label class="field wide">Название *<input name="title" required maxlength="180"></label>
@@ -44,7 +44,7 @@
     events=(ev.data||[]).map(x=>({...x,source:'manual'}));
     (deals.data||[]).forEach(x=>{if(x.next_contact_at)events.push({id:'deal-'+x.id,title:x.title||'Контакт с клиентом',event_type:'Сделка',assigned_to:x.manager,start_at:x.next_contact_at,related_label:x.client_name,source:'deal',related_id:x.id});});
     (orders.data||[]).forEach(x=>{
-      if(x.due_date)events.push({id:'order-due-'+x.id,title:(x.title||x.order_no||'Заказ')+' — срок',event_type:'Заказ',assigned_to:x.manager,start_at:x.due_date+'T12:00:00',deadline_date:x.due_date,related_label:x.client_name,source:'order',related_id:x.id});
+      if(x.due_date)events.push({id:'order-due-'+x.id,title:'Крайний срок по договору · '+(x.title||x.order_no||'Заказ'),event_type:'Срок по договору',assigned_to:x.manager,start_at:x.due_date+'T12:00:00',deadline_date:x.due_date,related_label:x.client_name,source:'order',related_id:x.id});
       if(x.measure_date)events.push({id:'order-measure-'+x.id,title:(x.title||x.order_no||'Заказ')+' — замер',event_type:'Замер',assigned_to:x.manager,start_at:x.measure_date+'T12:00:00',related_label:x.client_name,source:'order',related_id:x.id});
     });
     staff=[...new Set(events.map(x=>x.assigned_to).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ru'));
@@ -67,7 +67,7 @@
     const borderAlpha=days<0?0.62:0.24+0.25*t;
     return ' style="--deadline-bg:hsla('+hue+',88%,55%,'+alpha+');--deadline-border:hsla('+hue+',78%,42%,'+borderAlpha+');--deadline-text:hsl('+hue+',65%,28%)"';
   }
-  function eventHtml(e){const deadline=e.source==='order'&&e.deadline_date?deadlineStyle(e.deadline_date):'';const time=e.start_at&&e.start_at.includes('T')?new Date(e.start_at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'Весь день';return '<button class="cal-event '+(deadline?'cal-deadline':'')+'" data-event="'+esc(e.id)+'" '+(deadline||'style="--event-color:'+ (colors[e.event_type]||'#64748b')+'"')+'><span class="cal-event-time">'+time+'</span><b>'+esc(e.title)+'</b><small>'+esc(e.assigned_to||'Не назначен')+(e.related_label?' · '+esc(e.related_label):'')+'</small></button>';}
+  function eventHtml(e){const deadline=e.source==='order'&&e.deadline_date?deadlineStyle(e.deadline_date):'';const time=e.event_type==='Срок по договору'?'ДОГОВОР':(e.start_at&&e.start_at.includes('T')?new Date(e.start_at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'Весь день');let remaining='';if(e.event_type==='Срок по договору'&&e.deadline_date){const due=parseDate(e.deadline_date),today=dayStart(new Date()),days=Math.round((dayStart(due)-today)/86400000);remaining=days<0?' · Просрочен на '+Math.abs(days)+' дн.':days===0?' · Последний день':' · Осталось '+days+' дн.';}return '<button class="cal-event '+(deadline?'cal-deadline':'')+'" data-event="'+esc(e.id)+'" '+(deadline||'style="--event-color:'+ (colors[e.event_type]||'#64748b')+'"')+'><span class="cal-event-time">'+time+'</span><b>'+esc(e.title)+'</b><small>'+esc(e.assigned_to||'Не назначен')+(e.related_label?' · '+esc(e.related_label):'')+remaining+'</small></button>';}
   const deadlineStyleCss=document.createElement('style');deadlineStyleCss.textContent='.cal-event.cal-deadline{background:var(--deadline-bg);border-left-color:var(--deadline-border);color:var(--deadline-text);transition:background-color 1.2s ease,border-color 1.2s ease,color 1.2s ease}.cal-event.cal-deadline small,.cal-event.cal-deadline .cal-event-time{color:var(--deadline-text)}';document.head.appendChild(deadlineStyleCss);
   function render(){
     const grid=$('calendarGrid');if(!grid)return;
