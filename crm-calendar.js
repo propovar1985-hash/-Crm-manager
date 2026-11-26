@@ -53,7 +53,7 @@
     render();
   }
   function filtered(){const who=$('calStaff').value,type=$('calType').value;return events.filter(e=>(!who||e.assigned_to===who)&&(!type||e.event_type===type));}
-  function eventHtml(e){const time=e.start_at&&e.start_at.includes('T')?new Date(e.start_at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'Весь день';return '<button class="cal-event" data-event="'+esc(e.id)+'" style="--event-color:'+ (colors[e.event_type]||'#64748b')+'"><span class="cal-event-time">'+time+'</span><b>'+esc(e.title)+'</b><small>'+esc(e.assigned_to||'Не назначен')+(e.related_label?' · '+esc(e.related_label):'')+'</small></button>';}
+  function eventHtml(e){const deadline=e.source==='order'&&e.deadline_date?deadlineStyle(e.deadline_date):'';const time=e.start_at&&e.start_at.includes('T')?new Date(e.start_at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'Весь день';return '<button class="cal-event" data-event="'+esc(e.id)+'" style="--event-color:'+ (colors[e.event_type]||'#64748b')+'"><span class="cal-event-time">'+time+'</span><b>'+esc(e.title)+'</b><small>'+esc(e.assigned_to||'Не назначен')+(e.related_label?' · '+esc(e.related_label):'')+'</small></button>';}
   function render(){
     const grid=$('calendarGrid');if(!grid)return;
     $('calTitle').textContent=mode==='month'?cursor.toLocaleDateString('ru-RU',{month:'long',year:'numeric'}):mode==='day'?fmt(cursor):'Неделя · '+fmt(weekStart(cursor))+' – '+fmt(addDays(weekStart(cursor),6));
