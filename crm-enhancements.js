@@ -103,6 +103,27 @@
     });
   }
 
+  // Delegate Yandex buttons at document level: the Orders module rebuilds its
+  // markup, so direct listeners attached to the previous buttons are discarded.
+  if (!window.__yandexDiskDelegationInstalled) {
+    document.addEventListener('click', event => {
+      const connectButton = event.target.closest('#yandexConnectBtn');
+      if (connectButton) {
+        event.preventDefault();
+        if (typeof window.connectYandexDisk === 'function') window.connectYandexDisk();
+        else alert('Модуль подключения Яндекс Диска ещё не загрузился. Обновите страницу CRM.');
+        return;
+      }
+      const statusButton = event.target.closest('#yandexStatusBtn');
+      if (statusButton) {
+        event.preventDefault();
+        if (typeof window.checkYandexDiskStatus === 'function') window.checkYandexDiskStatus();
+        else alert('Модуль проверки Яндекс Диска ещё не загрузился. Обновите страницу CRM.');
+      }
+    });
+    window.__yandexDiskDelegationInstalled = true;
+  }
+
   function init() {
     const top=document.querySelector('.top-right');
     if(top&&!$('crmGlobalSearch')){
