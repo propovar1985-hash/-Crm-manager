@@ -30,7 +30,7 @@
   <div class="c-grid">
   <label>Фурнитура, ₽<input name="fittings_cost" type="number" min="0" step="0.01" value="0"></label><label>Работа, ₽<input name="labor_cost" type="number" min="0" step="0.01" value="0"></label><label>Прочие затраты, ₽<input name="other_cost" type="number" min="0" step="0.01" value="0"></label><label class="wide">Примечание<textarea name="notes"></textarea></label></div>
   <div id="cSummary" class="c-summary"></div><div class="actions"><button type="button" class="btn" id="cCancel">Отмена</button><button class="btn primary">Сохранить просчёт</button></div></form></div></div>`;
-  $('cNew').onclick=()=>open();$('cWardrobe').onclick=()=>{if(!active){$('cForm').reset();items=[blank()];costLines=[];fillSelects();$('cForm').elements.status.value='Черновик';$('cForm').elements.markup_percent.value=30;$('cNo').textContent='НОВЫЙ ПРОСЧЁТ';$('cModal').classList.add('open');}window.dispatchEvent(new CustomEvent('crm:open-wardrobe-builder'));};$('cClose').onclick=close;$('cCancel').onclick=close;$('cModal').onclick=e=>{if(e.target.id==='cModal')close()};
+  $('cNew').onclick=()=>open();$('cWardrobe').onclick=()=>{if(!active){$('cForm').reset();items=[blank()];costLines=[];fillSelects();$('cForm').elements.status.value='Черновик';$('cForm').elements.markup_percent.value=30;$('cNo').textContent='НОВЫЙ ПРОСЧЁТ';$('cModal').classList.remove('open');}window.dispatchEvent(new CustomEvent('crm:open-wardrobe-builder'));};$('cClose').onclick=close;$('cCancel').onclick=close;$('cModal').onclick=e=>{if(e.target.id==='cModal')close()};
   $('cSearch').oninput=render;$('cRefresh').onclick=load;$('cAddItem').onclick=()=>{items.push(blank());drawItems()};$('cAddCost').onclick=()=>{costLines.push(blankCost());drawCosts()};
   $('cForm').onsubmit=save;$('cForm').oninput=summary;
  }
@@ -113,7 +113,7 @@
   if(lineInsert.error){alert('Просчёт сохранён, но позиции сметы не записались: '+lineInsert.error.message);return}
   await load();close();alert('Просчёт сохранён.');
  }
- window.addEventListener('crm:wardrobe-generated',e=>{const d=e.detail||{};if(!Array.isArray(d.items))return;items=d.items;drawItems();if(d.title&&$('cForm')?.elements.title&&!$('cForm').elements.title.value)$('cForm').elements.title.value=d.title;summary();});
+ window.addEventListener('crm:wardrobe-generated',e=>{const d=e.detail||{};if(!Array.isArray(d.items))return;active=null;items=d.items;costLines=[];$('cForm').reset();$('cForm').elements.id.value='';fillSelects();$('cForm').elements.status.value='Черновик';$('cForm').elements.markup_percent.value=30;drawItems();if(d.title&&$('cForm')?.elements.title)$('cForm').elements.title.value=d.title;summary();$('cModal').classList.add('open');});
  function init(){
   if(!window.__crmAuthenticated||typeof db==='undefined'||!$('calc'))return;
   if(!window.__calcUI){ensure();window.__calcUI=true}
