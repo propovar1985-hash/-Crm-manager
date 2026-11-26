@@ -10,9 +10,22 @@
  let rows=[];
  const css=document.createElement('style');
  css.textContent=`
- #production .prod-board{display:grid;grid-template-columns:repeat(3,minmax(230px,1fr));gap:12px;overflow:auto}
- #production .prod-col{background:#eaf0f7;border:1px solid #dfe6ef;border-radius:12px;padding:10px;min-height:180px}
- #production .prod-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0}
+ #production .prod-board{display:grid;grid-template-columns:repeat(3,minmax(230px,1fr));gap:12px;overflow:auto;align-items:start}
+ #production .prod-col{border:1px solid var(--prod-border,#dfe6ef);background:var(--prod-bg,#eaf0f7);border-radius:12px;padding:10px;min-height:190px;transition:background .15s,border-color .15s}
+ #production .prod-col:nth-child(1){--prod-bg:rgba(59,130,246,.10);--prod-border:rgba(59,130,246,.28)}
+ #production .prod-col:nth-child(2){--prod-bg:rgba(16,185,129,.10);--prod-border:rgba(16,185,129,.28)}
+ #production .prod-col:nth-child(3){--prod-bg:rgba(245,158,11,.11);--prod-border:rgba(245,158,11,.30)}
+ #production .prod-col:nth-child(4){--prod-bg:rgba(139,92,246,.10);--prod-border:rgba(139,92,246,.28)}
+ #production .prod-col:nth-child(5){--prod-bg:rgba(236,72,153,.09);--prod-border:rgba(236,72,153,.27)}
+ #production .prod-col:nth-child(6){--prod-bg:rgba(6,182,212,.10);--prod-border:rgba(6,182,212,.28)}
+ #production .prod-col:nth-child(7){--prod-bg:rgba(249,115,22,.10);--prod-border:rgba(249,115,22,.28)}
+ #production .prod-col:nth-child(8){--prod-bg:rgba(168,85,247,.10);--prod-border:rgba(168,85,247,.28)}
+ #production .prod-col:nth-child(9){--prod-bg:rgba(100,116,139,.11);--prod-border:rgba(100,116,139,.28)}
+ #production .prod-col:nth-child(10){--prod-bg:rgba(132,204,22,.11);--prod-border:rgba(132,204,22,.30)}
+ #production .prod-col.drop-target{outline:2px dashed var(--blue);outline-offset:-4px;background:#e4edff}
+ #production .prod-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0;cursor:grab;box-shadow:0 1px 2px #1522380a}
+ #production .prod-card.dragging{opacity:.45}
+ #production .prod-col-head{font-size:13px;font-weight:750;display:flex;justify-content:space-between;gap:8px;padding:3px 3px 8px}
  #production .prod-card h3{font-size:15px;margin:0 0 7px}
  #production .prod-card .muted{font-size:12px;line-height:1.5}
  #production .prod-card select{margin-top:9px}
@@ -44,7 +57,7 @@
   $('prodStats').textContent=`Заказов: ${list.length} · В производстве: ${list.filter(x=>(x.production_stage||'')!=='Готово к доставке').length}`;
   $('prodBoard').innerHTML=steps.map(step=>{
    const group=list.filter(o=>(o.production_stage||steps[0])===step);
-   return `<div class="prod-col"><b>${esc(step)}</b><span class="muted"> · ${group.length}</span>${group.map(o=>`<article class="prod-card">
+   return `<div class="prod-col" data-prod-drop="${esc(step)}"><div class="prod-col-head"><span>${esc(step)}</span><span>${group.length}</span></div>${group.map(o=>`<article class="prod-card" draggable="true" data-prod-drag="${esc(o.id)}">
     <h3>${esc(o.order_no||'Заказ')} — ${esc(o.title||'Без названия')}</h3>
     <div>${esc(o.client_name||'Клиент не указан')}</div>
     <div class="muted">Ответственный: ${esc(o.manager||'—')}<br>Срок: ${esc(o.production_due||o.due_date||'не задан')}</div>
@@ -54,6 +67,15 @@
   }).join('');
   $('prodBoard').querySelectorAll('[data-stage]').forEach(el=>el.onchange=()=>move(el.dataset.stage,el.value));
   $('prodBoard').querySelectorAll('[data-qc]').forEach(el=>el.onclick=()=>qcPrompt(el.dataset.qc));
+  $('prodBoard').querySelectorAll('[data-prod-drag]').forEach(card=>{
+   card.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',card.dataset.prodDrag);e.dataTransfer.effectAllowed='move';card.classList.add('dragging');});
+   card.addEventListener('dragend',()=>card.classList.remove('dragging'));
+  });
+  $('prodBoard').querySelectorAll('[data-prod-drop]').forEach(col=>{
+   col.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='move';col.classList.add('drop-target');});
+   col.addEventListener('dragleave',e=>{if(!col.contains(e.relatedTarget))col.classList.remove('drop-target');});
+   col.addEventListener('drop',async e=>{e.preventDefault();col.classList.remove('drop-target');const id=e.dataTransfer.getData('text/plain');if(id)await move(id,col.dataset.prodDrop);});
+  });
  }
  async function move(id,stage){
   const {data:{user}}=await db.auth.getUser();
