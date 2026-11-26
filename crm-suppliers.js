@@ -12,7 +12,7 @@
  .supplier-card{border:1px solid var(--line);border-radius:12px;padding:15px;background:#fff;min-width:0}
  .supplier-card h3{margin:0 0 5px}
  .supplier-card .supplier-links{display:flex;flex-direction:column;gap:5px;margin:10px 0;overflow-wrap:anywhere}
- .supplier-card .supplier-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+ .supplier-card .supplier-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.supplier-products{margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:12px}.supplier-products table{white-space:normal;font-size:12px}.supplier-products td,.supplier-products th{padding:6px}
  .supplier-modal{position:fixed;inset:0;background:#10182899;z-index:110;display:none;align-items:center;justify-content:center;padding:14px}
  .supplier-modal.open{display:flex}
  .supplier-dialog{background:#fff;border-radius:14px;padding:21px;width:min(650px,100%);max-height:94vh;overflow:auto}
@@ -70,9 +70,32 @@
  function render(){
   const q=($('supplierSearch')?.value||'').toLocaleLowerCase('ru'),cat=$('supplierTypeFilter')?.value||'';
   const list=rows.filter(x=>(!cat||x.category===cat)&&[x.name,x.category,x.website_url,...(x.additional_links||[])].join(' ').toLocaleLowerCase('ru').includes(q));
-  $('supplierRows').innerHTML=list.length?list.map(x=>`<article class="supplier-card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:start"><div><h3>${esc(x.name)}</h3><div class="small">${esc(x.category||'Другое')}</div></div><span class="pill">${x.is_active?'Активен':'Отключён'}</span></div><div class="supplier-links"><a href="${esc(x.website_url)}" target="_blank" rel="noopener noreferrer">Основной сайт ↗</a>${(x.additional_links||[]).map((u,i)=>`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">Дополнительная ссылка ${i+1} ↗</a>`).join('')}</div><div class="small">Скидка в расчёте: <b>${Number(x.discount_percent||0)}%</b></div>${x.notes?'<p class="small">'+esc(x.notes)+'</p>':''}<div class="supplier-actions"><button class="btn" data-edit="${esc(x.id)}">Изменить</button><button class="btn danger" data-delete="${esc(x.id)}">Удалить</button></div></article>`).join(''):'<div class="empty">Поставщиков пока нет. Добавьте первого поставщика.</div>';
-  host.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openForm(rows.find(x=>x.id===b.dataset.edit)));
+  $('supplierRows').innerHTML=list.length?list.map(x=>`<article class="supplier-card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:start"><div><h3>${esc(x.name)}</h3><div class="small">${esc(x.category||'Другое')}</div></div><span class="pill">${x.is_active?'Активен':'Отключён'}</span></div><div class="supplier-links"><a href="${esc(x.website_url)}" target="_blank" rel="noopener noreferrer">Основной сайт ↗</a>${(x.additional_links||[]).map((u,i)=>`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">Дополнительная ссылка ${i+1} ↗</a>`).join('')}</div><div class="small">Скидка в расчёте: <b>${Number(x.discount_percent||0)}%</b></div>${x.notes?'<p class="small">'+esc(x.notes)+'</p>':''}<div class="supplier-actions"><button class="btn primary" data-sync="${esc(x.id)}">↻ Загрузить цены</button><button class="btn" data-products="${esc(x.id)}">Каталог</button><button class="btn" data-edit="${esc(x.id)}">Изменить</button><button class="btn danger" data-delete="${esc(x.id)}">Удалить</button></div></article>`).join(''):'<div class="empty">Поставщиков пока нет. Добавьте первого поставщика.</div>';
+  host.querySelectorAll('[data-sync]').forEach(b=>b.onclick=()=>syncPrices(b.dataset.sync,b));\n  host.querySelectorAll('[data-products]').forEach(b=>b.onclick=()=>showProducts(b.dataset.products));\n  host.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openForm(rows.find(x=>x.id===b.dataset.edit)));
   host.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>remove(b.dataset.delete));
+ }
+ async function syncPrices(id,button){
+  if(!confirm('Загрузить актуальные цены из открытого каталога поставщика?'))return;
+  const old=button.textContent;button.disabled=true;button.textContent='Загрузка…';
+  try{
+   const {data,error}=await db.functions.invoke('supplier-price-sync',{body:{supplier_id:id}});
+   if(error)throw error;
+   if(data?.error)throw new Error(data.error);
+   alert('Обновление завершено. Импортировано позиций: '+(data.count||0)+'. Скидка: '+(data.discount_percent||0)+'%.');
+   await showProducts(id);
+  }catch(e){alert('Не удалось обновить цены: '+(e.message||String(e))+'\nПроверьте, что Edge Function supplier-price-sync развёрнута и SQL supabase-supplier-products.sql выполнен.');}
+  finally{button.disabled=false;button.textContent=old;}
+ }
+ async function showProducts(id){
+  const card=[...document.querySelectorAll('.supplier-card')].find(x=>x.querySelector('[data-products="'+id+'"]'));
+  if(!card)return;
+  let panel=card.querySelector('.supplier-products');
+  if(panel){panel.remove();return;}
+  panel=document.createElement('div');panel.className='supplier-products';panel.textContent='Загрузка каталога…';card.appendChild(panel);
+  const {data,error}=await db.from('crm_supplier_products').select('product_name,article,unit,source_price,discount_percent,calc_price,availability,product_url,updated_at').eq('supplier_id',id).eq('is_active',true).order('product_name').limit(100);
+  if(error){panel.textContent='Не удалось загрузить каталог: '+error.message;return;}
+  if(!data?.length){panel.textContent='Каталог пока пуст. Нажмите «Загрузить цены».';return;}
+  panel.innerHTML='<b>Товары ('+data.length+' показано, максимум 100)</b><div style="overflow:auto;max-height:360px"><table><thead><tr><th>Артикул / товар</th><th>Цена источника</th><th>Цена в расчёте</th></tr></thead><tbody>'+data.map(p=>'<tr><td><a href="'+esc(p.product_url||'#')+'" target="_blank" rel="noopener noreferrer">'+esc(p.article||'')+' '+esc(p.product_name)+'</a><div class="small">'+esc(p.availability||'')+'</div></td><td>'+Number(p.source_price||0).toLocaleString('ru-RU')+' ₽</td><td><b>'+Number(p.calc_price||0).toLocaleString('ru-RU')+' ₽</b><div class="small">−'+Number(p.discount_percent||0)+'%</div></td></tr>').join('')+'</tbody></table></div>';
  }
  async function remove(id){
   const row=rows.find(x=>x.id===id);if(!row||!confirm('Удалить поставщика «'+row.name+'»?'))return;
