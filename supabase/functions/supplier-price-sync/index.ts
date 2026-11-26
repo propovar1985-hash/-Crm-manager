@@ -8,7 +8,6 @@ const cors = {
 };
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
 const SOURCES: Record<string, { url: string; kind: string; discount: number }> = {
@@ -92,8 +91,7 @@ Deno.serve(async (req) => {
     const host = new URL(supplier.website_url).hostname.replace(/^www\./, "");
     const config = SOURCES[host];
     if (!config) return reply({ error: "Для этого поставщика ещё не настроен проверенный источник автоматической загрузки." }, 422);
-    const started = new Date().toISOString();
-    let rows: any[] = [];
+      let rows: any[] = [];
     let sourceDate: string | null = null;
     const res = await fetch(config.url, { headers: { "User-Agent": "Mozilla/5.0 CRM Supplier Price Sync" }, redirect: "follow" });
     if (!res.ok) throw new Error("Сайт поставщика вернул HTTP " + res.status);
@@ -109,30 +107,23 @@ Deno.serve(async (req) => {
     const discount = config.discount;
     const records = rows.map((p: any) => ({
       supplier_id: supplier.id,
-      external_id: p.sku || p.product_url || p.name,
-      sku: p.sku,
-      name: p.name,
-      category: supplier.category,
-      unit: p.unit || "шт.",
+      section: supplier.category === "Материалы" ? "1. Материалы" : "3. Фурнитура",
+      product_name: p.name,
+      article: p.sku || null,
+      unit: p.unit || "шт",
       source_price: p.source_price,
       discount_percent: discount,
-      price: Math.round(p.source_price * (1 - discount / 100) * 100) / 100,
-      currency: "RUB",
-      availability: p.availability || null,
+      calc_price: Math.round(p.source_price * (1 - discount / 100) * 100) / 100,
       product_url: p.product_url || config.url,
-      source_url: config.url,
-      source_updated_at: sourceDate ? new Date(sourceDate).toISOString() : null,
-      synced_at: new Date().toISOString(),
+      availability: p.availability || null,
+      source_updated_at: new Date().toISOString(),
       is_active: true,
-      raw_data: p.raw_data || {},
+      updated_at: new Date().toISOString()
     }));
-    const { error: upsertError } = await admin.from("crm_supplier_products").upsert(records, { onConflict: "supplier_id,external_id" });
+    // Строки без артикула сохраняем с детерминированным ключом на базе названия.
+    for (const p of records) if (!p.article) p.article = "AUTO-" + await crypto.subtle.digest("SHA-256", new TextEncoder().encode(p.product_name)).then(x => [...new Uint8Array(x)].slice(0,10).map(v=>v.toString(16).padStart(2,"0")).join(""));
+    const { error: upsertError } = await admin.from("crm_supplier_products").upsert(records, { onConflict: "supplier_id,article" });
     if (upsertError) throw upsertError;
-    const { error: logError } = await admin.from("crm_supplier_sync_log").insert({
-      supplier_id: supplier.id, supplier_name: supplier.name, status: "success", products_found: records.length,
-      message: "Импортировано " + records.length + " позиций. Скидка " + discount + "%."
-    });
-    if (logError) console.error(logError);
     return reply({ ok: true, supplier: supplier.name, count: records.length, discount_percent: discount, source_url: config.url, source_updated_at: sourceDate, synced_at: new Date().toISOString() });
   } catch (e) {
     return reply({ error: String(e instanceof Error ? e.message : e) }, 500);
