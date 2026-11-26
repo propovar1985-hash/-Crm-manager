@@ -228,6 +228,29 @@ try {
     }
     return payload;
   }
+  async function uploadYandexFile(order,kind,file){
+    const {data:sessionData,error:sessionError}=await db.auth.getSession();
+    if(sessionError)throw new Error(sessionError.message||String(sessionError));
+    const accessToken=sessionData?.session?.access_token;
+    if(!accessToken)throw new Error('Сессия CRM не найдена. Войдите заново.');
+    const form=new FormData();
+    form.append('action','upload');
+    form.append('order_id',order.id);
+    form.append('order_no',order.order_no||'');
+    form.append('order_title',order.title||order.furniture_type||'');
+    form.append('category',kind);
+    form.append('file',file,file.name);
+    const res=await fetch(SUPABASE_URL+'/functions/v1/super-handler',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+accessToken,'apikey':SUPABASE_PUBLISHABLE_KEY},
+      body:form
+    });
+    const raw=await res.text();
+    let payload={};
+    try{payload=raw?JSON.parse(raw):{};}catch(_){payload={error:raw||('HTTP '+res.status)};}
+    if(!res.ok||payload?.error)throw new Error(payload?.error||('Ошибка загрузки HTTP '+res.status));
+    return payload;
+  }
   async function yandexFunctionError(err){
     return err instanceof Error ? err.message : (typeof err==='string' ? err : JSON.stringify(err));
   }
@@ -679,18 +702,20 @@ window.__fullOrdersModuleEmbedded=true;
     savedOrderFiles={lidar:[],project:[]};
     const {data,error}=await db.from('furniture_order_files').select('*').eq('order_id',id).order('created_at');
     if(error){console.warn('Order files:',error.message);return;}
-    for(const f of data||[]){const {data:link}=await db.storage.from('order-files').createSignedUrl(f.storage_path,3600);f.signedUrl=link?.signedUrl||'#';if(savedOrderFiles[f.category])savedOrderFiles[f.category].push(f);}
+    for(const f of data||[]){
+      if(f.provider==='yandex')f.signedUrl=f.external_url||'#';
+      else{const {data:link}=await db.storage.from('order-files').createSignedUrl(f.storage_path,3600);f.signedUrl=link?.signedUrl||'#';}
+      if(savedOrderFiles[f.category])savedOrderFiles[f.category].push(f);
+    }
     renderOrderFiles('lidar');renderOrderFiles('project');
   }
   async function uploadPendingOrderFiles(id){
+    const {data:order,error:orderError}=await db.from('furniture_orders').select('id,order_no,title,furniture_type').eq('id',id).single();
+    if(orderError)throw new Error('Не удалось получить данные заказа для папки Яндекс Диска: '+orderError.message);
     for(const kind of ['lidar','project']){
       for(const file of pendingOrderFiles[kind]){
-        const name=file.name.replace(/[^a-zA-Z0-9._-]+/g,'_').slice(-120)||'file';
-        const path=id+'/'+kind+'/'+crypto.randomUUID()+'_'+name;
-        const {error}=await db.storage.from('order-files').upload(path,file,{upsert:false});
-        if(error)throw new Error('Загрузка '+file.name+': '+error.message);
-        const {error:metaError}=await db.from('furniture_order_files').insert({order_id:id,category:kind,file_name:file.name,storage_path:path,mime_type:file.type||null,file_size:file.size});
-        if(metaError)throw new Error('Файл загружен, но не привязан к заказу: '+metaError.message);
+        try{await uploadYandexFile(order,kind,file);}
+        catch(err){throw new Error('Загрузка '+file.name+': '+(err?.message||String(err)));}
       }
       pendingOrderFiles[kind]=[];
     }
