@@ -12,6 +12,7 @@ create table if not exists public.crm_suppliers (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+create unique index if not exists crm_suppliers_website_url_uidx on public.crm_suppliers (website_url);
 create index if not exists crm_suppliers_name_idx on public.crm_suppliers (name);
 create index if not exists crm_suppliers_category_idx on public.crm_suppliers (category);
 alter table public.crm_suppliers enable row level security;
@@ -35,4 +36,4 @@ values
  ('AMIX','Фурнитура','https://amix.biz/',30),
  ('СМАРТ','Фурнитура','https://smart812.ru/',30),
  ('ТД Сервер','Материалы','https://www.tdserver.ru/catalog/laminirovannoe_dsp/ldsp_egger_egger/',0)
-on conflict do nothing;
+on conflict (website_url) do nothing;
