@@ -97,14 +97,14 @@
  function close(){$('cModal').classList.remove('open');active=null}
  async function save(e){
   e.preventDefault();if(!items.length&&!costLines.length){alert('Добавьте хотя бы одну деталь или позицию сметы.');return}
-  if(items.some(x=>!x.item_name.trim()||Number(x.width_mm)<=0||Number(x.height_mm)<=0||Number(x.quantity)<1)){alert('Заполните название, размеры и количество каждой детали.');return}
+  const activeItems=items.filter(x=>x.item_name.trim()||Number(x.width_mm)>0||Number(x.height_mm)>0);if(activeItems.some(x=>!x.item_name.trim()||Number(x.width_mm)<=0||Number(x.height_mm)<=0||Number(x.quantity)<1)){alert('Заполните название, размеры и количество каждой добавленной детали.');return}
   const f=Object.fromEntries(new FormData(e.target));const {data:{user}}=await db.auth.getUser();
   const row={client_name:f.client_name.trim(),title:f.title.trim(),order_id:f.order_id||null,measurement_id:f.measurement_id||null,status:f.status,markup_percent:Number(f.markup_percent||0),sheet_length_mm:Number(f.sheet_length_mm||2800),sheet_width_mm:Number(f.sheet_width_mm||2070),fittings_cost:Number(f.fittings_cost||0),labor_cost:Number(f.labor_cost||0),other_cost:Number(f.other_cost||0),notes:f.notes||null,updated_at:new Date().toISOString()};
   const result=active?await db.from('furniture_estimates').update(row).eq('id',active).select().single():await db.from('furniture_estimates').insert({...row,created_by:user?.id||null}).select().single();
   if(result.error){alert('Не удалось сохранить просчёт: '+result.error.message);return}
   const id=result.data.id;const del=await db.from('furniture_estimate_items').delete().eq('estimate_id',id);
   if(del.error){alert('Просчёт сохранён, но не удалось обновить детали: '+del.error.message);return}
-  const payload=items.map(x=>({...x,estimate_id:id}));const ins=payload.length?await db.from('furniture_estimate_items').insert(payload):{error:null};
+  const payload=activeItems.map(x=>({...x,estimate_id:id}));const ins=payload.length?await db.from('furniture_estimate_items').insert(payload):{error:null};
   if(ins.error){alert('Просчёт сохранён, но детали не записались: '+ins.error.message);return}
   const oldLines=await db.from('furniture_estimate_lines').delete().eq('estimate_id',id);
   if(oldLines.error){alert('Просчёт сохранён, но позиции сметы не обновились: '+oldLines.error.message);return}
