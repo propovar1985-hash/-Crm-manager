@@ -2,7 +2,7 @@
 (() => {
  'use strict';
  const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- let estimates=[],orders=[],measurements=[],suppliers=[],active=null,items=[],costLines=[];
+ let estimates=[],orders=[],measurements=[],suppliers=[],supplierProducts=[],active=null,items=[],costLines=[];
  const SHEET_AREA=5.796;
  const css=document.createElement('style');css.textContent=`
  #calc .c-toolbar{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}
@@ -38,7 +38,7 @@
  const costCategories=['Материалы','Облицовка и фасады','Фурнитура','Шкафы-купе','Лицевая фурнитура','Крепёж','Свет','Комплектующие','Работы и доставка'];
  const blankCost=()=>({category:'Фурнитура',item_name:'',unit:'шт',quantity:1,unit_price:0,source_unit_price:0,markup_percent:0,supplier_id:'',supplier_name:'',supplier_discount_percent:0});
  function money(v){return Number(v||0).toLocaleString('ru-RU',{maximumFractionDigits:2})+' ₽'}
- function supplierOptions(selected){return '<option value="">Не выбран</option>'+suppliers.filter(x=>x.is_active).map(x=>'<option value="'+esc(x.id)+'" '+(x.id===selected?'selected':'')+'>'+esc(x.name)+' · '+Number(x.discount_percent||0)+'%</option>').join('')}
+ function supplierOptions(selected){return '<option value="">Не выбран</option>'+suppliers.filter(x=>x.is_active).map(x=>'<option value="'+esc(x.id)+'" '+(x.id===selected?'selected':'')+'>'+esc(x.name)+' · '+Number(x.discount_percent||0)+'%</option>').join('')}\n function productOptions(selected){return '<option value="">Выбрать товар из каталога…</option>'+supplierProducts.filter(p=>p.is_active).map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selected?'selected':'')+'>'+esc(p.product_name)+' · '+esc(p.article||'без артикула')+' · '+money(p.calc_price)+'</option>').join('')}\n function applyCatalogProduct(target,id){const p=supplierProducts.find(x=>x.id===id);if(!p)return;target.supplier_product_id=p.id;target.price_checked_at=p.source_updated_at||p.updated_at||new Date().toISOString();target.item_name=p.product_name;target.unit=p.unit||'шт';target.supplier_id=p.supplier_id;const s=suppliers.find(x=>x.id===p.supplier_id);target.supplier_name=s?.name||'';target.supplier_discount_percent=Number(p.discount_percent||0);target.source_unit_price=Number(p.source_price||0);target.unit_price=Number(p.calc_price||0)}
  function setCostSupplier(x,id){const p=suppliers.find(v=>v.id===id);x.supplier_id=p?.id||'';x.supplier_name=p?.name||'';x.supplier_discount_percent=Number(p?.discount_percent||0);const base=Number(x.source_unit_price??x.unit_price??0);x.source_unit_price=base;x.unit_price=base*(1-x.supplier_discount_percent/100)}
  function setMaterialSupplier(x,id){const p=suppliers.find(v=>v.id===id);x.supplier_id=p?.id||'';x.supplier_name=p?.name||'';x.supplier_discount_percent=Number(p?.discount_percent||0);x.source_material_price_m2=Number(x.source_material_price_m2??x.material_price_m2??0);x.material_price_m2=x.source_material_price_m2*(1-x.supplier_discount_percent/100)}
  function calc(){
@@ -68,9 +68,9 @@
   $('cItemRows').querySelectorAll('[data-del]').forEach(el=>el.onclick=()=>{items.splice(Number(el.dataset.del),1);drawItems();summary()});summary();
  }
  async function load(){
-  const [a,b,c,d]=await Promise.all([db.from('furniture_estimates').select('*').order('created_at',{ascending:false}),db.from('furniture_orders').select('id,order_no,title,client_name').order('created_at',{ascending:false}),db.from('furniture_measurements').select('id,client_name,room_name,measured_at').order('created_at',{ascending:false}),db.from('crm_suppliers').select('id,name,category,discount_percent,is_active').eq('is_active',true).order('name')]);
+  const [a,b,c,d,e]=await Promise.all([db.from('furniture_estimates').select('*').order('created_at',{ascending:false}),db.from('furniture_orders').select('id,order_no,title,client_name').order('created_at',{ascending:false}),db.from('furniture_measurements').select('id,client_name,room_name,measured_at').order('created_at',{ascending:false}),db.from('crm_suppliers').select('id,name,category,discount_percent,is_active').eq('is_active',true).order('name'),db.from('crm_supplier_products').select('id,supplier_id,section,product_name,article,unit,source_price,discount_percent,calc_price,product_url,availability,source_updated_at,updated_at,is_active').eq('is_active',true).order('product_name').limit(3000)]);
   if(a.error){$('cRows').innerHTML='<div class="error">Ошибка загрузки: '+esc(a.error.message)+'. Проверьте SQL-миграцию.</div>';return}
-  estimates=a.data||[];orders=b.data||[];measurements=c.data||[];suppliers=d.error?[]:(d.data||[]);render();
+  estimates=a.data||[];orders=b.data||[];measurements=c.data||[];suppliers=d.error?[]:(d.data||[]);supplierProducts=e.error?[]:(e.data||[]);render();
  }
  function render(){
   const q=($('cSearch')?.value||'').toLocaleLowerCase('ru');const list=estimates.filter(x=>[x.client_name,x.title,x.estimate_no].join(' ').toLocaleLowerCase('ru').includes(q));
