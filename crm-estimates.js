@@ -102,5 +102,5 @@
   load();
  }
  const original=window.tab;if(typeof original==='function'&&!window.__calcTabWrapped){window.tab=function(id){original(id);if(id==='calc')init()};window.__calcTabWrapped=true}
- window.addEventListener('crm:authenticated',init);if(window.__crmAuthenticated)init();
+ document.addEventListener('click',e=>{if(e.target.closest('[data-tab="calc"]')){ensure();if(window.__crmAuthenticated)init();}});\n ensure();\n window.addEventListener('crm:authenticated',init);if(window.__crmAuthenticated)init();
 })();
