@@ -48,3 +48,24 @@ on conflict (supplier_id,article) do update set
  source_price=excluded.source_price,discount_percent=excluded.discount_percent,
  calc_price=excluded.calc_price,product_url=excluded.product_url,
  availability=excluded.availability,source_updated_at=now(),updated_at=now();
+
+-- Дополнительные позиции, проверенные по открытым карточкам каталогов 26.11.2026.
+-- Цены являются публичными розничными значениями; для GINIS/AMIX/СМАРТ
+-- в расчёте применяется согласованная скидка 30%.
+insert into public.crm_supplier_products
+ (supplier_id,section,product_name,article,unit,source_price,discount_percent,calc_price,product_url,availability,source_updated_at)
+select s.id,v.section,v.product_name,v.article,v.unit,v.source_price,v.discount_percent,
+       round(v.source_price*(1-v.discount_percent/100),2),v.product_url,v.availability,now()
+from (values
+ ('GINIS','3. Петли','Ответная планка AQ крестообразная с эксцентриком Clip-on под саморез H0 чёрная','08.0169','шт',42.20,30.00,'https://ginis.ru/catalog/aq/mebelnye-petli-aq/','Публичный каталог'),
+ ('GINIS','3. Петли','Петля внутренняя AQ V.2 Clip с эксцентриком с доводчиком (с заглушками и саморезами)','08.0175','шт',163.02,30.00,'https://ginis.ru/catalog/aq/mebelnye-petli-aq/','Публичный каталог'),
+ ('GINIS','7. Комплектующие','Выдвижная мусорная система VS ENVI Space 450 мм, серебро, 2 ведра по 16 л','90003690','компл',35400.00,30.00,'https://ginis.ru/catalog/vauth-sagel/sistemy-sortirovki-otkhodov-vs-envi/vydvizhnaya-sistema-dlya-sortirovki-space/90003690/','Публичный каталог'),
+ ('AMIX','3. Петли','Петля мебельная Unihopper Hutton 105° с регулируемым доводчиком, чёрный никель','HG1133.C0.B1-BKN','компл',164.00,30.00,'https://amix.biz/catalog/petli/unihopper_hinges/','В наличии'),
+ ('СМАРТ','4. Направляющие и ящики','Комплект направляющих Blum TANDEM BLUMOTION 500 мм, серия H, 30 кг','560H5000B','компл',4370.00,30.00,'https://smart812.ru/catalog/product/komplekt_napravlyayushchikh_tandem_blumotion_polnogo_vydvizheniya_seriya_h_16_mm_maks_zagruzka_30_kg/','В наличии')
+) as v(supplier_name,section,product_name,article,unit,source_price,discount_percent,product_url,availability)
+join public.crm_suppliers s on s.name=v.supplier_name
+on conflict (supplier_id,article) do update set
+ section=excluded.section,product_name=excluded.product_name,unit=excluded.unit,
+ source_price=excluded.source_price,discount_percent=excluded.discount_percent,
+ calc_price=excluded.calc_price,product_url=excluded.product_url,
+ availability=excluded.availability,source_updated_at=now(),updated_at=now();
