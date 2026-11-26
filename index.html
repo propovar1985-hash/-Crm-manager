@@ -179,7 +179,7 @@ async function initApp(){
     $('authGate').style.display='flex';
   }
 }
-function tab(id){Object.keys(tabNames).forEach(k=>$(k).classList.toggle('hidden',k!==id));document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));$('where').textContent=tabNames[id];if(id==='clients')renderClients();if(id==='leads')renderDeals();}
+function tab(id){Object.keys(tabNames).forEach(k=>{const section=$(k);if(section)section.classList.toggle('hidden',k!==id);});document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));if($('where'))$('where').textContent=tabNames[id]||id;if(id==='clients')renderClients();if(id==='leads')renderDeals();}
 document.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.tab)));
 async function loadClients(){const {data,error}=await db.from('clients').select('*').order('created_at',{ascending:false});if(error){$('connectionState').textContent='Ошибка загрузки клиентов: '+error.message;return;}clients=data||[];renderClients();updateDashboard();fillClientOptions();}
 function showClientForm(client=null){$('clientForm').reset();$('clientForm').elements.id.value=client?.id||'';if(client)Object.entries(client).forEach(([k,v])=>{if($('clientForm').elements[k])$('clientForm').elements[k].value=v??'';});$('clientModal').classList.add('open');}
