@@ -420,8 +420,9 @@ try {
       if(f.id) {
         result=await db.from('furniture_orders').update(row).eq('id',f.id).select().single();
       } else {
-        if(!row.order_no) {
-          const prefix='З-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-';
+        const autoNumber=!row.order_no;
+        const prefix='З-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-';
+        if(autoNumber) {
           const {data:todayOrders,error:numberError}=await db.from('furniture_orders').select('order_no').like('order_no',prefix+'%');
           if(numberError)throw new Error('Не удалось получить номер заказа: '+numberError.message);
           const used=new Set((todayOrders||[]).map(x=>String(x.order_no)));
@@ -430,6 +431,10 @@ try {
           row.order_no=prefix+String(n).padStart(3,'0');
         }
         result=await db.from('furniture_orders').insert({...row,created_by:user?.id||null}).select().single();
+        if(result.error?.code==='23505' && autoNumber) {
+          row.order_no=prefix+Date.now().toString().slice(-8);
+          result=await db.from('furniture_orders').insert({...row,created_by:user?.id||null}).select().single();
+        }
       }
       if(result.error){alert('Не удалось сохранить заказ: '+result.error.message);return;}
       const saved=result.data;
@@ -760,7 +765,23 @@ window.__fullOrdersModuleEmbedded=true;
     try {
       let result;
       if(f.id) result=await db.from('furniture_orders').update(row).eq('id',f.id).select().single();
-      else result=await db.from('furniture_orders').insert({...row,created_by:user?.id||null}).select().single();
+      else {
+        if(!row.order_no) {
+          const prefix='З-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-';
+          const {data:todayOrders,error:numberError}=await db.from('furniture_orders').select('order_no').like('order_no',prefix+'%');
+          if(numberError)throw new Error('Не удалось получить номер заказа: '+numberError.message);
+          const used=new Set((todayOrders||[]).map(x=>String(x.order_no)));
+          let n=1;
+          while(used.has(prefix+String(n).padStart(3,'0')))n++;
+          row.order_no=prefix+String(n).padStart(3,'0');
+        }
+        result=await db.from('furniture_orders').insert({...row,created_by:user?.id||null}).select().single();
+        if(result.error?.code==='23505' && String(row.order_no||'').startsWith('З-')) {
+          const prefix='З-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-';
+          row.order_no=prefix+Date.now().toString().slice(-8);
+          result=await db.from('furniture_orders').insert({...row,created_by:user?.id||null}).select().single();
+        }
+      }
       if(result.error){alert('Не удалось сохранить заказ: '+result.error.message);return;}
       const saved=result.data;
       await uploadPendingOrderFiles(saved.id);
