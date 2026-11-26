@@ -80,14 +80,14 @@
   await load(); alert('Результат контроля качества сохранён.');
  }
  async function loadQC(){
-  const panel=$('prodQcPanel');panel.classList.toggle('hidden');
+  const panel=$('prodQcPanel');if(!panel)return;panel.classList.toggle('hidden');
   if(panel.classList.contains('hidden'))return;
   const {data,error}=await db.from('furniture_quality_checks').select('*,furniture_orders(order_no,title,client_name)').order('created_at',{ascending:false}).limit(100);
   $('prodQcRows').innerHTML=error?`<p class="error">${esc(error.message)}</p>`:(data?.length?data.map(x=>`<div class="prod-card"><b>${esc(x.furniture_orders?.order_no||'Заказ')} · ${esc(x.furniture_orders?.title||'')}</b><div>${esc(x.result)} — ${esc(x.notes||'Без комментария')}</div><div class="small">${x.created_at?new Date(x.created_at).toLocaleString('ru-RU'):''}</div></div>`).join(''):'Проверок пока нет.');
  }
  let initialized=false;
  function init(){
-  if(initialized||!window.__crmAuthenticated||typeof db==='undefined'||!$('production'))return;
+  if(initialized||typeof db==='undefined'||!$('production'))return;
   initialized=true;
   ensure();
   const original=window.tab;
