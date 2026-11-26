@@ -91,7 +91,7 @@
  function drawCosts(){
   const host=$('cCostRows');if(!host)return;
   host.innerHTML=costLines.map((x,i)=>'<tr><td><select data-ci="'+i+'" data-ck="category">'+costCategories.map(v=>'<option '+(v===x.category?'selected':'')+'>'+esc(v)+'</option>').join('')+'</select></td><td><input data-ci="'+i+'" data-ck="item_name" value="'+esc(x.item_name)+'" placeholder="Наименование позиции"></td><td><input data-ci="'+i+'" data-ck="unit" value="'+esc(x.unit)+'" style="width:55px"></td><td><input data-ci="'+i+'" data-ck="quantity" type="number" min="0" step=".001" value="'+x.quantity+'"></td><td><input data-ci="'+i+'" data-ck="unit_price" type="number" min="0" step=".01" value="'+x.unit_price+'"></td><td><input data-ci="'+i+'" data-ck="markup_percent" type="number" min="0" step=".1" value="'+x.markup_percent+'"></td><td>'+money(Number(x.quantity||0)*Number(x.unit_price||0)*(1+Number(x.markup_percent||0)/100))+'</td><td><button type="button" class="btn danger" data-cdel="'+i+'">×</button></td></tr>').join('')||'<tr><td colspan="8" class="empty">Добавьте материалы, фурнитуру или работы.</td></tr>';
-  host.querySelectorAll('[data-ci]').forEach(el=>el.oninput=()=>{const x=costLines[Number(el.dataset.ci)];x[el.dataset.ck]=['category','item_name','unit'].includes(el.dataset.ck)?el.value:Number(el.value);drawCosts();summary()});
+  host.querySelectorAll('[data-ci]').forEach(el=>el.onchange=()=>{const x=costLines[Number(el.dataset.ci)];x[el.dataset.ck]=['category','item_name','unit'].includes(el.dataset.ck)?el.value:Number(el.value);drawCosts();summary()});
   host.querySelectorAll('[data-cdel]').forEach(el=>el.onclick=()=>{costLines.splice(Number(el.dataset.cdel),1);drawCosts();summary()});
  }
  function close(){$('cModal').classList.remove('open');active=null}
