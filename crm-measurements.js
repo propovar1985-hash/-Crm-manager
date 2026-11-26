@@ -50,7 +50,7 @@
   $('mRows').innerHTML=list.length?list.map(x=>`<div class="m-row"><div><b>${esc(x.client_name)} · ${esc(x.room_name||'Замер')}</b><div class="small">${esc(x.address||'Адрес не указан')} · ${esc(x.measured_at||'Дата не указана')} · ${esc(x.manager||'Без ответственного')}</div><div class="small">Габариты: ${esc(x.room_length_mm||'—')} × ${esc(x.room_width_mm||'—')} × ${esc(x.room_height_mm||'—')} мм</div></div><button class="btn" data-edit="${esc(x.id)}">Открыть</button></div>`).join(''):'<div class="empty">Замеров пока нет. Нажмите «Новый замер».</div>';
   $('mRows').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>open(rows.find(x=>x.id===b.dataset.edit)));
  }
- function open(row=null){
+ async function open(row=null){
   active=row?.id||null;files=[];$('mForm').reset();$('mForm').elements.id.value=active||'';
   $('mHeading').textContent=row?'ЗАМЕР':'НОВЫЙ ЗАМЕР';
   const form=$('mForm'), sel=form.elements.order_id;
