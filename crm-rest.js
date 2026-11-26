@@ -52,6 +52,7 @@
  async function loadTable(table){const {data,error}=await db.from(table).select('*').order('created_at',{ascending:false});if(error){console.warn(table,error.message);return [];}return data||[];}
  async function currentUser(){const {data}=await db.auth.getUser();return data?.user||null;}
  function renderTasks(){
+   if(!$('tasksBody'))return;
    $('tasksBody').innerHTML=`<div class="panel"><div class="rest-toolbar"><button class="btn primary" id="taskAdd">＋ Новая задача</button><select id="taskFilter"><option value="">Все статусы</option><option>Новая</option><option>В работе</option><option>Выполнена</option><option>Отложена</option></select></div><div class="rest-list" id="taskList"></div></div>`;
    const draw=()=>{const f=$('taskFilter').value;const list=tasks.filter(x=>!f||x.status===f);$('taskList').innerHTML=list.length?list.map(x=>`<div class="rest-item"><b>${esc(x.title)}</b><div class="small">${esc(x.due_at||'Без срока')} · ${esc(x.assignee||'Без исполнителя')} · ${esc(x.status)}</div><p>${esc(x.details||'')}</p><select data-status="${x.id}"><option ${x.status==='Новая'?'selected':''}>Новая</option><option ${x.status==='В работе'?'selected':''}>В работе</option><option ${x.status==='Выполнена'?'selected':''}>Выполнена</option><option ${x.status==='Отложена'?'selected':''}>Отложена</option></select></div>`).join(''):'<div class="empty">Задач пока нет.</div>';};
    draw();$('taskFilter').onchange=draw;
@@ -59,17 +60,20 @@
    $('taskAdd').onclick=async()=>{const title=prompt('Название задачи');if(!title)return;const due_at=prompt('Срок (например, 2026-11-20 15:00)')||null;const assignee=prompt('Ответственный')||null;const details=prompt('Комментарий')||null;const u=await currentUser();const {error}=await db.from('furniture_tasks').insert({title,due_at,assignee,details,status:'Новая',created_by:u?.id||null});if(error)alert(error.message);else{tasks=await loadTable('furniture_tasks');draw();}};
  }
  function renderService(){
+   if(!$('serviceBody'))return;
    $('serviceBody').innerHTML=`<div class="panel"><div class="rest-toolbar"><button class="btn primary" id="caseAdd">＋ Новое обращение</button></div><div class="rest-list" id="caseList"></div></div>`;
    $('caseList').innerHTML=cases.length?cases.map(x=>`<div class="rest-item"><b>${esc(x.title)}</b><div class="small">${esc(x.client_name)} · ${esc(x.category)} · ${esc(x.status)}</div><p>${esc(x.description||'')}</p><div class="small">Ответственный: ${esc(x.assignee||'—')} · Срок: ${esc(x.due_date||'—')}</div></div>`).join(''):'<div class="empty">Обращений пока нет.</div>';
    $('caseAdd').onclick=async()=>{const client_name=prompt('Клиент');if(!client_name)return;const title=prompt('Краткое название дефекта');if(!title)return;const category=prompt('Категория: дефект изготовления / доставка / монтаж / фурнитура / другое')||'Другое';const description=prompt('Описание')||'';const assignee=prompt('Ответственный')||null;const u=await currentUser();const {error}=await db.from('furniture_service_cases').insert({client_name,title,category,description,assignee,status:'Новое',created_by:u?.id||null});if(error)alert(error.message);else{cases=await loadTable('furniture_service_cases');renderService();}};
  }
  function renderCatalog(){
+   if(!$('catalogBody'))return;
    $('catalogBody').innerHTML=`<div class="panel"><div class="rest-toolbar"><button class="btn primary" id="materialAdd">＋ Добавить позицию</button><input id="materialSearch" placeholder="Поиск по материалам и фурнитуре"></div><div class="rest-grid" id="materialList"></div></div>`;
    const draw=()=>{const q=$('materialSearch').value.toLowerCase();const list=materials.filter(x=>[x.name,x.category,x.brand,x.article,x.decor].join(' ').toLowerCase().includes(q));$('materialList').innerHTML=list.map(x=>`<div class="rest-card"><h3>${esc(x.name)}</h3><div class="small">${esc(x.category)} · ${esc(x.brand||'')} · ${esc(x.article||'')}</div><p>${esc(x.decor||'')} ${x.thickness_mm?`· ${esc(x.thickness_mm)} мм`:''}</p></div>`).join('')||'<div class="empty">Каталог пуст.</div>';};
    draw();$('materialSearch').oninput=draw;
    $('materialAdd').onclick=async()=>{const name=prompt('Название позиции');if(!name)return;const category=prompt('Категория (ЛДСП, МДФ, кромка, фурнитура, стекло и т.д.)')||'Другое';const brand=prompt('Производитель / бренд')||null;const article=prompt('Артикул')||null;const decor=prompt('Декор / описание')||null;const u=await currentUser();const {error}=await db.from('furniture_catalog').insert({name,category,brand,article,decor,created_by:u?.id||null});if(error)alert(error.message);else{materials=await loadTable('furniture_catalog');draw();}};
  }
  function renderKnowledge(){
+   if(!$('knowledgeBody'))return;
    $('knowledgeBody').innerHTML=`<div class="panel"><div class="rest-toolbar"><button class="btn primary" id="articleAdd">＋ Новая инструкция</button></div><div class="rest-list" id="articleList"></div></div>`;
    $('articleList').innerHTML=articles.map(x=>`<div class="rest-item"><b>${esc(x.title)}</b><div class="small">${esc(x.role||'Для всех')} · ${esc(x.updated_at||'')}</div><p>${esc(x.body||'')}</p></div>`).join('')||'<div class="empty">Инструкций пока нет.</div>';
    $('articleAdd').onclick=async()=>{const title=prompt('Название инструкции');if(!title)return;const role=prompt('Для какой должности?')||'Для всех';const body=prompt('Текст инструкции');if(!body)return;const u=await currentUser();const {error}=await db.from('furniture_knowledge').insert({title,role,body,created_by:u?.id||null});if(error)alert(error.message);else{articles=await loadTable('furniture_knowledge');renderKnowledge();}};
@@ -80,7 +84,7 @@
    initialized=true;
    ensureExtraSections();
    tasks=await loadTable('furniture_tasks');cases=await loadTable('furniture_service_cases');materials=await loadTable('furniture_catalog');articles=await loadTable('furniture_knowledge');
-   renderTasks();renderService();renderCatalog();renderKnowledge();
+   [renderTasks,renderService,renderCatalog,renderKnowledge].forEach(fn=>{try{fn();}catch(err){console.error('CRM extra section:',err);}});
    const oldTab=window.tab;
    if(typeof oldTab==='function'&&!window.__restTabWrapped){window.tab=function(id){oldTab(id);if(['tasks','service','catalog','knowledge'].includes(id)){const el=$(id);if(el)el.classList.remove('hidden');}};window.__restTabWrapped=true;}
  }
