@@ -13,7 +13,8 @@ const CLIENT_ID = Deno.env.get("YANDEX_CLIENT_ID")!;
 const CLIENT_SECRET = Deno.env.get("YANDEX_CLIENT_SECRET")!;
 const ENCRYPTION_KEY = Deno.env.get("YANDEX_TOKEN_ENCRYPTION_KEY")!;
 const REDIRECT_URI = "https://zxgkodaeynzcprhnymee.supabase.co/functions/v1/super-handler";
-const ROOT_PUBLIC_URL = "https://disk.yandex.ru/d/UXgmsg4woy_67g";
+// Папка, которую пользователь сохранил в своём аккаунте Яндекс Диска.
+const ROOT_FOLDER_PATH = "disk:/Загрузки/Загрузка данных";
 
 const admin = createClient(PROJECT_URL, SERVICE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
@@ -158,11 +159,15 @@ Deno.serve(async (req) => {
 
     if (body.action === "disk_root" || body.action === "upload") {
       const token = await getUserToken(user.id);
-      const rootRes = await diskRequest("/public/resources?public_key=" + encodeURIComponent(ROOT_PUBLIC_URL), token);
-      const rootInfo = await rootRes.json();
-      if (!rootRes.ok) throw new Error(rootInfo.message || "Не удалось открыть общую папку Яндекс Диска.");
-      const rootPath = rootInfo.path;
-      if (!rootPath || !String(rootPath).startsWith("disk:/")) throw new Error("Яндекс не вернул путь общей папки. Проверьте доступ подключённого аккаунта.");
+      const rootPath = ROOT_FOLDER_PATH;
+      const rootRes = await diskRequest("/resources?path=" + encodeURIComponent(rootPath), token);
+      const rootInfo = await rootRes.json().catch(() => ({}));
+      if (!rootRes.ok) {
+        if (rootRes.status === 404) throw new Error("Папка «Загрузка данных» не найдена в разделе «Загрузки» подключённого Яндекс Диска. Проверьте путь: Файлы → Загрузки → Загрузка данных.");
+        if (rootRes.status === 403) throw new Error("У подключённого аккаунта нет доступа к папке «Загрузка данных».");
+        throw new Error(rootInfo.message || "Не удалось открыть папку «Загрузка данных» на Яндекс Диске.");
+      }
+      if (rootInfo.type !== "dir") throw new Error("Путь «Загрузка данных» существует, но это не папка.");
       if (body.action === "disk_root") return response({ path: rootPath, name: rootInfo.name, type: rootInfo.type });
       const file = form?.get("file");
       if (!(file instanceof File)) throw new Error("Файл не передан в запросе.");
@@ -187,10 +192,17 @@ Deno.serve(async (req) => {
       if (!hrefRes.ok || !hrefData.href) throw new Error(hrefData.message || "Яндекс не выдал адрес загрузки файла.");
       const putRes = await fetch(hrefData.href, { method: "PUT", body: file, headers: { "Content-Type": file.type || "application/octet-stream" } });
       if (!putRes.ok) throw new Error("Яндекс Диск отклонил загрузку файла (HTTP " + putRes.status + ").");
-      const publicPath = targetPath.slice(rootPath.replace(/\/$/, "").length).replace(/^\//, "");
-      const linkRes = await diskRequest("/public/resources/download?public_key=" + encodeURIComponent(ROOT_PUBLIC_URL) + "&path=" + encodeURIComponent(publicPath), token);
-      const linkData = await linkRes.json().catch(() => ({}));
-      const externalUrl = linkRes.ok && linkData.href ? linkData.href : ROOT_PUBLIC_URL;
+      // Публикуем отдельный файл, чтобы ссылка открывала именно его, а не корневую папку.
+      const publishRes = await diskRequest("/resources/publish?path=" + encodeURIComponent(targetPath), token, { method: "PUT" });
+      let externalUrl = "";
+      if (publishRes.ok || publishRes.status === 409) {
+        const metaRes = await diskRequest("/resources?path=" + encodeURIComponent(targetPath) + "&fields=public_url", token);
+        const meta = await metaRes.json().catch(() => ({}));
+        if (metaRes.ok && meta.public_url) externalUrl = meta.public_url;
+      }
+      if (!externalUrl) {
+        externalUrl = "https://disk.yandex.ru/client/disk/" + targetPath.replace(/^disk:\//, "").split("/").map(encodeURIComponent).join("/");
+      }
       const { error: metaError } = await admin.from("furniture_order_files").insert({ order_id: orderId, category, file_name: file.name, storage_path: targetPath, mime_type: file.type || null, file_size: file.size, provider: "yandex", external_url: externalUrl });
       if (metaError) throw new Error("Файл загружен на Яндекс Диск, но запись CRM не сохранена: " + metaError.message);
       return response({ ok: true, file_name: file.name, external_url: externalUrl, path: targetPath });
