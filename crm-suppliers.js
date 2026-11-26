@@ -71,7 +71,9 @@
   const q=($('supplierSearch')?.value||'').toLocaleLowerCase('ru'),cat=$('supplierTypeFilter')?.value||'';
   const list=rows.filter(x=>(!cat||x.category===cat)&&[x.name,x.category,x.website_url,...(x.additional_links||[])].join(' ').toLocaleLowerCase('ru').includes(q));
   $('supplierRows').innerHTML=list.length?list.map(x=>`<article class="supplier-card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:start"><div><h3>${esc(x.name)}</h3><div class="small">${esc(x.category||'Другое')}</div></div><span class="pill">${x.is_active?'Активен':'Отключён'}</span></div><div class="supplier-links"><a href="${esc(x.website_url)}" target="_blank" rel="noopener noreferrer">Основной сайт ↗</a>${(x.additional_links||[]).map((u,i)=>`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">Дополнительная ссылка ${i+1} ↗</a>`).join('')}</div><div class="small">Скидка в расчёте: <b>${Number(x.discount_percent||0)}%</b></div>${x.notes?'<p class="small">'+esc(x.notes)+'</p>':''}<div class="supplier-actions"><button class="btn primary" data-sync="${esc(x.id)}">↻ Загрузить цены</button><button class="btn" data-products="${esc(x.id)}">Каталог</button><button class="btn" data-edit="${esc(x.id)}">Изменить</button><button class="btn danger" data-delete="${esc(x.id)}">Удалить</button></div></article>`).join(''):'<div class="empty">Поставщиков пока нет. Добавьте первого поставщика.</div>';
-  host.querySelectorAll('[data-sync]').forEach(b=>b.onclick=()=>syncPrices(b.dataset.sync,b));\n  host.querySelectorAll('[data-products]').forEach(b=>b.onclick=()=>showProducts(b.dataset.products));\n  host.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openForm(rows.find(x=>x.id===b.dataset.edit)));
+  host.querySelectorAll('[data-sync]').forEach(b=>b.onclick=()=>syncPrices(b.dataset.sync,b));
+  host.querySelectorAll('[data-products]').forEach(b=>b.onclick=()=>showProducts(b.dataset.products));
+  host.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openForm(rows.find(x=>x.id===b.dataset.edit)));
   host.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>remove(b.dataset.delete));
  }
  async function syncPrices(id,button){
