@@ -284,16 +284,23 @@ try {
     }
     return payload;
   }
-  async function uploadYandexFile(order,kind,file){
+  async function uploadYandexFile(entity,kind,file,entityType='order'){
     const {data:sessionData,error:sessionError}=await db.auth.getSession();
     if(sessionError)throw new Error(sessionError.message||String(sessionError));
     const accessToken=sessionData?.session?.access_token;
     if(!accessToken)throw new Error('Сессия CRM не найдена. Войдите заново.');
     const form=new FormData();
     form.append('action','upload');
-    form.append('order_id',order.id);
-    form.append('order_no',order.order_no||'');
-    form.append('order_title',order.title||order.furniture_type||'');
+    form.append('entity_type',entityType);
+    if(entityType==='measurement'){
+      form.append('measurement_id',entity.id);
+      form.append('client_name',entity.client_name||'');
+      form.append('room_name',entity.room_name||'');
+    }else{
+      form.append('order_id',entity.id);
+      form.append('order_no',entity.order_no||'');
+      form.append('order_title',entity.title||entity.furniture_type||'');
+    }
     form.append('category',kind);
     form.append('file',file,file.name);
     const res=await fetch(SUPABASE_URL+'/functions/v1/super-handler',{
