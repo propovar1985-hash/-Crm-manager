@@ -31,7 +31,7 @@
   <label class="wide">Окна, двери и проёмы<textarea name="openings_notes" rows="3"></textarea></label>
   <label class="wide">Коммуникации (вода, газ, электричество, вентиляция)<textarea name="utilities_notes" rows="3"></textarea></label>
   <label class="wide">Комментарий<textarea name="comments" rows="3"></textarea></label>
-  <label class="wide">Файл LiDAR / замера<input type="file" id="mLidar"><span class="small">Поддерживаются файлы замеров и облака точек; максимальный размер одного файла — 500 МБ.</span><div id="mFiles" class="m-file small">Файлы не выбраны</div></label>
+  <label class="wide">Файл LiDAR / замера<input type="file" id="mLidar"><span class="small">Поддерживаются файлы замеров и облака точек; максимальный размер одного файла — 500 МБ.</span><div id="mFiles" class="m-file small">Файлы не выбраны</div><div id="mExistingFile" class="small"></div></label>
   <label class="wide">Ссылка на проект / чертёж<input name="project_path" type="url" placeholder="https://…"></label>
   </div><div class="actions"><button type="button" class="btn" id="mCancel">Отмена</button><button class="btn primary">Сохранить замер</button></div></form></div></div>`;
   $('mNew').onclick=()=>open();$('mClose').onclick=close;$('mCancel').onclick=close;
@@ -58,6 +58,8 @@
   const clientsList=(()=>{try{return Array.isArray(clients)?clients:[]}catch(_){return []}})();
   $('mClients').innerHTML=clientsList.map(c=>`<option value="${esc(c.full_name)}"></option>`).join('');
   if(row)Object.entries(row).forEach(([k,v])=>{if(form.elements[k])form.elements[k].value=v??''});
+  $('mExistingFile').innerHTML='';
+  if(row?.lidar_path){const signed=await db.storage.from('crm-project-files').createSignedUrl(row.lidar_path,3600);if(!signed.error)$('mExistingFile').innerHTML='<a href="'+esc(signed.data.signedUrl)+'" target="_blank" rel="noopener">Открыть загруженный файл замера</a>';else $('mExistingFile').textContent='Файл сохранён, но ссылка недоступна: '+signed.error.message;}
   $('mModal').classList.add('open');
  }
  function close(){$('mModal').classList.remove('open');active=null}
