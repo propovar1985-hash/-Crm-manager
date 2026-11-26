@@ -17,7 +17,7 @@
     section.innerHTML=`
       <div class="head calendar-head"><div><h1>Календарь мастерской</h1><div class="muted">Общее расписание всех сотрудников</div></div><button class="btn primary" id="calAdd">＋ Новое событие</button></div>
       <div class="panel calendar-toolbar"><div class="calendar-nav"><button class="btn" id="calPrev">‹</button><button class="btn" id="calToday">Сегодня</button><button class="btn" id="calNext">›</button><strong id="calTitle"></strong></div><div class="calendar-filters"><select id="calMode"><option value="month">Месяц</option><option value="week">Неделя</option><option value="day">День</option></select><select id="calStaff"><option value="">Все сотрудники</option></select><select id="calType"><option value="">Все события</option><option>Встреча</option><option>Замер</option><option>Проектирование</option><option>Согласование</option><option>Производство</option><option>Доставка</option><option>Монтаж</option><option>Задача</option><option>Сделка</option><option>Заказ</option></select></div></div>
-      <div class="calendar-layout"><div class="panel calendar-main"><div id="calendarGrid"></div></div><aside class="panel calendar-side"><h3 id="calSideTitle">События</h3><div id="calDayEvents"></div></aside></div>
+      <div class="calendar-layout"><div class="panel calendar-main"><div id="calendarGrid"></div></div></div>
       <div class="modal" id="calModal"><div class="dialog"><h2 id="calModalTitle">Новое событие</h2><form id="calForm"><input type="hidden" name="id"><div class="grid">
       <label class="field wide">Название *<input name="title" required maxlength="180"></label>
       <label class="field">Тип<select name="event_type">${types.map(t=>'<option>'+t+'</option>').join('')}</select></label>
@@ -78,14 +78,11 @@
     else days=[dayStart(cursor)];
     if(mode==='month'||mode==='week'){
       grid.innerHTML='<div class="cal-weekdays">'+['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(x=>'<span>'+x+'</span>').join('')+'</div><div class="cal-month-grid '+(mode==='week'?'is-week':'')+'">'+days.map(d=>{const key=dateKey(d),list=data.filter(e=>e.start_at&&e.start_at.slice(0,10)===key);return '<div class="cal-cell '+(d.getMonth()!==cursor.getMonth()&&mode==='month'?'out-month':'')+(key===dateKey(new Date())?' is-today':'')+'"><button class="cal-date" data-date="'+key+'">'+d.getDate()+'</button>'+list.slice(0,3).map(e=>eventHtml(e)).join('')+(list.length>3?'<small>+'+(list.length-3)+' ещё</small>':'')+'</div>';}).join('')+'</div>';
-      grid.querySelectorAll('[data-date]').forEach(b=>b.onclick=()=>{cursor=parseDate(b.dataset.date);mode='day';$('calMode').value='day';render();});
+      grid.querySelectorAll('.cal-cell[data-date]').forEach(cell=>{const openDay=()=>{cursor=parseDate(cell.dataset.date);mode='day';$('calMode').value='day';render();};cell.onclick=e=>{if(e.target.closest('[data-event]'))return;openDay();};cell.onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&e.target===cell){e.preventDefault();openDay();}};});
     }else{
       const d=days[0],key=dateKey(d),list=data.filter(e=>e.start_at&&e.start_at.slice(0,10)===key).sort((a,b)=>String(a.start_at).localeCompare(String(b.start_at)));
       grid.innerHTML='<div class="cal-day-heading">'+fmt(d)+'</div>'+(list.length?list.map(eventHtml).join(''):'<p class="muted">На этот день событий нет.</p>');
     }
-    const selected=dateKey(cursor),list=data.filter(e=>e.start_at&&e.start_at.slice(0,10)===selected).sort((a,b)=>String(a.start_at).localeCompare(String(b.start_at)));
-    $('calSideTitle').textContent='События · '+fmt(cursor);
-    $('calDayEvents').innerHTML=list.length?list.map(eventHtml).join(''):'<p class="muted">На выбранную дату событий нет.</p>';
     document.querySelectorAll('[data-event]').forEach(b=>b.onclick=()=>{const e=events.find(x=>x.id===b.dataset.event);if(e)openEvent(e);});
   }
   function weekStart(d){return addDays(dayStart(d),-((d.getDay()+6)%7));}
