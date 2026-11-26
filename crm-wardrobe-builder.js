@@ -157,7 +157,8 @@ function renderSketch(){
 function apply(){
  var rows=buildRows();if(!rows)return;
  accumulated=accumulated.concat(rows);
- window.dispatchEvent(new CustomEvent('crm:wardrobe-generated',{detail:{title:'Шкафы: '+cabinetNo,items:accumulated}}));
+ cabinetSketches.push(snapshotCabinet());
+ window.dispatchEvent(new CustomEvent('crm:wardrobe-generated',{detail:{title:'Шкафы: '+cabinetSketches.length,items:accumulated,sketches:cabinetSketches}}));
  close();
 }
 window.addEventListener('crm:open-wardrobe-builder',open);
