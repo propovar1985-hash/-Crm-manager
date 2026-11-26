@@ -44,7 +44,7 @@
     events=(ev.data||[]).map(x=>({...x,source:'manual'}));
     (deals.data||[]).forEach(x=>{if(x.next_contact_at)events.push({id:'deal-'+x.id,title:x.title||'Контакт с клиентом',event_type:'Сделка',assigned_to:x.manager,start_at:x.next_contact_at,related_label:x.client_name,source:'deal',related_id:x.id});});
     (orders.data||[]).forEach(x=>{
-      if(x.due_date)events.push({id:'order-due-'+x.id,title:(x.title||x.order_no||'Заказ')+' — срок',event_type:'Заказ',assigned_to:x.manager,start_at:x.due_date+'T12:00:00',related_label:x.client_name,source:'order',related_id:x.id});
+      if(x.due_date)events.push({id:'order-due-'+x.id,title:(x.title||x.order_no||'Заказ')+' — срок',event_type:'Заказ',assigned_to:x.manager,start_at:x.due_date+'T12:00:00',deadline_date:x.due_date,related_label:x.client_name,source:'order',related_id:x.id});
       if(x.measure_date)events.push({id:'order-measure-'+x.id,title:(x.title||x.order_no||'Заказ')+' — замер',event_type:'Замер',assigned_to:x.manager,start_at:x.measure_date+'T12:00:00',related_label:x.client_name,source:'order',related_id:x.id});
     });
     staff=[...new Set(events.map(x=>x.assigned_to).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ru'));
@@ -53,7 +53,22 @@
     render();
   }
   function filtered(){const who=$('calStaff').value,type=$('calType').value;return events.filter(e=>(!who||e.assigned_to===who)&&(!type||e.event_type===type));}
-  function eventHtml(e){const deadline=e.source==='order'&&e.deadline_date?deadlineStyle(e.deadline_date):'';const time=e.start_at&&e.start_at.includes('T')?new Date(e.start_at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'Весь день';return '<button class="cal-event" data-event="'+esc(e.id)+'" style="--event-color:'+ (colors[e.event_type]||'#64748b')+'"><span class="cal-event-time">'+time+'</span><b>'+esc(e.title)+'</b><small>'+esc(e.assigned_to||'Не назначен')+(e.related_label?' · '+esc(e.related_label):'')+'</small></button>';}
+  function deadlineStyle(value){
+    if(!value)return '';
+    const m=String(value).slice(0,10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if(!m)return '';
+    const due=new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));
+    const today=new Date();today.setHours(0,0,0,0);
+    const days=Math.round((due-today)/86400000);
+    if(days>14)return '';
+    const t=Math.max(0,Math.min(1,(14-days)/14));
+    const hue=Math.round(48*(1-t));
+    const alpha=days<0?0.25:0.08+0.16*t;
+    const borderAlpha=days<0?0.62:0.24+0.25*t;
+    return ' style="--deadline-bg:hsla('+hue+',88%,55%,'+alpha+');--deadline-border:hsla('+hue+',78%,42%,'+borderAlpha+');--deadline-text:hsl('+hue+',65%,28%)"';
+  }
+  function eventHtml(e){const deadline=e.source==='order'&&e.deadline_date?deadlineStyle(e.deadline_date):'';const time=e.start_at&&e.start_at.includes('T')?new Date(e.start_at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'Весь день';return '<button class="cal-event '+(deadline?'cal-deadline':'')+'" data-event="'+esc(e.id)+'" '+(deadline||'style="--event-color:'+ (colors[e.event_type]||'#64748b')+'"')+'><span class="cal-event-time">'+time+'</span><b>'+esc(e.title)+'</b><small>'+esc(e.assigned_to||'Не назначен')+(e.related_label?' · '+esc(e.related_label):'')+'</small></button>';}
+  const deadlineStyleCss=document.createElement('style');deadlineStyleCss.textContent='.cal-event.cal-deadline{background:var(--deadline-bg);border-left-color:var(--deadline-border);color:var(--deadline-text);transition:background-color 1.2s ease,border-color 1.2s ease,color 1.2s ease}.cal-event.cal-deadline small,.cal-event.cal-deadline .cal-event-time{color:var(--deadline-text)}';document.head.appendChild(deadlineStyleCss);
   function render(){
     const grid=$('calendarGrid');if(!grid)return;
     $('calTitle').textContent=mode==='month'?cursor.toLocaleDateString('ru-RU',{month:'long',year:'numeric'}):mode==='day'?fmt(cursor):'Неделя · '+fmt(weekStart(cursor))+' – '+fmt(addDays(weekStart(cursor),6));
