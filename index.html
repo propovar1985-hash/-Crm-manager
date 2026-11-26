@@ -421,6 +421,7 @@ try {
       else result=await db.from('furniture_orders').insert({...row,created_by:user?.id||null}).select().single();
       if(result.error){alert('Не удалось сохранить заказ: '+result.error.message);return;}
       const saved=result.data;
+      await uploadPendingOrderFiles(saved.id);
       const eventResult=await db.from('furniture_order_events').insert({order_id:saved.id,event_type:f.id?'Изменение заказа':'Создание заказа',details:'Карточка заказа сохранена',created_by:user?.id||null});
       if(eventResult.error)console.warn('Order saved, history event failed:',eventResult.error.message);
       await load();
