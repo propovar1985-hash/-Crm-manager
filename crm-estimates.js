@@ -2,7 +2,7 @@
 (() => {
  'use strict';
  const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- let estimates=[],orders=[],measurements=[],active=null,items=[];
+ let estimates=[],orders=[],measurements=[],active=null,items=[],costLines=[];
  const SHEET_AREA=5.796;
  const css=document.createElement('style');css.textContent=`
  #calc .c-toolbar{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}
@@ -26,15 +26,17 @@
   <label>Наценка, %<input name="markup_percent" type="number" min="0" step="0.1" value="30"></label>
   <label>Длина листа, мм<input name="sheet_length_mm" type="number" min="1" value="2800"></label><label>Ширина листа, мм<input name="sheet_width_mm" type="number" min="1" value="2070"></label>
   </div><h3>Детали</h3><div class="scroll"><table class="c-items"><thead><tr><th>Деталь</th><th>Материал</th><th>Ширина</th><th>Высота</th><th>Кол-во</th><th>Кромка, м</th><th>Цена м², ₽</th><th></th></tr></thead><tbody id="cItemRows"></tbody></table></div>
-  <div class="c-toolbar"><button type="button" class="btn" id="cAddItem">＋ Добавить деталь</button></div>
+  <div class="c-toolbar"><button type="button" class="btn" id="cAddItem">＋ Добавить деталь</button></div><h3>Материалы, фасады, фурнитура и работы</h3><div class="scroll"><table class="c-items"><thead><tr><th>Раздел</th><th>Позиция</th><th>Ед.</th><th>Кол-во</th><th>Цена, ₽</th><th>Наценка, %</th><th>Сумма, ₽</th><th></th></tr></thead><tbody id="cCostRows"></tbody></table></div><div class="c-toolbar"><button type="button" class="btn" id="cAddCost">＋ Добавить позицию</button></div>
   <div class="c-grid">
   <label>Фурнитура, ₽<input name="fittings_cost" type="number" min="0" step="0.01" value="0"></label><label>Работа, ₽<input name="labor_cost" type="number" min="0" step="0.01" value="0"></label><label>Прочие затраты, ₽<input name="other_cost" type="number" min="0" step="0.01" value="0"></label><label class="wide">Примечание<textarea name="notes"></textarea></label></div>
   <div id="cSummary" class="c-summary"></div><div class="actions"><button type="button" class="btn" id="cCancel">Отмена</button><button class="btn primary">Сохранить просчёт</button></div></form></div></div>`;
   $('cNew').onclick=()=>open();$('cClose').onclick=close;$('cCancel').onclick=close;$('cModal').onclick=e=>{if(e.target.id==='cModal')close()};
-  $('cSearch').oninput=render;$('cRefresh').onclick=load;$('cAddItem').onclick=()=>{items.push(blank());drawItems()};
+  $('cSearch').oninput=render;$('cRefresh').onclick=load;$('cAddItem').onclick=()=>{items.push(blank());drawItems()};$('cAddCost').onclick=()=>{costLines.push(blankCost());drawCosts()};
   $('cForm').onsubmit=save;$('cForm').oninput=summary;
  }
  const blank=()=>({item_name:'',material:'ЛДСП 16 мм',width_mm:0,height_mm:0,quantity:1,edge_m:0,material_price_m2:0});
+ const costCategories=['Материалы','Облицовка и фасады','Фурнитура','Шкафы-купе','Лицевая фурнитура','Крепёж','Свет','Комплектующие','Работы и доставка'];
+ const blankCost=()=>({category:'Фурнитура',item_name:'',unit:'шт',quantity:1,unit_price:0,markup_percent:0});
  function money(v){return Number(v||0).toLocaleString('ru-RU',{maximumFractionDigits:2})+' ₽'}
  function calc(){
   const f=$('cForm'),sheet=(Number(f.elements.sheet_length_mm.value||2800)*Number(f.elements.sheet_width_mm.value||2070))/1e6;
@@ -44,8 +46,10 @@
   const sheets=Object.values(byMaterial).reduce((s,a)=>s+(sheet>0?Math.ceil(a/sheet):0),0);
   const edgeCost=0;
   const base=materialsCost+edgeCost+Number(f.elements.fittings_cost.value||0)+Number(f.elements.labor_cost.value||0)+Number(f.elements.other_cost.value||0);
-  const total=base*(1+Number(f.elements.markup_percent.value||0)/100);
-  return {area,edge,materialsCost,sheets,base,total};
+  const lineBase=costLines.reduce((s,x)=>s+Number(x.quantity||0)*Number(x.unit_price||0),0);
+  const lineTotal=costLines.reduce((s,x)=>s+Number(x.quantity||0)*Number(x.unit_price||0)*(1+Number(x.markup_percent||0)/100),0);
+  const total=(base+lineTotal)*(1+Number(f.elements.markup_percent.value||0)/100);
+  return {area,edge,materialsCost,sheets,base:base+lineBase,total,lineBase,lineTotal};
  }
  function summary(){
   if(!$('cSummary'))return;const x=calc();
@@ -74,17 +78,25 @@
   f.elements.measurement_id.innerHTML='<option value="">Не выбран</option>'+measurements.map(m=>`<option value="${esc(m.id)}">${esc(m.client_name)} · ${esc(m.room_name||'Замер')} · ${esc(m.measured_at||'')}</option>`).join('');
  }
  async function open(row=null){
-  active=row?.id||null;items=[];$('cForm').reset();$('cForm').elements.id.value=active||'';fillSelects();
+  active=row?.id||null;items=[];costLines=[];$('cForm').reset();$('cForm').elements.id.value=active||'';fillSelects();
   if(row){
    Object.entries(row).forEach(([k,v])=>{if($('cForm').elements[k])$('cForm').elements[k].value=v??''});
    const {data,error}=await db.from('furniture_estimate_items').select('*').eq('estimate_id',row.id).order('created_at');
    if(error){alert('Не удалось загрузить детали: '+error.message);return}items=(data||[]).map(({id,estimate_id,created_at,...x})=>x);
-  }else items=[blank()];
-  $('cNo').textContent=row?.estimate_no||'НОВЫЙ ПРОСЧЁТ';drawItems();$('cModal').classList.add('open');
+   const lineResult=await db.from('furniture_estimate_lines').select('*').eq('estimate_id',row.id).order('created_at');
+   if(lineResult.error){alert('Не удалось загрузить позиции сметы: '+lineResult.error.message);return}costLines=(lineResult.data||[]).map(({id,estimate_id,created_at,...x})=>x);
+  }else {items=[blank()];costLines=[];}
+  $('cNo').textContent=row?.estimate_no||'НОВЫЙ ПРОСЧЁТ';drawItems();drawCosts();$('cModal').classList.add('open');
+ }
+ function drawCosts(){
+  const host=$('cCostRows');if(!host)return;
+  host.innerHTML=costLines.map((x,i)=>'<tr><td><select data-ci="'+i+'" data-ck="category">'+costCategories.map(v=>'<option '+(v===x.category?'selected':'')+'>'+esc(v)+'</option>').join('')+'</select></td><td><input data-ci="'+i+'" data-ck="item_name" value="'+esc(x.item_name)+'" placeholder="Наименование позиции"></td><td><input data-ci="'+i+'" data-ck="unit" value="'+esc(x.unit)+'" style="width:55px"></td><td><input data-ci="'+i+'" data-ck="quantity" type="number" min="0" step=".001" value="'+x.quantity+'"></td><td><input data-ci="'+i+'" data-ck="unit_price" type="number" min="0" step=".01" value="'+x.unit_price+'"></td><td><input data-ci="'+i+'" data-ck="markup_percent" type="number" min="0" step=".1" value="'+x.markup_percent+'"></td><td>'+money(Number(x.quantity||0)*Number(x.unit_price||0)*(1+Number(x.markup_percent||0)/100))+'</td><td><button type="button" class="btn danger" data-cdel="'+i+'">×</button></td></tr>').join('')||'<tr><td colspan="8" class="empty">Добавьте материалы, фурнитуру или работы.</td></tr>';
+  host.querySelectorAll('[data-ci]').forEach(el=>el.oninput=()=>{const x=costLines[Number(el.dataset.ci)];x[el.dataset.ck]=['category','item_name','unit'].includes(el.dataset.ck)?el.value:Number(el.value);drawCosts();summary()});
+  host.querySelectorAll('[data-cdel]').forEach(el=>el.onclick=()=>{costLines.splice(Number(el.dataset.cdel),1);drawCosts();summary()});
  }
  function close(){$('cModal').classList.remove('open');active=null}
  async function save(e){
-  e.preventDefault();if(!items.length){alert('Добавьте хотя бы одну деталь.');return}
+  e.preventDefault();if(!items.length&&!costLines.length){alert('Добавьте хотя бы одну деталь или позицию сметы.');return}
   if(items.some(x=>!x.item_name.trim()||Number(x.width_mm)<=0||Number(x.height_mm)<=0||Number(x.quantity)<1)){alert('Заполните название, размеры и количество каждой детали.');return}
   const f=Object.fromEntries(new FormData(e.target));const {data:{user}}=await db.auth.getUser();
   const row={client_name:f.client_name.trim(),title:f.title.trim(),order_id:f.order_id||null,measurement_id:f.measurement_id||null,status:f.status,markup_percent:Number(f.markup_percent||0),sheet_length_mm:Number(f.sheet_length_mm||2800),sheet_width_mm:Number(f.sheet_width_mm||2070),fittings_cost:Number(f.fittings_cost||0),labor_cost:Number(f.labor_cost||0),other_cost:Number(f.other_cost||0),notes:f.notes||null,updated_at:new Date().toISOString()};
@@ -92,8 +104,13 @@
   if(result.error){alert('Не удалось сохранить просчёт: '+result.error.message);return}
   const id=result.data.id;const del=await db.from('furniture_estimate_items').delete().eq('estimate_id',id);
   if(del.error){alert('Просчёт сохранён, но не удалось обновить детали: '+del.error.message);return}
-  const payload=items.map(x=>({...x,estimate_id:id}));const ins=await db.from('furniture_estimate_items').insert(payload);
+  const payload=items.map(x=>({...x,estimate_id:id}));const ins=payload.length?await db.from('furniture_estimate_items').insert(payload):{error:null};
   if(ins.error){alert('Просчёт сохранён, но детали не записались: '+ins.error.message);return}
+  const oldLines=await db.from('furniture_estimate_lines').delete().eq('estimate_id',id);
+  if(oldLines.error){alert('Просчёт сохранён, но позиции сметы не обновились: '+oldLines.error.message);return}
+  const linePayload=costLines.filter(x=>x.item_name.trim()).map(x=>({...x,estimate_id:id}));
+  const lineInsert=linePayload.length?await db.from('furniture_estimate_lines').insert(linePayload):{error:null};
+  if(lineInsert.error){alert('Просчёт сохранён, но позиции сметы не записались: '+lineInsert.error.message);return}
   await load();close();alert('Просчёт сохранён.');
  }
  function init(){
