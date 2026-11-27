@@ -83,6 +83,15 @@ else pass('Automatic production calculation card is removed');
 if (estimates.includes('crmManagerCommissionSettings') || estimates.includes('ИТОГО К ОПЛАТЕ')) fail('Automatic margin/commission/total calculation remains in estimate UI or print');
 else pass('Automatic margin, commission and total calculation is removed from estimate UI and print');
 
+const wardrobeStudio = fs.readFileSync('crm-wardrobe-studio.js', 'utf8');
+if (!wardrobeStudio.includes('previewImage:capturePreview()')) fail('Wardrobe constructor does not send a 3D preview to the estimate');
+else pass('Wardrobe constructor sends a 3D preview to the estimate');
+if (!estimates.includes('crm-estimate-preview:') || !estimates.includes('alt="3D-модель шкафа"')) fail('Estimate PDF/print does not include the saved wardrobe preview');
+else pass('Estimate PDF/print includes the saved wardrobe preview');
+if (!estimates.includes('width:145px;height:96px')) fail('Wardrobe preview is not kept compact at the top of the print document');
+else pass('Wardrobe preview is compact at the top of the print document');
+
+
 
 if (process.exitCode) process.exit(1);
 console.log('CRM validation completed successfully.');
