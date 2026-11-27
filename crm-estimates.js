@@ -2,7 +2,7 @@
 (() => {
  'use strict';
  const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- let estimates=[],orders=[],measurements=[],suppliers=[],supplierProducts=[],estimateCatalog=[],active=null,items=[],costLines=[],
+ let estimates=[],orders=[],measurements=[],suppliers=[],supplierProducts=[],estimateCatalog=[],active=null,items=[],costLines=[];
  const SHEET_AREA=5.796;
  const css=document.createElement('style');css.textContent=`
  #calc .c-toolbar{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}
@@ -25,7 +25,7 @@
   <label>Статус<select name="status"><option>Черновик</option><option>На согласовании</option><option>Согласован</option><option>Архив</option></select></label>
   
   
-  </div><h3>Детали изделия</h3><div class="small">Размеры деталей можно заполнить отдельно. Материалы и комплектующие выбираются из прайса ниже.</div><div class="scroll"><table class="c-items"><thead><tr><th>Деталь</th><th>Материал</th><th>Поставщик</th><th>Ширина</th><th>Высота</th><th>Кол-во</th><th>Кромка, м</th><th>Цена м², ₽</th><th></th></tr></thead><tbody id="cItemRows"></tbody></table></div>
+  </div><h3>Детали изделия</h3><div class="small">Выбери тип детали из списка и укажи размеры. Материалы и цены выбираются в разделах прайса ниже.</div><div class="scroll"><table class="c-items"><thead><tr><th>Деталь</th><th>Материал</th><th>Ширина, мм</th><th>Высота, мм</th><th>Кол-во</th><th></th></tr></thead><tbody id="cItemRows"></tbody></table></div>
   <div class="c-toolbar"><button type="button" class="btn" id="cAddItem">＋ Добавить деталь</button></div><h3>Прайс и деталировка по разделам</h3><div class="small">Выбери позицию из выпадающего списка. Цена и единица измерения подставятся из твоей таблицы.</div><div id="cCostSections"></div>
   <div class="c-grid">
   <label class="wide">Примечание<textarea name="notes"></textarea></label></div>
@@ -34,7 +34,7 @@
   $('cSearch').oninput=render;$('cRefresh').onclick=load;$('cAddItem').onclick=()=>{items.push(blank());drawItems()};
   $('cForm').onsubmit=save;$('cForm').oninput=summary;
  }
- const blank=()=>({item_name:'',material:'ЛДСП 16 мм',width_mm:0,height_mm:0,quantity:1,edge_m:0,material_price_m2:0,source_material_price_m2:0,supplier_id:'',supplier_name:'',supplier_discount_percent:0});
+ const blank=()=>({item_name:'Боковина',material:'ЛДСП 16 мм',width_mm:0,height_mm:0,quantity:1,edge_m:0,material_price_m2:0,source_material_price_m2:0,supplier_id:'',supplier_name:'',supplier_discount_percent:0});
  const costCategories=['Материалы','Облицовка и фасады','Фурнитура','Шкафы-купе','Лицевая фурнитура','Крепёж','Свет','Комплектующие','Работы и доставка'];
  
  const blankCost=()=>({category:'Фурнитура',item_name:'',unit:'шт',quantity:1,unit_price:0,source_unit_price:0,supplier_id:'',supplier_name:'',supplier_discount_percent:0});
