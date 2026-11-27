@@ -19,6 +19,7 @@ if (!process.exitCode) pass('All local script references exist');
 
 const studio = fs.readFileSync('crm-wardrobe-studio.js', 'utf8');
 const estimates = fs.readFileSync('crm-estimates.js', 'utf8');
+const orders = fs.readFileSync('crm-orders.js', 'utf8');
 
 const open = studio.match(/function open\(\)\{([\s\S]*?)\n?\s*\}/);
 if (!open) fail('Wardrobe constructor open() function not found');
@@ -152,6 +153,16 @@ if (!estimates.includes('totals.materials') || !estimates.includes('totals.servi
 else pass('Printed estimate includes materials, works, margin, manager commission and grand total');
 if (estimates.includes('Работа на производстве (100%') || estimates.includes('Маржа (80%)</span>')) fail('Automatic production calculation has been reintroduced into the estimate');
 else pass('Automatic production calculation is not restored');
+
+
+if (!orders.includes('data-delete-order="\u0024{esc(o.id)}"') || !orders.includes('async function deleteOrder(id)')) fail('Orders list does not have a delete action');
+else pass('Orders list has a delete action');
+if (orders.includes('confirm(')) fail('Order deletion unexpectedly asks for confirmation');
+else pass('Order deletion runs without a confirmation prompt');
+if (!orders.includes("from('furniture_order_events').delete().eq('order_id',id)") || !orders.includes("from('furniture_orders').delete().eq('id',id)")) fail('Order deletion does not remove its history before deleting the order');
+else pass('Order deletion removes order history before deleting the order');
+if (!orders.includes('orders=orders.filter(o=>o.id!==id)') || !orders.includes('render();')) fail('Order list does not refresh after deletion');
+else pass('Order list refreshes after deletion');
 
 if (process.exitCode) process.exit(1);
 console.log('CRM validation completed successfully.');

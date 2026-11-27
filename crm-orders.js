@@ -19,6 +19,8 @@
     .order-table th,.order-table td{padding:11px 9px;border-bottom:1px solid #edf0f4;text-align:left}
     .order-table th{font-size:11px;color:var(--muted)}
     .order-open{border:0;background:none;color:var(--blue);font-weight:700;padding:0;text-align:left}
+    .order-row-actions{display:flex;gap:7px;align-items:center}.order-delete{color:#b42318;border-color:#f1c7c7;background:#fff}
+    @media(max-width:700px){.order-row-actions{flex-wrap:wrap}}
     .deadline-row{transition:background-color 1.2s ease}.deadline-row[style]{background:var(--deadline-bg)}.deadline-row[style] td{border-bottom-color:var(--deadline-border)}.deadline-row[style] td:nth-child(5){color:var(--deadline-text);font-weight:750}
     .order-drawer{position:fixed;inset:0;z-index:80;background:#10182888;display:none;justify-content:flex-end}
     .order-drawer.open{display:flex}
@@ -162,8 +164,19 @@
     function render() {
     const q=($('orderSearch')?.value||'').toLocaleLowerCase('ru'), filter=$('orderFilter')?.value||'';
     const list=orders.filter(o=>(!filter||o.stage===filter)&&[o.order_no,o.client_name,o.title,o.address,o.phone].join(' ').toLocaleLowerCase('ru').includes(q));
-    $('orderRows').innerHTML=list.length?list.map(o=>`<tr class="deadline-row"${deadlineStyle(o.due_date)}><td><button class="order-open" data-id="${esc(o.id)}">${esc(o.order_no||'Без номера')}</button></td><td>${esc(o.client_name)}</td><td>${esc(o.title||o.furniture_type)}</td><td><span class="pill">${esc(o.stage)}</span></td><td>${esc(o.due_date||'—')}</td><td><button class="btn" data-edit="${esc(o.id)}">Открыть</button></td></tr>`).join(''):'<tr><td colspan="6" class="empty">Заказов пока нет. Нажмите «Новый заказ».</td></tr>';
+    $('orderRows').innerHTML=list.length?list.map(o=>`<tr class="deadline-row"${deadlineStyle(o.due_date)}><td><button class="order-open" data-id="${esc(o.id)}">${esc(o.order_no||'Без номера')}</button></td><td>${esc(o.client_name)}</td><td>${esc(o.title||o.furniture_type)}</td><td><span class="pill">${esc(o.stage)}</span></td><td>${esc(o.due_date||'—')}</td><td><div class="order-row-actions"><button type="button" class="btn" data-edit="${esc(o.id)}">Открыть</button><button type="button" class="btn order-delete" data-delete-order="${esc(o.id)}">Удалить</button></div></td></tr>`).join(''):'<tr><td colspan="6" class="empty">Заказов пока нет. Нажмите «Новый заказ».</td></tr>';
     $('orderRows').querySelectorAll('[data-id],[data-edit]').forEach(b=>b.addEventListener('click',()=>openDrawer(orders.find(o=>o.id===b.dataset.id||o.id===b.dataset.edit))));
+    $('orderRows').querySelectorAll('[data-delete-order]').forEach(b=>b.addEventListener('click',()=>deleteOrder(b.dataset.deleteOrder)));
+  }
+  async function deleteOrder(id){
+    const order=orders.find(o=>o.id===id);if(!order)return;
+    if(activeId===id)closeDrawer();
+    const historyResult=await db.from('furniture_order_events').delete().eq('order_id',id);
+    if(historyResult.error){alert('Не удалось удалить историю заказа: '+historyResult.error.message);return;}
+    const result=await db.from('furniture_orders').delete().eq('id',id);
+    if(result.error){alert('Не удалось удалить заказ: '+result.error.message);return;}
+    orders=orders.filter(o=>o.id!==id);
+    render();
   }
   async function save(e) {
     e.preventDefault();
