@@ -52,5 +52,12 @@ else pass('Facade detail report is present');
 if (!estimates.includes('Не помещается в лист')) fail('Oversized panel warning is missing');
 else pass('Oversized panel warning is present');
 
+if (!estimates.includes('const prune=free') || !estimates.includes('sheet.free.forEach')) fail('Dense global sheet-fit search is missing');
+else pass('Dense global sheet-fit search is enabled');
+if (!estimates.includes("'Фурнитура'") || !estimates.includes('excelHardware')) fail('Hardware catalog fallback is missing');
+else pass('Hardware catalog fallback is available');
+if (!estimates.includes("'Работы и доставка'")) fail('Service and section 9 category is missing');
+else pass('Service and section 9 category is available');
+
 if (process.exitCode) process.exit(1);
 console.log('CRM validation completed successfully.');
