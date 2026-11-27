@@ -138,7 +138,7 @@
   ['ФОРС-МАЖОР',5000,'услуга']
  ];
  function ensureServiceLines(){
-  costLines=costLines.filter(x=>!(x.category==='Работы и доставка'&&String(x.item_name||'').startsWith('СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ')));
+  costLines=costLines.filter(x=>!String(x.item_name||'').trim().toLocaleUpperCase('ru').startsWith('СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ'));
   costLines.forEach(x=>{if(x.category==='Работы и доставка'){x.unit='услуга';x.unit_price=Number(x.quantity||1)*Number(x.unit_price||0);x.source_unit_price=x.unit_price;x.quantity=1;}});
   serviceDefaults.forEach(([name,price,unit])=>{if(!costLines.some(x=>x.category==='Работы и доставка'&&x.item_name===name))costLines.push({category:'Работы и доставка',item_name:name,unit,quantity:1,unit_price:price,source_unit_price:price});});
  }
