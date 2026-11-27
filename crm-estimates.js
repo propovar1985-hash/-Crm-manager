@@ -269,16 +269,7 @@
    }).join('');
    return '<section class="panel" style="padding:12px;margin:10px 0"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><b>'+esc((ci+1)+'. '+category)+'</b>'+(isService?'<span class="small">Раздел всегда открыт — все строки видны</span>':'<button type="button" class="btn" data-add-category="'+esc(category)+'">＋ Добавить позицию</button>')+'</div>'+
     (rows.length?'<div class="scroll"><table class="c-items"><thead><tr>'+(isService?'<th>Наименование</th><th>Сумма, ₽</th>':'<th>Наименование</th><th>Ед.</th><th>Количество</th><th>Цена, ₽</th><th>Сумма, ₽</th><th></th>')+'</tr></thead><tbody>'+htmlRows+'</tbody></table></div>':'<div class="small" style="padding:10px 0">Пока нет позиций</div>')+
-    (isService?(()=>{const z=calc();return '<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px"><b>Расчёт по разделу 9 — РАБОТА</b><table class="c-items"><tbody>'+
-    '<tr><td>МАТЕРИАЛ — сумма разделов</td><td>'+money(z.categoriesBase)+'</td></tr>'+
-    '<tr><td>СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ (100% от материалов без фасадов)</td><td>'+money(z.production)+'</td></tr>'+
-    '<tr><td>Работы, доставка и услуги</td><td>'+money(z.service)+'</td></tr>'+
-    '<tr><td><b>СТОИМОСТЬ до моржи</b></td><td><b>'+money(z.cost)+'</b></td></tr>'+
-    '<tr><td>МОРЖА — 80%</td><td>'+money(z.margin)+'</td></tr>'+
-    '<tr><td><b>ИТОГО</b></td><td><b>'+money(z.subtotal)+'</b></td></tr>'+
-    '<tr><td>КОМИССИЯ МЕНЕДЖЕРА — 5%</td><td>'+money(z.managerCommission)+'</td></tr>'+
-    '<tr><td><b>ИТОГОВАЯ СТОИМОСТЬ</b></td><td><b>'+money(z.total)+'</b></td></tr>'+
-    '</tbody></table></div>'})():'')+'</section>';
+    '</section>';
   }).join('');
   host.querySelectorAll('[data-add-category]').forEach(el=>el.onclick=()=>{costLines.push({...blankCost(),category:el.dataset.addCategory});drawCosts()});
   host.querySelectorAll('[data-ci]').forEach(el=>el.onchange=()=>{
