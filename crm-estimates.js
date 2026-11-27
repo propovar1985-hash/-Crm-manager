@@ -23,7 +23,7 @@
   <label>Клиент *<input name="client_name" required></label><label>Название изделия *<input name="title" required placeholder="Кухня, шкаф, гардеробная"></label>
   <label>Привязать к заказу<select name="order_id"><option value="">Без привязки</option></select></label><label>Связанный замер<select name="measurement_id"><option value="">Не выбран</option></select></label>
   <label>Статус<select name="status"><option>Черновик</option><option>На согласовании</option><option>Согласован</option><option>Архив</option></select></label>
-  <label>Наценка, %<input name="markup_percent" type="number" min="0" step="0.1" value="30"></label>
+  <label>Дополнительная общая наценка, %<input name="markup_percent" type="number" min="0" step="0.1" value="0"></label>
   <label>Длина листа, мм<input name="sheet_length_mm" type="number" min="1" value="2800"></label><label>Ширина листа, мм<input name="sheet_width_mm" type="number" min="1" value="2070"></label>
   </div><h3>Наценки по разделам</h3><div class="small">Каждый раздел настраивается отдельно. Значения сохраняются вместе с просчётом.</div><div id="cMarkupSettings"></div><h3>Детали</h3><div class="scroll"><table class="c-items"><thead><tr><th>Деталь</th><th>Материал</th><th>Поставщик</th><th>Ширина</th><th>Высота</th><th>Кол-во</th><th>Кромка, м</th><th>Цена м², ₽</th><th></th></tr></thead><tbody id="cItemRows"></tbody></table></div>
   <div class="c-toolbar"><button type="button" class="btn" id="cAddItem">＋ Добавить деталь</button></div><h3>Позиции расчёта</h3><div class="small">Добавляй расходы по нужным разделам. В каждом разделе — свои позиции и поставщики.</div><div id="cCostSections"></div>
