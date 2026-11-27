@@ -35,6 +35,7 @@
   $('cForm').onsubmit=save;$('cForm').oninput=summary;
  }
  let commonMaterialPrice=0,commonFacadePrice=0,commonHdfPrice=0,commonEdgePrice=0;
+ let managerCommissionEnabled=true,managerCommissionPercent=5;
  const blank=()=>({item_name:nextDetailName('Боковина'),material:'',catalog_item_id:'',material_price_sheet:commonMaterialPrice,edge_catalog_item_id:'',edge_name:'',edge_price_per_m:commonEdgePrice,edge_sides:{top:true,right:true,bottom:true,left:true},edge_m:0,width_mm:0,height_mm:0,quantity:1,supplier_id:'',supplier_name:'',supplier_discount_percent:0});
  function selectedCatalog(id){return estimateCatalog.find(p=>p.id===id)||excelHardware.find(p=>p.id===id)||excelFacades.find(p=>p.id===id)||null}
  const detailTypes=['Боковина','Полка','Перегородка','Дно','Крышка','Цоколь','Фасад','Дверь','Задняя стенка','Планка','Деталь ящика','Другое'];
@@ -130,7 +131,7 @@
   const detail=calculateDetailCosts(),materials=(sums['Материалы']||0)+detail.total;
   const categoriesBase=costCategories.filter(c=>c!=='Работы и доставка').reduce((a,c)=>a+(sums[c]||0),0)+detail.total,production=Math.max(0,(sums['Материалы']||0)+detail.sheetsCost+detail.edgeCost);
   const service=costLines.filter(x=>x.category==='Работы и доставка'&&!x.item_name.startsWith('СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ')).reduce((a,x)=>a+Number(x.quantity||0)*Number(x.unit_price||0),0);
-  const cost=categoriesBase+production+service,margin=cost*0.80,subtotal=cost+margin,managerCommission=subtotal*0.05,total=subtotal+managerCommission;
+  const cost=categoriesBase+production+service,margin=cost*0.80,subtotal=cost+margin,managerCommission=managerCommissionEnabled?subtotal*(Math.max(0,Number(managerCommissionPercent)||0)/100):0,total=subtotal+managerCommission;
   const area=items.reduce((a,x)=>a+Number(x.width_mm||0)*Number(x.height_mm||0)/1e6*Number(x.quantity||0),0);
   return {area,edge:detail.edgeMeters,materialsCost:materials,sheets:detail.plans.reduce((a,p)=>a+p.count,0),base:cost,total,categoriesBase,production,service,assembly:0,margin,managerCommission,sums,subtotal,detail};
  }
@@ -141,9 +142,16 @@
    <div class="c-total"><span class="small">Работа на производстве (100% от материалов без фасадов)</span><b>${money(x.production)}</b></div>
    <div class="c-total"><span class="small">Работы, доставка и услуги</span><b>${money(x.service)}</b></div>
    <div class="c-total"><span class="small">Моржа (80%)</span><b>${money(x.margin)}</b></div>
-   <div class="c-total"><span class="small">Комиссия менеджера (5%)</span><b>${money(x.managerCommission)}</b></div>
-   <div class="c-total"><span class="small">ИТОГОВАЯ СТОИМОСТЬ</span><b>${money(x.total)}</b></div>
-   <div class="small wide">Итог по формулам основного листа Excel: сумма разделов + производство (100% материалов) + работы и доставка; моржа 80% от этой суммы; комиссия менеджера 5% от суммы с моржой. Дополнительные проценты и скидки не применяются.</div>`;
+   <div class="c-total wide" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+    <label style="display:flex;align-items:center;gap:8px"><input id="cManagerCommissionEnabled" type="checkbox" ${managerCommissionEnabled?'checked':''}> <b>Учитывать комиссию менеджера</b></label>
+    <label style="display:flex;align-items:center;gap:6px">Процент <input id="cManagerCommissionPercent" type="number" min="0" max="100" step="0.1" value="${Number(managerCommissionPercent)}" style="width:90px"> %</label>
+    <span>Комиссия: <b id="cManagerCommissionAmount">${money(x.managerCommission)}</b></span>
+   </div>
+   <div class="c-total"><span class="small">ИТОГОВАЯ СТОИМОСТЬ</span><b id="cGrandTotal">${money(x.total)}</b></div>
+   <div class="small wide">Комиссия менеджера рассчитывается от суммы с моржой. Галочку можно снять, а процент изменить.</div>`;
+  const toggle=$('cManagerCommissionEnabled'),percent=$('cManagerCommissionPercent');
+  if(toggle)toggle.onchange=()=>{managerCommissionEnabled=toggle.checked;summary()};
+  if(percent){percent.oninput=e=>{e.stopPropagation();managerCommissionPercent=Math.min(100,Math.max(0,Number(percent.value)||0));const z=calc();const amount=$('cManagerCommissionAmount'),total=$('cGrandTotal');if(amount)amount.textContent=money(z.managerCommission);if(total)total.textContent=money(z.total)};percent.onchange=()=>summary()}
  }
  function drawItems(){
    const defaults=$('cDefaultMaterial'),facades=$('cDefaultFacade'),hdf=$('cDefaultHdf'),defaultEdge=$('cDefaultEdge');
