@@ -191,7 +191,7 @@
   host.querySelectorAll('[data-add-category]').forEach(el=>el.onclick=()=>{costLines.push({...blankCost(),category:el.dataset.addCategory});drawCosts()});
   host.querySelectorAll('[data-ci]').forEach(el=>el.onchange=()=>{
    const x=costLines[Number(el.dataset.ci)],k=el.dataset.ck;
-   if(k==='catalog_item_id'){const fallback=excelHardware.find(p=>p.id===el.value);if(fallback){x.catalog_item_id='';x.item_name=fallback.item_name;x.unit=fallback.unit;x.source_unit_price=Number(fallback.source_price);x.unit_price=Number(fallback.source_price);x.supplier_name='Таблица пользователя';}else applyEstimateCatalog(x,el.value,'line');drawCosts();summary();return;}
+   if(k==='catalog_item_id'){const fallback=excelHardware.find(p=>p.id===el.value);if(fallback){x.catalog_item_id=fallback.id;x.item_name=fallback.item_name;x.unit=fallback.unit;x.source_unit_price=Number(fallback.source_price);x.unit_price=Number(fallback.source_price);x.supplier_name='Таблица пользователя';}else applyEstimateCatalog(x,el.value,'line');drawCosts();summary();return;}
    if(k==='source_unit_price'){x.source_unit_price=Number(el.value);x.unit_price=Number(el.value);}
    else if(k==='unit')x.unit=el.value;
    else x.quantity=Number(el.value);
@@ -213,7 +213,7 @@
   if(ins.error){alert('Просчёт сохранён, но детали не записались: '+ins.error.message);return}
   const oldLines=await db.from('furniture_estimate_lines').delete().eq('estimate_id',id);
   if(oldLines.error){alert('Просчёт сохранён, но позиции сметы не обновились: '+oldLines.error.message);return}
-  const linePayload=costLines.filter(x=>String(x.item_name||'').trim()).map(x=>({...x,catalog_item_id:x.catalog_item_id||null,supplier_id:null,supplier_name:null,supplier_discount_percent:0,source_unit_price:Number(x.source_unit_price??x.unit_price??0),unit_price:Number(x.unit_price||0),price_checked_at:x.price_checked_at||null,supplier_product_id:null,estimate_id:id}));
+  const linePayload=costLines.filter(x=>String(x.item_name||'').trim()).map(x=>({...x,catalog_item_id:String(x.catalog_item_id||'').startsWith('excel-hardware-')?null:(x.catalog_item_id||null),supplier_id:null,supplier_name:null,supplier_discount_percent:0,source_unit_price:Number(x.source_unit_price??x.unit_price??0),unit_price:Number(x.unit_price||0),price_checked_at:x.price_checked_at||null,supplier_product_id:null,estimate_id:id}));
   const lineInsert=linePayload.length?await db.from('furniture_estimate_lines').insert(linePayload):{error:null};
   if(lineInsert.error){alert('Просчёт сохранён, но позиции сметы не записались: '+lineInsert.error.message);return}
   await load();close();alert('Просчёт сохранён.');
