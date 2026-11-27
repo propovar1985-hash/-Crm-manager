@@ -247,6 +247,41 @@ input,select,textarea{padding:10px 11px;border:1px solid #d6deea;border-radius:8
  #leads .stage,#leads .deal,#leads .pipeline-order-card{animation:none!important;transition:none!important}
 }
 
+
+/* Stronger stage color as the column background; compact order cards on phones */
+#leads .pipeline>.stage:nth-child(1){background:rgba(59,130,246,.34);border-color:rgba(59,130,246,.58)}
+#leads .pipeline>.stage:nth-child(2){background:rgba(16,185,129,.34);border-color:rgba(16,185,129,.58)}
+#leads .pipeline>.stage:nth-child(3){background:rgba(245,158,11,.35);border-color:rgba(245,158,11,.60)}
+#leads .pipeline>.stage:nth-child(4){background:rgba(139,92,246,.34);border-color:rgba(139,92,246,.58)}
+#leads .pipeline>.stage:nth-child(5){background:rgba(236,72,153,.32);border-color:rgba(236,72,153,.56)}
+#leads .pipeline>.stage:nth-child(6){background:rgba(6,182,212,.34);border-color:rgba(6,182,212,.58)}
+#leads .pipeline>.stage:nth-child(7){background:rgba(132,204,22,.34);border-color:rgba(132,204,22,.58)}
+#leads .pipeline>.stage:nth-child(8){background:rgba(249,115,22,.36);border-color:rgba(249,115,22,.62)}
+#leads .pipeline>.stage:nth-child(9){background:rgba(22,163,74,.34);border-color:rgba(22,163,74,.58)}
+.order-card-details{display:flex;flex-wrap:wrap;align-items:center;gap:3px 8px;font-size:11px;color:var(--muted);line-height:1.25}
+.order-card-amount{font-weight:750;color:var(--ink)}
+.order-stage-label{display:flex;align-items:center;gap:6px;margin-top:7px;font-size:10px;color:var(--muted)}
+.order-stage-select{flex:1;min-width:0;width:100%;padding:5px 7px!important;font-size:11px!important}
+@media(max-width:680px){
+ #leads .pipeline>.stage:nth-child(1){background:rgba(59,130,246,.38)}
+ #leads .pipeline>.stage:nth-child(2){background:rgba(16,185,129,.38)}
+ #leads .pipeline>.stage:nth-child(3){background:rgba(245,158,11,.39)}
+ #leads .pipeline>.stage:nth-child(4){background:rgba(139,92,246,.38)}
+ #leads .pipeline>.stage:nth-child(5){background:rgba(236,72,153,.36)}
+ #leads .pipeline>.stage:nth-child(6){background:rgba(6,182,212,.38)}
+ #leads .pipeline>.stage:nth-child(7){background:rgba(132,204,22,.38)}
+ #leads .pipeline>.stage:nth-child(8){background:rgba(249,115,22,.40)}
+ #leads .pipeline>.stage:nth-child(9){background:rgba(22,163,74,.38)}
+ #leads .pipeline-order-card{padding:6px 8px!important;margin:4px 0!important;border-radius:8px!important}
+ #leads .pipeline-order-tag{font-size:9px;padding:2px 6px;margin:0 5px 0 0}
+ #leads .pipeline-order-card b{display:inline!important;font-size:11px!important;line-height:1.2}
+ #leads .order-card-details{gap:2px 6px;font-size:10px;margin-top:3px}
+ #leads .order-card-phone,#leads .order-card-date{display:none!important}
+ #leads .order-stage-label{margin-top:4px;font-size:9px}
+ #leads .order-stage-select{padding:3px 5px!important;font-size:10px!important;max-width:170px}
+ #leads .stage{padding:7px!important}
+}
+
 </style>
 <link rel="stylesheet" href="./crm-ui.css?v=responsive-001">
 </head>
@@ -447,7 +482,7 @@ function openCompletedModal(){
  modal.innerHTML=`<div style="background:#fff;border-radius:16px;width:min(850px,100%);max-height:85vh;overflow:auto;padding:22px;box-shadow:0 20px 60px #0003"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px"><div><h2 style="margin:0">Завершённые</h2><div class="small">Заказы и сделки, переведённые на этап «Завершено»</div></div><button class="btn" onclick="document.getElementById('completedModal')?.remove()">Закрыть ✕</button></div>${rows.length?'<div class="scroll"><table style="width:100%;border-collapse:collapse"><thead><tr><th>ТИП</th><th>НОМЕР</th><th>ИЗДЕЛИЕ / СДЕЛКА</th><th>КЛИЕНТ</th><th>СУММА</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.type)+'</td><td>'+esc(r.number)+'</td><td>'+esc(r.title)+'</td><td>'+esc(r.client)+'</td><td>'+money(r.amount)+'</td></tr>').join('')+'</tbody></table></div>':'<div class="small" style="padding:30px;text-align:center">Пока нет завершённых заказов и сделок. Переведите карточку на этап «Завершено».</div>'}</div>`;
  modal.style.display='flex';
 }
-function orderPipelineCard(o){return `<article class="pipeline-order-card deadline-item"${deadlineStyle(o.due_date)} draggable="true" data-order-drag="${esc(o.id)}"><span class="pipeline-order-tag">ЗАКАЗ · ${esc(o.order_no||'без номера')}</span><b>${esc(o.title||'Без названия')}</b><div class="small">${esc(o.client_name||'Клиент не указан')}<br>${esc(o.phone||'Телефон не указан')}<br>${money(o.amount)}${o.due_date?'<br>Срок: '+esc(o.due_date):''}</div><label class="small" style="display:block;margin-top:8px">Перенести на этап<select class="order-stage-select" aria-label="Этап заказа" style="width:100%;margin-top:4px;padding:6px;font-size:12px" onchange="moveOrderToPipeline('${esc(o.id)}',this.value)">${[...stages,'Завершено'].map(st=>'<option value="'+esc(st)+'" '+(st===o.stage?'selected':'')+'>'+esc(st)+'</option>').join('')}</select></label></article>`;}
+function orderPipelineCard(o){return `<article class="pipeline-order-card deadline-item"${deadlineStyle(o.due_date)} draggable="true" data-order-drag="${esc(o.id)}"><span class="pipeline-order-tag">ЗАКАЗ · ${esc(o.order_no||'без номера')}</span><b class="order-card-title">${esc(o.title||'Без названия')}</b><div class="order-card-details"><span class="order-card-client">${esc(o.client_name||'Клиент не указан')}</span><span class="order-card-phone">${esc(o.phone||'Телефон не указан')}</span><span class="order-card-amount">${money(o.amount)}</span>${o.due_date?'<span class="order-card-date">Срок: '+esc(o.due_date)+'</span>':''}</div><label class="order-stage-label">Этап<select class="order-stage-select" aria-label="Этап заказа" onchange="moveOrderToPipeline('${esc(o.id)}',this.value)">${[...stages,'Завершено'].map(st=>'<option value="'+esc(st)+'" '+(st===o.stage?'selected':'')+'>'+esc(st)+'</option>').join('')}</select></label></article>`;}
 function bindOrderDragAndDrop(){document.querySelectorAll('[data-order-drag]').forEach(card=>{card.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',card.dataset.orderDrag);e.dataTransfer.effectAllowed='move';card.classList.add('dragging');});card.addEventListener('dragend',()=>card.classList.remove('dragging'));});document.querySelectorAll('[data-drop-stage]').forEach(column=>{column.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='move';column.classList.add('drop-target');});column.addEventListener('dragleave',e=>{if(!column.contains(e.relatedTarget))column.classList.remove('drop-target');});column.addEventListener('drop',async e=>{e.preventDefault();column.classList.remove('drop-target');const id=e.dataTransfer.getData('text/plain');if(id)await moveOrderToPipeline(id,column.dataset.dropStage);});});}
 async function moveOrderToPipeline(id,stage){const order=pipelineOrders.find(o=>o.id===id);if(!order)return;const allowed=[...stages,'Завершено'];if(!allowed.includes(stage)){alert('Неизвестный этап заказа');return;}const {error}=await db.from('furniture_orders').update({stage,updated_at:new Date().toISOString()}).eq('id',id);if(error){alert('Не удалось переместить заказ в воронку: '+error.message);return;}const {data:{user}}=await db.auth.getUser();const history=await db.from('furniture_order_events').insert({order_id:id,event_type:'Перемещение в воронке',details:`Заказ перемещён на этап «${stage}»`,created_by:user?.id||null});if(history.error)console.warn('История перемещения не записана:',history.error.message);await loadPipelineOrders();renderDeals();}
 function editDeal(id){const d=deals.find(x=>x.id===id);if(d)showDealForm(d);}
