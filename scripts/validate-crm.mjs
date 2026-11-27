@@ -135,5 +135,12 @@ else pass('Legacy price list can be restored automatically from the original cat
 if (!estimates.includes("ignoreDuplicates:true")) fail('Legacy catalog restoration may overwrite existing supplier prices');
 else pass('Legacy catalog restoration preserves existing prices and skips duplicates');
 
+if (!estimates.includes('function calc(){') || !estimates.includes('ИТОГО К ОПЛАТЕ')) fail('Final estimate totals are missing from the bottom summary');
+else pass('Final estimate totals are shown at the bottom of the estimate');
+if (!estimates.includes('totals.categoriesBase') || !estimates.includes('totals.service') || !estimates.includes('totals.total')) fail('Printed estimate does not include final totals');
+else pass('Printed estimate includes materials, services and grand total');
+if (estimates.includes('Работа на производстве (100%') || estimates.includes('Маржа (80%)') || estimates.includes('Комиссия менеджера')) fail('Removed automatic production, margin or manager commission has been reintroduced');
+else pass('Bottom totals do not restore automatic production, margin or manager commission');
+
 if (process.exitCode) process.exit(1);
 console.log('CRM validation completed successfully.');
