@@ -116,16 +116,21 @@
   const host=$('cCostSections');if(!host)return;
   host.innerHTML=costCategories.map((category,ci)=>{
    const rows=costLines.map((x,i)=>({...x,_i:i})).filter(x=>x.category===category);
-   const htmlRows=rows.map(x=>'<tr>'+
-    '<td><select data-ci="'+x._i+'" data-ck="catalog_item_id">'+catalogOptions(category,x.catalog_item_id)+'</select></td>'+
-    '<td><input data-ci="'+x._i+'" data-ck="unit" value="'+esc(x.unit||'шт')+'" style="width:65px" readonly></td>'+
-    '<td><input data-ci="'+x._i+'" data-ck="quantity" type="number" min="0" step=".001" value="'+Number(x.quantity||0)+'"></td>'+
-    '<td><input data-ci="'+x._i+'" data-ck="source_unit_price" type="number" min="0" step=".01" value="'+Number(x.unit_price??x.source_unit_price??0)+'"></td>'+
-    '<td>'+money(Number(x.quantity||0)*Number(x.unit_price||0))+'</td>'+
-    '<td><button type="button" class="btn danger" data-cdel="'+x._i+'">×</button></td></tr>').join('');
-   return '<section class="panel" style="padding:12px;margin:10px 0"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><b>'+esc((ci+1)+'. '+category)+'</b><button type="button" class="btn" data-add-category="'+esc(category)+'">＋ Добавить позицию</button></div>'+
-    (rows.length?'<div class="scroll"><table class="c-items"><thead><tr><th>Наименование из прайса</th><th>Ед.</th><th>Количество</th><th>Цена, ₽</th><th>Сумма, ₽</th><th></th></tr></thead><tbody>'+htmlRows+'</tbody></table></div>':'<div class="small" style="padding:10px 0">Пока нет позиций</div>')+'</section>';
-  }).join('');
+   const isService=category==='Работы и доставка';
+   const htmlRows=rows.map(x=>{
+    const isProduction=x.item_name.startsWith('СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ');
+    const price=isProduction?calc().production:Number(x.unit_price??x.source_unit_price??0);
+    const amount=isProduction?calc().production:Number(x.quantity||0)*Number(x.unit_price||0);
+    return '<tr>'+
+     '<td>'+(isService?'<b>'+esc(x.item_name)+'</b>':'<select data-ci="'+x._i+'" data-ck="catalog_item_id">'+catalogOptions(category,x.catalog_item_id)+'</select>')+'</td>'+
+     '<td><input data-ci="'+x._i+'" data-ck="unit" value="'+esc(x.unit||'шт')+'" style="width:75px" readonly></td>'+
+     '<td><input data-ci="'+x._i+'" data-ck="quantity" type="number" min="0" step=".001" value="'+Number(x.quantity||0)+'" '+(isService?'readonly':'')+'></td>'+
+     '<td><input data-ci="'+x._i+'" data-ck="source_unit_price" type="number" min="0" step=".01" value="'+price+'" '+(isProduction?'readonly':'')+'></td>'+
+     '<td>'+money(amount)+'</td>'+
+     '<td>'+(isService?'':'<button type="button" class="btn danger" data-cdel="'+x._i+'">×</button>')+'</td></tr>';
+   }).join('');
+   return '<section class="panel" style="padding:12px;margin:10px 0"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><b>'+esc((ci+1)+'. '+category)+'</b>'+(isService?'<span class="small">Все услуги раскрыты отдельно</span>':'<button type="button" class="btn" data-add-category="'+esc(category)+'">＋ Добавить позицию</button>')+'</div>'+
+    (rows.length?'<div class="scroll"><table class="c-items"><thead><tr><th>Наименование</th><th>Ед.</th><th>Количество</th><th>Цена, ₽</th><th>Сумма, ₽</th><th></th></tr></thead><tbody>'+htmlRows+'</tbody></table></div>':'<div class="small" style="padding:10px 0">Пока нет позиций</div>')+'</section>';;
   host.querySelectorAll('[data-add-category]').forEach(el=>el.onclick=()=>{costLines.push({...blankCost(),category:el.dataset.addCategory});drawCosts()});
   host.querySelectorAll('[data-ci]').forEach(el=>el.onchange=()=>{
    const x=costLines[Number(el.dataset.ci)],k=el.dataset.ck;
@@ -151,7 +156,7 @@
   if(ins.error){alert('Просчёт сохранён, но детали не записались: '+ins.error.message);return}
   const oldLines=await db.from('furniture_estimate_lines').delete().eq('estimate_id',id);
   if(oldLines.error){alert('Просчёт сохранён, но позиции сметы не обновились: '+oldLines.error.message);return}
-  const linePayload=costLines.filter(x=>x.item_name.trim()&&x.catalog_item_id).map(x=>({...x,supplier_id:null,supplier_name:'Таблица пользователя',supplier_discount_percent:0,source_unit_price:Number(x.source_unit_price??x.unit_price??0),unit_price:Number(x.unit_price||0),price_checked_at:x.price_checked_at||null,supplier_product_id:null,estimate_id:id}));
+  const linePayload=costLines.filter(x=>x.item_name.trim()&&(x.catalog_item_id||x.category==='Работы и доставка')).map(x=>({...x,supplier_id:null,supplier_name:null,supplier_discount_percent:0,source_unit_price:Number(x.source_unit_price??x.unit_price??0),unit_price:Number(x.unit_price||0),price_checked_at:x.price_checked_at||null,supplier_product_id:null,estimate_id:id}));
   const lineInsert=linePayload.length?await db.from('furniture_estimate_lines').insert(linePayload):{error:null};
   if(lineInsert.error){alert('Просчёт сохранён, но позиции сметы не записались: '+lineInsert.error.message);return}
   await load();close();alert('Просчёт сохранён.');
