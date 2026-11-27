@@ -263,7 +263,7 @@
      '<td><input data-ci="'+x._i+'" data-ck="quantity" type="number" min="0" step="1" value="'+Number(x.quantity||0)+'"></td>'+
      '<td><input data-ci="'+x._i+'" data-ck="source_unit_price" type="number" min="0" step="100" value="'+Number(x.unit_price??x.source_unit_price??0)+'"></td>'+
      '<td>'+money(Number(x.quantity||0)*Number(x.unit_price||0))+'</td>'+
-     '<td><button type="button" class="btn danger" data-cdel="'+x._i+'">×</button></td></tr>';
+     '<td><button type="button" class="btn danger" data-cdel="'+x._i+'" aria-label="Убрать позицию только из текущей сметы" title="Позиция останется в общем прайсе">Убрать из сметы</button></td></tr>';
    }).join('');
    return '<section class="panel" style="padding:12px;margin:10px 0"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><b>'+esc((ci+1)+'. '+category)+'</b>'+(isService?'<span class="small">Раздел всегда открыт — все строки видны</span>':'<button type="button" class="btn" data-add-category="'+esc(category)+'">＋ Добавить позицию</button>')+'</div>'+
     (rows.length?'<div class="scroll"><table class="c-items"><thead><tr>'+(isService?'<th>Наименование</th><th>Сумма, ₽</th>':'<th>Наименование</th><th>Ед.</th><th>Количество</th><th>Цена, ₽</th><th>Сумма, ₽</th><th></th>')+'</tr></thead><tbody>'+htmlRows+'</tbody></table></div>':'<div class="small" style="padding:10px 0">Пока нет позиций</div>')+'</section>';
@@ -278,7 +278,7 @@
    else x.quantity=Number(el.value);
    drawCosts();summary();
   });
-  host.querySelectorAll('[data-cdel]').forEach(el=>el.onclick=()=>{costLines.splice(Number(el.dataset.cdel),1);drawCosts();summary()});
+  host.querySelectorAll('[data-cdel]').forEach(el=>el.onclick=()=>{if(!confirm('Убрать эту позицию только из текущей сметы? В общем прайсе она останется.'))return;costLines.splice(Number(el.dataset.cdel),1);drawCosts();summary()});
  }
   function printEstimate(){
   const f=$('cForm'),value=name=>String(f?.elements[name]?.value||'').trim(),client=value('client_name')||'Не указан',title=value('title')||'Изделие не указано',status=value('status')||'Черновик',notes=value('notes');
