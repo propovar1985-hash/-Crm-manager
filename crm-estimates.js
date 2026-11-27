@@ -148,7 +148,7 @@
   if(row){
    Object.entries(row).forEach(([k,v])=>{if($('cForm').elements[k])$('cForm').elements[k].value=v??''});
    const {data,error}=await db.from('furniture_estimate_items').select('*').eq('estimate_id',row.id).order('created_at');
-   if(error){alert('Не удалось загрузить детали: '+error.message);return}items=(data||[]).map(({id,estimate_id,created_at,...x})=>({...x,edge_sides:x.edge_sides||{top:false,right:false,bottom:false,left:false},material_price_sheet:Number(x.material_price_sheet??x.source_material_price_m2??0)}));
+   if(error){alert('Не удалось загрузить детали: '+error.message);return}items=(data||[]).map(({id,estimate_id,created_at,...x})=>({...x,edge_sides:{top:true,right:true,bottom:true,left:true},material_price_sheet:Number(x.material_price_sheet??x.source_material_price_m2??0)}));
    const lineResult=await db.from('furniture_estimate_lines').select('*').eq('estimate_id',row.id).order('created_at');
    if(lineResult.error){alert('Не удалось загрузить позиции сметы: '+lineResult.error.message);return}costLines=(lineResult.data||[]).map(({id,estimate_id,created_at,...x})=>x);ensureServiceLines();
   }else {items=[blank()];costLines=[];ensureServiceLines();}
