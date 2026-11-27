@@ -72,5 +72,17 @@ else pass('Section 9 saves manual sums without quantity multiplication');
 if (!estimates.includes("cat==='Работы и доставка'?")) fail('Section 9 print rows do not use manual sums');
 else pass('Section 9 print output uses manual sums');
 
+if (!estimates.includes("costCategories.map((category,ci)=>")) fail('Estimate category sections are not rendered');
+else pass('All estimate category sections are rendered');
+if (!estimates.includes("if(costLinesLoadError){alert('Сохранение остановлено")) fail('Saving is not protected when saved estimate lines fail to load');
+else pass('Saving is protected when saved estimate lines fail to load');
+if (!estimates.includes("host.innerHTML=(costLinesLoadError?")) fail('Estimate line-load warning is missing');
+else pass('Estimate line-load warning is available');
+if (estimates.includes('Работа на производстве (100% от материалов без фасадов)')) fail('Automatic production calculation card is still present');
+else pass('Automatic production calculation card is removed');
+if (estimates.includes('crmManagerCommissionSettings') || estimates.includes('ИТОГО К ОПЛАТЕ')) fail('Automatic margin/commission/total calculation remains in estimate UI or print');
+else pass('Automatic margin, commission and total calculation is removed from estimate UI and print');
+
+
 if (process.exitCode) process.exit(1);
 console.log('CRM validation completed successfully.');
