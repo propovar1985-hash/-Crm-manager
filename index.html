@@ -11,7 +11,7 @@
 *{box-sizing:border-box}body{margin:0;font:15px -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
 button,input,select,textarea{font:inherit}button{cursor:pointer}
 .app{min-height:100vh;display:grid;grid-template-columns:245px 1fr}.side{background:var(--nav);color:#fff;padding:20px 13px;display:flex;flex-direction:column}
-.logo{font-size:21px;font-weight:800;line-height:1.2;padding:8px 10px 24px}.navbtn{display:block;width:100%;padding:12px 13px;border:0;border-radius:9px;background:transparent;color:#dbe4f4;text-align:left;margin:2px 0}.navbtn.active,.navbtn:hover{background:var(--nav2);color:#fff}
+.logo{font-size:21px;font-weight:800;line-height:1.2;padding:8px 10px 24px}.navbtn{display:block;width:100%;padding:12px 13px;border:0;border-radius:9px;background:transparent;color:#dbe4f4;text-align:left;margin:2px 0}.navbtn.active,.navbtn:hover{background:var(--nav2);color:#fff}.nav-group{margin:5px 0;border-top:1px solid #ffffff20;border-bottom:1px solid #ffffff20;padding:5px 0}.nav-group summary{list-style:none;cursor:pointer;padding:11px 13px;border-radius:9px;color:#fff;font-weight:750}.nav-group summary::-webkit-details-marker{display:none}.nav-group summary::after{content:'▸';float:right;color:#aebbd0;transition:transform .15s}.nav-group[open] summary::after{transform:rotate(90deg)}.nav-group summary:hover{background:var(--nav2)}.nav-group-items{padding-left:10px}.nav-group-items .navbtn{font-size:14px;padding:10px 11px}
 main{min-width:0}.top{min-height:65px;background:#fff;border-bottom:1px solid var(--line);padding:17px 25px;font-weight:650;display:flex;justify-content:space-between;align-items:center;gap:12px}.top-right{display:flex;align-items:center;gap:10px;font-weight:400}.content{padding:25px;max-width:1600px;margin:auto}.head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:19px}h1{margin:0 0 5px;font-size:28px}.muted{color:var(--muted)}.small{font-size:12px;color:var(--muted)}
 .cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-bottom:18px}.card,.panel{background:#fff;border:1px solid var(--line);border-radius:13px;padding:17px}.label{font-size:12px;color:var(--muted)}.num{font-size:28px;font-weight:760;margin-top:8px}.btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:9px;padding:10px 14px;font-weight:650}.btn:hover{filter:brightness(.98)}.primary{background:var(--blue);color:#fff;border-color:var(--blue)}.danger{color:var(--red)}.tools{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}.tools input{max-width:420px}
 input,select,textarea{padding:10px 11px;border:1px solid #d6deea;border-radius:8px;width:100%;background:#fff;color:var(--ink)}textarea{resize:vertical}table{width:100%;border-collapse:collapse;white-space:nowrap}th,td{text-align:left;padding:12px 9px;border-bottom:1px solid #edf0f4}th{font-size:11px;color:var(--muted);letter-spacing:.04em}.scroll{overflow:auto}.pill{display:inline-block;background:#edf2ff;color:#3157b7;border-radius:20px;padding:4px 9px;font-size:12px}.empty{text-align:center;padding:35px;color:var(--muted)}
@@ -66,9 +66,14 @@ input,select,textarea{padding:10px 11px;border:1px solid #d6deea;border-radius:8
   <button class="navbtn" data-tab="calendar">▦ Календарь</button>
   <button class="navbtn" data-tab="measure">⌖ Замеры и проекты</button>
   <button class="navbtn" data-tab="calc">▱ Расчёты</button>
-  <button class="navbtn" data-tab="suppliers">▧ Поставщики</button>
-  <button class="navbtn" data-tab="production">⚙ Производство</button>
-  <button class="navbtn" data-tab="team">♧ Сотрудники</button>
+  <details class="nav-group">
+    <summary>⚙ Админ</summary>
+    <div class="nav-group-items">
+      <button class="navbtn" data-tab="suppliers">▧ Поставщики</button>
+      <button class="navbtn" data-tab="production">⚙ Производство</button>
+      <button class="navbtn" data-tab="team">♧ Сотрудники</button>
+    </div>
+  </details>
   <button class="navbtn" data-tab="settings">⚙ Настройки</button>
 </aside>
 <main>
