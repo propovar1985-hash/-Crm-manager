@@ -83,7 +83,20 @@
  ];
  function ensureServiceLines(){serviceDefaults.forEach(([name,price,unit])=>{if(!costLines.some(x=>x.category==='Работы и доставка'&&x.item_name===name))costLines.push({category:'Работы и доставка',item_name:name,unit,quantity:1,unit_price:price,source_unit_price:price});});}
  function money(v){return Number(v||0).toLocaleString('ru-RU',{maximumFractionDigits:2})+' ₽'}
- function catalogOptions(category,selected,unitFilter){return '<option value="">Выбрать из прайса пользователя…</option>'+estimateCatalog.filter(p=>p.is_active&&(!category||p.category===category)&&(!unitFilter||p.unit===unitFilter)).map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selected?'selected':'')+'>'+esc(p.subgroup+' · '+p.item_name)+' · '+money(p.source_price)+' / '+esc(p.unit)+'</option>').join('')}
+ const excelHardware=[
+  ['ПЕТЛB BLUM',500,'шт'],['ПЕТЛИ UNIHOPPER',120,'шт'],['ПЕТЛИ БОЯРД',100,'шт'],['ПЕТЛИ HETTICH',380,'шт'],
+  ['НАПРАВЛЯЮЩИЕ BLUM',5000,'шт'],['НАПРАВЛЯЮЩИЕ UNIHOPPER',750,'шт'],['НАПРАВЛЯЮЩИЕ БОЯРД',1000,'шт'],['НАПРАВЛЯЮЩИЕ HETTICH',1600,'шт'],
+  ['VB',12,'шт'],['ГАЗЛИФТ',0,'шт'],['ПЛАНКА ТОРЦЕВАЯ ДЛЯ СТОЛЕШНИЦЫ КЕДР',180,'шт'],
+  ['ПЛАНКА СОЕДИНИТЕЛЬНАЯ ДЛЯ СТОЛЕШНИЦЫ КЕДР',235,'шт'],['СОЕДИНИТЕЛЬ СТЕНОВОЙ ПАНЕЛИ',250,'шт'],
+  ['ПЛИНТУС СТОЛЕШНИЦЫ 3 М',700,'шт'],['ОПОРЫ КУХОННЫЕ',30,'шт'],['ЦОКОЛЬ ПЛАСТИКОВЫЙ 4М',1100,'шт'],
+  ['ФИТИНГИ ЦОКОЛЯ',45,'шт'],['РЕШЕТКА АЛЮМИННИЕВАЯ',350,'шт'],['ВЕНТИЛЯЦИЯ ТРУБЫ',450,'шт'],
+  ['ШТАНГА ДЛЯ ОДЕЖДЫ ОВАЛЬНАЯ 2000ММ',1000,'шт'],['КОМАРЫ ОБЫЧНЫЕ',120,'шт']
+ ].map((x,i)=>({id:'excel-hardware-'+i,category:'Фурнитура',subgroup:'Фурнитура',item_name:x[0],source_price:x[1],unit:x[2],is_active:true,excelFallback:true}));
+ function catalogOptions(category,selected,unitFilter){
+  let rows=estimateCatalog.filter(p=>p.is_active&&(!category||p.category===category)&&(!unitFilter||p.unit===unitFilter));
+  if(category==='Фурнитура'&&!rows.length)rows=excelHardware;
+  return '<option value="">Выбрать из прайса пользователя…</option>'+rows.map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selected?'selected':'')+'>'+esc(p.subgroup+' · '+p.item_name)+' · '+money(p.source_price)+' / '+esc(p.unit)+'</option>').join('');
+ }
  function applyEstimateCatalog(target,id,kind){const p=estimateCatalog.find(x=>x.id===id);if(!p)return;target.catalog_item_id=p.id;target.item_name=p.item_name;target.unit=p.unit||'шт';target.supplier_name=p.supplier_name||'Прайс пользователя';target.supplier_id='';target.supplier_discount_percent=0;target.price_checked_at=p.updated_at||new Date().toISOString();if(kind==='material'){const price=Number(p.source_price||0);target.material=p.item_name;target.source_material_price_m2=price;target.material_price_m2=price}else{target.source_unit_price=Number(p.source_price||0);target.unit_price=Number(p.source_price||0)}}
  function calc(){
   const sums=Object.fromEntries(costCategories.map(c=>[c,0]));
@@ -178,7 +191,7 @@
   host.querySelectorAll('[data-add-category]').forEach(el=>el.onclick=()=>{costLines.push({...blankCost(),category:el.dataset.addCategory});drawCosts()});
   host.querySelectorAll('[data-ci]').forEach(el=>el.onchange=()=>{
    const x=costLines[Number(el.dataset.ci)],k=el.dataset.ck;
-   if(k==='catalog_item_id'){applyEstimateCatalog(x,el.value,'line');drawCosts();summary();return;}
+   if(k==='catalog_item_id'){const fallback=excelHardware.find(p=>p.id===el.value);if(fallback){x.catalog_item_id='';x.item_name=fallback.item_name;x.unit=fallback.unit;x.source_unit_price=Number(fallback.source_price);x.unit_price=Number(fallback.source_price);x.supplier_name='Таблица пользователя';}else applyEstimateCatalog(x,el.value,'line');drawCosts();summary();return;}
    if(k==='source_unit_price'){x.source_unit_price=Number(el.value);x.unit_price=Number(el.value);}
    else if(k==='unit')x.unit=el.value;
    else x.quantity=Number(el.value);
@@ -200,7 +213,7 @@
   if(ins.error){alert('Просчёт сохранён, но детали не записались: '+ins.error.message);return}
   const oldLines=await db.from('furniture_estimate_lines').delete().eq('estimate_id',id);
   if(oldLines.error){alert('Просчёт сохранён, но позиции сметы не обновились: '+oldLines.error.message);return}
-  const linePayload=costLines.filter(x=>x.item_name.trim()&&(x.catalog_item_id||x.category==='Работы и доставка')).map(x=>({...x,supplier_id:null,supplier_name:null,supplier_discount_percent:0,source_unit_price:Number(x.source_unit_price??x.unit_price??0),unit_price:Number(x.unit_price||0),price_checked_at:x.price_checked_at||null,supplier_product_id:null,estimate_id:id}));
+  const linePayload=costLines.filter(x=>String(x.item_name||'').trim()).map(x=>({...x,catalog_item_id:x.catalog_item_id||null,supplier_id:null,supplier_name:null,supplier_discount_percent:0,source_unit_price:Number(x.source_unit_price??x.unit_price??0),unit_price:Number(x.unit_price||0),price_checked_at:x.price_checked_at||null,supplier_product_id:null,estimate_id:id}));
   const lineInsert=linePayload.length?await db.from('furniture_estimate_lines').insert(linePayload):{error:null};
   if(lineInsert.error){alert('Просчёт сохранён, но позиции сметы не записались: '+lineInsert.error.message);return}
   await load();close();alert('Просчёт сохранён.');
