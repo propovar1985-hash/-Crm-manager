@@ -89,5 +89,6 @@ function buildRows(){var all=snapshotAll(),rows=[];all.forEach(function(c,index)
 function apply(){var rows=buildRows();if(!rows.length){alert('Добавьте шкаф или элементы наполнения.');return;}window.dispatchEvent(new CustomEvent('crm:wardrobe-generated',{detail:{title:'Шкафы: '+cabinets.length,items:rows,sketches:snapshotAll()}}));close();}
 function open(){ensure();parts=[];cabinets=[];activeCabinet=0;selectedPart=null;doorCount=3;showDoors=true;$('wbW').value=2400;$('wbH').value=2400;$('wbD').value=600;$('wbN').value=3;$('wbDoors').value=3;$('wbDoorMat').value='ЛМДФ 16 мм';lastDims={W:2400,H:2400,D:600};if(!threeReady)init3D();syncDimensions();renderCabinetList();render3D();$('wbModal').classList.add('open');requestAnimationFrame(function(){resize3D();cameraPreset('iso');});}
 function close(){if($('wbModal'))$('wbModal').classList.remove('open');}
+window.openWardrobeBuilder=open;
 window.addEventListener('crm:open-wardrobe-builder',open);
 })();
