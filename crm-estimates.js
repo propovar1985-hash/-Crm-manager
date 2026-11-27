@@ -67,7 +67,8 @@
   const plans=cuttingPlan();let sheetsCost=0,edgeMeters=0,edgeCost=0;
   plans.forEach(p=>sheetsCost+=p.count*p.price);
   items.forEach(x=>{const m=calcEdgeLength(x);x.edge_m=m;edgeMeters+=m;edgeCost+=m*Number(x.edge_price_per_m||0)});
-  const facadeCost=items.reduce((sum,it)=>{const p=selectedCatalog(it.catalog_item_id);if(!p||p.category!=='Облицовка и фасады')return sum;const qty=Number(it.quantity||0);const amount=p.unit==='м²'?(Number(it.width_mm||0)*Number(it.height_mm||0)/1000000*qty):qty;return sum+amount*Number(p.source_price||0)},0);\n  return {plans,sheetsCost,edgeMeters,edgeCost,facadeCost,total:sheetsCost+edgeCost+facadeCost};
+  const facadeCost=items.reduce((sum,it)=>{const p=selectedCatalog(it.catalog_item_id);if(!p||p.category!=='Облицовка и фасады')return sum;const qty=Number(it.quantity||0);const amount=p.unit==='м²'?(Number(it.width_mm||0)*Number(it.height_mm||0)/1000000*qty):qty;return sum+amount*Number(p.source_price||0)},0);
+  return {plans,sheetsCost,edgeMeters,edgeCost,facadeCost,total:sheetsCost+edgeCost+facadeCost};
  }
  const costCategories=['Материалы','Облицовка и фасады','Фурнитура','Шкафы-купе','Лицевая фурнитура','Крепёж','Свет','Комплектующие','Работы и доставка'];
  
