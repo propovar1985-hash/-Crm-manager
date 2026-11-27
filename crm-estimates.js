@@ -55,33 +55,70 @@
  function calcEdgeLength(item){const w=Number(item.width_mm||0),h=Number(item.height_mm||0),s=item.edge_sides||{};return ((s.top?w:0)+(s.bottom?w:0)+(s.left?h:0)+(s.right?h:0))*Number(item.quantity||0)/1000}
  function cuttingPlan(){
   const kerf=3,format=$('cSheetFormat')?.value||'2800x2070',[W,H]=format.split('x').map(Number),groups=new Map();
+  const normalizeMaterial=s=>String(s||'').normalize('NFKC').toLocaleUpperCase('ru').replace(/Ё/g,'Е').replace(/\\s+/g,' ').trim();
+  const materialThickness=s=>{const m=String(s||'').match(/(?:^|\\D)(\\d{1,2})\\s*мм\\b/i);return m?m[1]+'мм':''};
   items.forEach(it=>{
    if(!(Number(it.width_mm)>0&&Number(it.height_mm)>0))return;
    const isFacade=isFacadeItem(it);
    let p=selectedCatalog(it.catalog_item_id);
-   // ХДФ — листовой материал для раскроя даже если в прайсе его единица указана как «шт»,
-   // либо позиция конструктора ещё не получила catalog_item_id.
    if(!p&&isHdfItem(it))p=findMaterialCatalog(it.material)||null;
    const hdf=isHdfItem(it)||/ХДФ/i.test(String(p?.item_name||''));
    if(!p&&!hdf)return;
    if(!hdf&&p?.unit!=='лист')return;
    if(isFacade&&!(p?.category==='Материалы'&&/ЛДСП/i.test(String(p?.item_name||''))))return;
-   const key=p?.id||it.catalog_item_id||String(it.material||'ХДФ'),price=Number(it.material_price_sheet||p?.source_price||0),groupKey=key+'|'+price;
-   if(!groups.has(groupKey))groups.set(groupKey,{name:p?.item_name||it.material||'ХДФ',price,parts:[],oversized:[]});
-   for(let n=0;n<Math.max(1,Number(it.quantity||1));n++)groups.get(groupKey).parts.push({w:Number(it.width_mm)+kerf,h:Number(it.height_mm)+kerf,label:it.item_name});
+   const materialName=p?.item_name||it.material||'ХДФ';
+   // Объединяем одинаковый материал независимо от ID записи в справочнике.
+   const thickness=materialThickness(materialName)||materialThickness(it.material);
+   const groupKey=normalizeMaterial(materialName)+'|'+thickness;
+   const price=Number(it.material_price_sheet||p?.source_price||0);
+   if(!groups.has(groupKey))groups.set(groupKey,{name:materialName,price,parts:[],oversized:[]});
+   const g=groups.get(groupKey);
+   // При дублирующихся карточках одного материала берём наибольшую указанную цену листа,
+   // чтобы объединение не занизило стоимость закупки.
+   g.price=Math.max(g.price,price);
+   for(let n=0;n<Math.max(1,Number(it.quantity||1));n++)g.parts.push({w:Number(it.width_mm)+kerf,h:Number(it.height_mm)+kerf,label:it.item_name});
   });
   const result=[];
-  for(const [id,g] of groups){
-   const sheets=[];g.parts.sort((a,b)=>Math.max(b.w,b.h)-Math.max(a.w,a.h)||b.w*b.h-a.w*a.h);
-   for(const part of g.parts){
-    let placed=false;
-    for(const sh of sheets){
-     let best=null;sh.free.forEach((r,ri)=>[[part.w,part.h,false],[part.h,part.w,true]].forEach(([pw,ph,rot])=>{if(pw<=r.w&&ph<=r.h){const score=Math.min(r.w-pw,r.h-ph)*100000+Math.max(r.w-pw,r.h-ph);if(!best||score<best.score)best={ri,pw,ph,rot,score,x:r.x,y:r.y}}}));
-     if(best){const r=sh.free.splice(best.ri,1)[0];sh.parts.push({x:best.x,y:best.y,w:best.pw,h:best.ph,label:part.label,rotated:best.rot});const right={x:best.x+best.pw,y:best.y,w:r.w-best.pw,h:best.ph},bottom={x:best.x,y:best.y+best.ph,w:r.w,h:r.h-best.ph};if(right.w>0&&right.h>0)sh.free.push(right);if(bottom.w>0&&bottom.h>0)sh.free.push(bottom);placed=true;break}
+  for(const g of groups.values()){
+   const sheets=[];
+   const splitFree=(sh,used)=>{
+    const next=[];
+    for(const r of sh.free){
+     if(used.x>=r.x+r.w||used.x+used.w<=r.x||used.y>=r.y+r.h||used.y+used.h<=r.y){next.push(r);continue}
+     if(used.x>r.x)next.push({x:r.x,y:r.y,w:used.x-r.x,h:r.h});
+     if(used.x+used.w<r.x+r.w)next.push({x:used.x+used.w,y:r.y,w:r.x+r.w-(used.x+used.w),h:r.h});
+     if(used.y>r.y)next.push({x:r.x,y:r.y,w:r.w,h:used.y-r.y});
+     if(used.y+used.h<r.y+r.h)next.push({x:r.x,y:used.y+used.h,w:r.w,h:r.y+r.h-(used.y+used.h)});
     }
-    if(!placed){let best=null;[[part.w,part.h,false],[part.h,part.w,true]].forEach(([pw,ph,rot])=>{if(pw<=W&&ph<=H){const score=Math.min(W-pw,H-ph)*100000+Math.max(W-pw,H-ph);if(!best||score<best.score)best={pw,ph,rot,score}}});if(best){const sh={parts:[],free:[{x:0,y:0,w:W,h:H}]};sheets.push(sh);sh.parts.push({x:0,y:0,w:best.pw,h:best.ph,label:part.label,rotated:best.rot});sh.free=[{x:best.pw,y:0,w:W-best.pw,h:best.ph},{x:0,y:best.ph,w:W,H:H-best.ph}].filter(r=>r.w>0&&r.h>0)}else{g.oversized.push({label:part.label,w:part.w-kerf,h:part.h-kerf})}}
+    sh.free=next.filter((r,i,a)=>r.w>0&&r.h>0&&!a.some((q,j)=>j!==i&&q.x<=r.x&&q.y<=r.y&&q.x+q.w>=r.x+r.w&&q.y+q.h>=r.y+r.h));
+   };
+   g.parts.sort((a,b)=>Math.max(b.w,b.h)-Math.max(a.w,a.h)||b.w*b.h-a.w*a.h);
+   for(const part of g.parts){
+    let best=null;
+    sheets.forEach((sh,si)=>sh.free.forEach((r,ri)=>{
+     [[part.w,part.h,false],[part.h,part.w,true]].forEach(([pw,ph,rot])=>{
+      if(pw<=r.w&&ph<=r.h){
+       const short=Math.min(r.w-pw,r.h-ph),long=Math.max(r.w-pw,r.h-ph);
+       const score=short*100000+long;
+       if(!best||score<best.score)best={si,ri,x:r.x,y:r.y,w:pw,h:ph,rot,score};
+      }
+     });
+    }));
+    if(!best){
+     let orient=null;
+     [[part.w,part.h,false],[part.h,part.w,true]].forEach(([pw,ph,rot])=>{
+      if(pw<=W&&ph<=H){const score=Math.min(W-pw,H-ph)*100000+Math.max(W-pw,H-ph);if(!orient||score<orient.score)orient={w:pw,h:ph,rot,score}}
+     });
+     if(!orient){g.oversized.push({label:part.label,w:part.w-kerf,h:part.h-kerf});continue}
+     const sh={parts:[],free:[{x:0,y:0,w:W,h:H}]};sheets.push(sh);
+     best={si:sheets.length-1,x:0,y:0,...orient};
+    }
+    const sh=sheets[best.si],used={x:best.x,y:best.y,w:best.w,h:best.h};
+    sh.parts.push({...used,label:part.label,rotated:best.rot});
+    splitFree(sh,used);
    }
-   result.push({name:g.name,price:g.price,sheets:sheets.filter(s=>s.parts.length).map(sh=>sh.parts),count:sheets.filter(s=>s.parts.length).length,oversized:g.oversized});
+   const usedSheets=sheets.filter(sh=>sh.parts.length);
+   result.push({name:g.name,price:g.price,sheets:usedSheets.map(sh=>sh.parts),count:usedSheets.length,oversized:g.oversized});
   }
   return result;
  }
