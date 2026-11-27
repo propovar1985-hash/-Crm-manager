@@ -59,5 +59,9 @@ else pass('Hardware catalog fallback is available');
 if (!estimates.includes("'Работы и доставка'")) fail('Service and section 9 category is missing');
 else pass('Service and section 9 category is available');
 
+const wardrobeImport = estimates.match(/window\.addEventListener\('crm:wardrobe-generated',[\s\S]*?\n function init\(/)?.[0] || '';
+if (!wardrobeImport.includes('drawItems();drawCosts();')) fail('Wardrobe import does not refresh estimate cost sections and hardware selector');
+else pass('Wardrobe import refreshes hardware selector and all cost sections');
+
 if (process.exitCode) process.exit(1);
 console.log('CRM validation completed successfully.');
