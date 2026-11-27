@@ -25,7 +25,7 @@
   <label>Статус<select name="status"><option>Черновик</option><option>На согласовании</option><option>Согласован</option><option>Архив</option></select></label>
   
   
-  </div><h3>Детали изделия</h3><div class="small">Выбери тип детали из списка и укажи размеры. Материалы и цены выбираются в разделах прайса ниже.</div><div class="scroll"><table class="c-items"><thead><tr><th>Деталь</th><th>Материал</th><th>Ширина, мм</th><th>Высота, мм</th><th>Кол-во</th><th></th></tr></thead><tbody id="cItemRows"></tbody></table></div>
+  </div><h3>Детали изделия</h3><div class="c-grid" style="margin:10px 0"><label>Материал по умолчанию<select id="cDefaultMaterial"></select></label><label>Кромка по умолчанию<select id="cDefaultEdge"></select></label><label>Пропил, мм<input id="cKerf" type="number" min="0" step="0.1" value="4"></label></div><div class="small">Общий материал назначается деталям. Для отдельной детали можно изменить материал и кромку. Стороны кромления отмечаются отдельно.</div><div class="scroll"><table class="c-items"><thead><tr><th>Деталь</th><th>Материал</th><th>Кромка</th><th>Стороны</th><th>Ширина, мм</th><th>Высота, мм</th><th>Кол-во</th><th></th></tr></thead><tbody id="cItemRows"></tbody></table></div><div id="cCuttingSummary" class="panel" style="margin-top:10px"></div>
   <div class="c-toolbar"><button type="button" class="btn" id="cAddItem">＋ Добавить деталь</button></div><h3>Прайс и деталировка по разделам</h3><div class="small">Выбери позицию из выпадающего списка. Цена и единица измерения подставятся из твоей таблицы.</div><div id="cCostSections"></div>
   <div class="c-grid">
   <label class="wide">Примечание<textarea name="notes"></textarea></label></div>
@@ -34,7 +34,40 @@
   $('cSearch').oninput=render;$('cRefresh').onclick=load;$('cAddItem').onclick=()=>{items.push(blank());drawItems()};
   $('cForm').onsubmit=save;$('cForm').oninput=summary;
  }
- const blank=()=>({item_name:'Боковина',material:'ЛДСП 16 мм',width_mm:0,height_mm:0,quantity:1,edge_m:0,material_price_m2:0,source_material_price_m2:0,supplier_id:'',supplier_name:'',supplier_discount_percent:0});
+ const blank=()=>({item_name:'Боковина',material:'',catalog_item_id:'',material_price_sheet:0,edge_catalog_item_id:'',edge_name:'',edge_price_per_m:0,edge_sides:{top:false,right:false,bottom:false,left:false},edge_m:0,width_mm:0,height_mm:0,quantity:1,supplier_id:'',supplier_name:'',supplier_discount_percent:0});
+ function selectedCatalog(id){return estimateCatalog.find(p=>p.id===id)||null}
+ function materialOptions(selected=''){return '<option value="">Выбрать листовой материал…</option>'+estimateCatalog.filter(p=>p.is_active&&p.category==='Материалы'&&p.unit==='лист').map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selected?'selected':'')+'>'+esc(p.item_name)+' · '+money(p.source_price)+'/лист</option>').join('')}
+ function edgeOptions(selected=''){return '<option value="">Без кромки</option>'+estimateCatalog.filter(p=>p.is_active&&p.category==='Материалы'&&p.unit==='м'&&p.item_name.toLocaleUpperCase('ru').includes('КРОМКА')).map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selected?'selected':'')+'>'+esc(p.item_name)+' · '+money(p.source_price)+'/м</option>').join('')}
+ function setMaterial(item,id){const p=selectedCatalog(id);item.catalog_item_id=p?.id||'';item.material=p?.item_name||'';item.material_price_sheet=Number(p?.source_price||0);item.source_material_price_m2=item.material_price_sheet;item.material_price_m2=item.material_price_sheet}
+ function setEdge(item,id){const p=selectedCatalog(id);item.edge_catalog_item_id=p?.id||'';item.edge_name=p?.item_name||'';item.edge_price_per_m=Number(p?.source_price||0);item.edge_m=calcEdgeLength(item)}
+ function calcEdgeLength(item){const w=Number(item.width_mm||0),h=Number(item.height_mm||0),s=item.edge_sides||{};return ((s.top?w:0)+(s.bottom?w:0)+(s.left?h:0)+(s.right?h:0))*Number(item.quantity||0)/1000}
+ function cuttingPlan(){
+  const kerf=Math.max(0,Number($('cKerf')?.value||4)),W=2800,H=2070,groups=new Map();
+  items.filter(x=>Number(x.width_mm)>0&&Number(x.height_mm)>0&&x.catalog_item_id).forEach((it,index)=>{
+   const key=it.catalog_item_id,p=selectedCatalog(key);if(!groups.has(key))groups.set(key,{name:p?.item_name||it.material||'Материал',price:Number(p?.source_price||it.material_price_sheet||0),parts:[]});
+   for(let n=0;n<Math.max(1,Number(it.quantity||1));n++)groups.get(key).parts.push({w:Number(it.width_mm)+kerf,h:Number(it.height_mm)+kerf,label:it.item_name+' '+(index+1)});
+  });
+  const result=[];
+  for(const [id,g] of groups){
+   const sheets=[];g.parts.sort((a,b)=>Math.max(b.w,b.h)-Math.max(a.w,a.h)||b.w*b.h-a.w*a.h);
+   for(const part of g.parts){
+    let placed=false;
+    for(const sh of sheets){
+     let best=null;sh.free.forEach((r,ri)=>[[part.w,part.h,false],[part.h,part.w,true]].forEach(([pw,ph,rot])=>{if(pw<=r.w&&ph<=r.h){const score=Math.min(r.w-pw,r.h-ph)*100000+Math.max(r.w-pw,r.h-ph);if(!best||score<best.score)best={ri,pw,ph,rot,score,x:r.x,y:r.y}}}));
+     if(best){const r=sh.free.splice(best.ri,1)[0];sh.parts.push({x:best.x,y:best.y,w:best.pw,h:best.ph,label:part.label,rotated:best.rot});const right={x:best.x+best.pw,y:best.y,w:r.w-best.pw,h:best.ph},bottom={x:best.x,y:best.y+best.ph,w:r.w,h:r.h-best.ph};if(right.w>0&&right.h>0)sh.free.push(right);if(bottom.w>0&&bottom.h>0)sh.free.push(bottom);placed=true;break}
+    }
+    if(!placed){const sh={parts:[],free:[{x:0,y:0,w:W,h:H}]};sheets.push(sh);let best=null;[[part.w,part.h,false],[part.h,part.w,true]].forEach(([pw,ph,rot])=>{if(pw<=W&&ph<=H){const score=Math.min(W-pw,H-ph)*100000+Math.max(W-pw,H-ph);if(!best||score<best.score)best={pw,ph,rot,score}}});if(best){sh.parts.push({x:0,y:0,w:best.pw,h:best.ph,label:part.label,rotated:best.rot});sh.free=[{x:best.pw,y:0,w:W-best.pw,h:best.ph},{x:0,y:best.ph,w:W,h:H-best.ph}].filter(r=>r.w>0&&r.h>0)}}
+   }
+   result.push({name:g.name,price:g.price,count:sheets.filter(s=>s.parts.length).length});
+  }
+  return result;
+ }
+ function calculateDetailCosts(){
+  const plans=cuttingPlan();let sheetsCost=0,edgeMeters=0,edgeCost=0;
+  plans.forEach(p=>sheetsCost+=p.count*p.price);
+  items.forEach(x=>{const m=calcEdgeLength(x);x.edge_m=m;edgeMeters+=m;edgeCost+=m*Number(x.edge_price_per_m||0)});
+  return {plans,sheetsCost,edgeMeters,edgeCost,total:sheetsCost+edgeCost};
+ }
  const costCategories=['Материалы','Облицовка и фасады','Фурнитура','Шкафы-купе','Лицевая фурнитура','Крепёж','Свет','Комплектующие','Работы и доставка'];
  
  const blankCost=()=>({category:'Фурнитура',item_name:'',unit:'шт',quantity:1,unit_price:0,source_unit_price:0});
@@ -53,27 +86,18 @@
  function applyEstimateCatalog(target,id,kind){const p=estimateCatalog.find(x=>x.id===id);if(!p)return;target.catalog_item_id=p.id;target.item_name=p.item_name;target.unit=p.unit||'шт';target.supplier_name=p.supplier_name||'Прайс пользователя';target.supplier_id='';target.supplier_discount_percent=0;target.price_checked_at=p.updated_at||new Date().toISOString();if(kind==='material'){const price=Number(p.source_price||0);target.material=p.item_name;target.source_material_price_m2=price;target.material_price_m2=price}else{target.source_unit_price=Number(p.source_price||0);target.unit_price=Number(p.source_price||0)}}
  function calc(){
   const sums=Object.fromEntries(costCategories.map(c=>[c,0]));
-  costLines.forEach(x=>{
-   const amount=Number(x.quantity||0)*Number(x.unit_price||0);
-   if(x.category==='Фурнитура'&&String(x.item_name||'').trim().toLocaleUpperCase('ru').includes('КОМАР'))return;
-   sums[x.category]=(sums[x.category]||0)+amount;
-  });
-  const materials=sums['Материалы']||0;
-  const categoriesBase=costCategories.filter(c=>c!=='Работы и доставка').reduce((a,c)=>a+(sums[c]||0),0);
-  const production=materials;
+  costLines.forEach(x=>{const amount=Number(x.quantity||0)*Number(x.unit_price||0);if(x.category==='Фурнитура'&&String(x.item_name||'').trim().toLocaleUpperCase('ru').includes('КОМАР'))return;sums[x.category]=(sums[x.category]||0)+amount});
+  const detail=calculateDetailCosts(),materials=(sums['Материалы']||0)+detail.total;
+  const categoriesBase=costCategories.filter(c=>c!=='Работы и доставка').reduce((a,c)=>a+(sums[c]||0),0)+detail.total,production=materials;
   const service=costLines.filter(x=>x.category==='Работы и доставка'&&!x.item_name.startsWith('СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ')).reduce((a,x)=>a+Number(x.quantity||0)*Number(x.unit_price||0),0);
-  const cost=categoriesBase+production+service;
-  const margin=cost*0.80;
-  const subtotal=cost+margin;
-  const managerCommission=subtotal*0.05;
-  const total=subtotal+managerCommission;
+  const cost=categoriesBase+production+service,margin=cost*0.80,subtotal=cost+margin,managerCommission=subtotal*0.05,total=subtotal+managerCommission;
   const area=items.reduce((a,x)=>a+Number(x.width_mm||0)*Number(x.height_mm||0)/1e6*Number(x.quantity||0),0);
-  return {area,edge:0,materialsCost:materials,sheets:0,base:cost,total,categoriesBase,production,service,assembly:0,margin,managerCommission,sums,subtotal};
+  return {area,edge:detail.edgeMeters,materialsCost:materials,sheets:detail.plans.reduce((a,p)=>a+p.count,0),base:cost,total,categoriesBase,production,service,assembly:0,margin,managerCommission,sums,subtotal,detail};
  }
  function summary(){
   if(!$('cSummary'))return;const x=calc();
   $('cSummary').innerHTML=`
-   <div class="c-total"><span class="small">Материалы и комплектующие по прайсу</span><b>${money(x.categoriesBase)}</b></div>
+   <div class="c-total"><span class="small">Материалы, комплектующие, листы и кромка</span><b>${money(x.categoriesBase)}</b></div>
    <div class="c-total"><span class="small">Работа на производстве (100% от раздела «Материалы»)</span><b>${money(x.production)}</b></div>
    <div class="c-total"><span class="small">Работы, доставка и услуги</span><b>${money(x.service)}</b></div>
    <div class="c-total"><span class="small">Моржа (80%)</span><b>${money(x.margin)}</b></div>
@@ -82,15 +106,28 @@
    <div class="small wide">Итог по формулам основного листа Excel: сумма разделов + производство (100% материалов) + работы и доставка; моржа 80% от этой суммы; комиссия менеджера 5% от суммы с моржой. Дополнительные проценты и скидки не применяются.</div>`;
  }
  function drawItems(){
-  $('cItemRows').innerHTML=items.map((x,i)=>`<tr>
-  <td><select data-i="${i}" data-k="item_name">${['Боковина','Полка','Перегородка','Дно','Крышка','Цоколь','Фасад','Дверь','Задняя стенка','Планка','Деталь ящика','Другое'].map(n=>'<option '+(n===x.item_name?'selected':'')+'>'+esc(n)+'</option>').join('')}</select></td>
-  <td><select data-i="${i}" data-k="catalog_item_id">${catalogOptions('Материалы',x.catalog_item_id,'лист')}</select><small>${esc(x.material||'Материал не выбран')}</small></td>
-  <td><input data-i="${i}" data-k="width_mm" type="number" min="0" value="${x.width_mm}"></td>
-  <td><input data-i="${i}" data-k="height_mm" type="number" min="0" value="${x.height_mm}"></td>
-  <td><input data-i="${i}" data-k="quantity" type="number" min="1" value="${x.quantity}"></td>
-  <td><button type="button" class="btn danger" data-del="${i}">×</button></td></tr>`).join('')||'<tr><td colspan="6" class="empty">Добавьте детали изделия.</td></tr>';
-  $('cItemRows').querySelectorAll('[data-i]').forEach(el=>{el.onchange=()=>{const x=items[Number(el.dataset.i)],k=el.dataset.k;if(k==='catalog_item_id')applyEstimateCatalog(x,el.value,'material');else x[k]=k==='item_name'?el.value:Number(el.value);drawItems();summary()};el.oninput=()=>{const x=items[Number(el.dataset.i)],k=el.dataset.k;if(k!=='catalog_item_id'&&k!=='item_name')x[k]=Number(el.value);summary()}});
-  $('cItemRows').querySelectorAll('[data-del]').forEach(el=>el.onclick=()=>{items.splice(Number(el.dataset.del),1);drawItems();summary()});summary();
+  const defaults=$('cDefaultMaterial'),defaultEdge=$('cDefaultEdge');
+  if(defaults){const current=defaults.value;defaults.innerHTML=materialOptions(current);defaults.onchange=()=>{items.forEach(x=>{if(!x.material_override)setMaterial(x,defaults.value)});drawItems()}}
+  if(defaultEdge){const current=defaultEdge.value;defaultEdge.innerHTML=edgeOptions(current);defaultEdge.onchange=()=>{items.forEach(x=>{if(!x.edge_override)setEdge(x,defaultEdge.value)});drawItems()}}
+  const sides=['top','right','bottom','left'],labels={top:'В',right:'П',bottom:'Н',left:'Л'};
+  $('cItemRows').innerHTML=items.map((x,i)=>'<tr><td><select data-i="'+i+'" data-k="item_name">'+['Боковина','Полка','Перегородка','Дно','Крышка','Цоколь','Фасад','Дверь','Задняя стенка','Планка','Деталь ящика','Другое'].map(n=>'<option '+(n===x.item_name?'selected':'')+'>'+esc(n)+'</option>').join('')+'</select></td>'+
+   '<td><select data-i="'+i+'" data-k="catalog_item_id">'+materialOptions(x.catalog_item_id)+'</select></td><td><select data-i="'+i+'" data-k="edge_catalog_item_id">'+edgeOptions(x.edge_catalog_item_id)+'</select></td>'+
+   '<td>'+sides.map(k=>'<label style="display:inline-flex;gap:2px;align-items:center;margin-right:3px"><input type="checkbox" data-i="'+i+'" data-side="'+k+'" '+(x.edge_sides?.[k]?'checked':'')+'>'+labels[k]+'</label>').join('')+'</td>'+
+   '<td><input data-i="'+i+'" data-k="width_mm" type="number" min="0" value="'+Number(x.width_mm||0)+'"></td><td><input data-i="'+i+'" data-k="height_mm" type="number" min="0" value="'+Number(x.height_mm||0)+'"></td><td><input data-i="'+i+'" data-k="quantity" type="number" min="1" value="'+Number(x.quantity||1)+'"></td><td><button type="button" class="btn danger" data-del="'+i+'">×</button></td></tr>').join('')||'<tr><td colspan="8" class="empty">Добавьте детали изделия.</td></tr>';
+  $('cItemRows').querySelectorAll('[data-i]').forEach(el=>{
+   if(el.dataset.side){el.onchange=()=>{const x=items[Number(el.dataset.i)];x.edge_sides=x.edge_sides||{};x.edge_sides[el.dataset.side]=el.checked;x.edge_m=calcEdgeLength(x);summary();renderCuttingSummary()};return}
+   el.onchange=()=>{const x=items[Number(el.dataset.i)],k=el.dataset.k;if(k==='catalog_item_id'){setMaterial(x,el.value);x.material_override=true}else if(k==='edge_catalog_item_id'){setEdge(x,el.value);x.edge_override=true}else if(k==='item_name')x[k]=el.value;else x[k]=Number(el.value);drawItems()};
+   el.oninput=()=>{const x=items[Number(el.dataset.i)],k=el.dataset.k;if(['width_mm','height_mm','quantity'].includes(k)){x[k]=Number(el.value);summary();renderCuttingSummary()}};
+  });
+  $('cItemRows').querySelectorAll('[data-del]').forEach(el=>el.onclick=()=>{items.splice(Number(el.dataset.del),1);drawItems()});
+  if($('cKerf'))$('cKerf').oninput=()=>{renderCuttingSummary();summary()};
+  renderCuttingSummary();summary();
+ }
+ function renderCuttingSummary(){
+  const host=$('cCuttingSummary');if(!host)return;const c=calculateDetailCosts();
+  host.innerHTML='<b>Раскрой и кромка</b><div class="small">Лист 2800 × 2070 мм · пропил '+Number($('cKerf')?.value||4)+' мм · поворот деталей на 90° разрешён.</div>'+
+   (c.plans.length?c.plans.map(p=>'<div style="padding:6px 0;border-bottom:1px solid var(--line)">'+esc(p.name)+': <b>'+p.count+' лист.</b> × '+money(p.price)+' = <b>'+money(p.count*p.price)+'</b></div>').join(''):'<div class="small">Выбери листовой материал у деталей, чтобы рассчитать раскрой.</div>')+
+   '<div style="padding-top:7px">Кромка: '+c.edgeMeters.toFixed(2)+' м · '+money(c.edgeCost)+'</div><b>Материалы деталировки: '+money(c.total)+'</b>';
  }
  async function load(){
   const [a,b,c,g]=await Promise.all([db.from('furniture_estimates').select('*').order('created_at',{ascending:false}),db.from('furniture_orders').select('id,order_no,title,client_name').order('created_at',{ascending:false}),db.from('furniture_measurements').select('id,client_name,room_name,measured_at').order('created_at',{ascending:false}),db.from('furniture_estimate_catalog').select('id,category,subgroup,item_name,unit,source_price,supplier_name,is_active,updated_at').eq('is_active',true).order('category').order('subgroup').order('item_name')]);
@@ -111,7 +148,7 @@
   if(row){
    Object.entries(row).forEach(([k,v])=>{if($('cForm').elements[k])$('cForm').elements[k].value=v??''});
    const {data,error}=await db.from('furniture_estimate_items').select('*').eq('estimate_id',row.id).order('created_at');
-   if(error){alert('Не удалось загрузить детали: '+error.message);return}items=(data||[]).map(({id,estimate_id,created_at,...x})=>x);
+   if(error){alert('Не удалось загрузить детали: '+error.message);return}items=(data||[]).map(({id,estimate_id,created_at,...x})=>({...x,edge_sides:x.edge_sides||{top:false,right:false,bottom:false,left:false},material_price_sheet:Number(x.material_price_sheet??x.source_material_price_m2??0)}));
    const lineResult=await db.from('furniture_estimate_lines').select('*').eq('estimate_id',row.id).order('created_at');
    if(lineResult.error){alert('Не удалось загрузить позиции сметы: '+lineResult.error.message);return}costLines=(lineResult.data||[]).map(({id,estimate_id,created_at,...x})=>x);ensureServiceLines();
   }else {items=[blank()];costLines=[];ensureServiceLines();}
@@ -158,7 +195,7 @@
   if(result.error){alert('Не удалось сохранить просчёт: '+result.error.message);return}
   const id=result.data.id;const del=await db.from('furniture_estimate_items').delete().eq('estimate_id',id);
   if(del.error){alert('Просчёт сохранён, но не удалось обновить детали: '+del.error.message);return}
-  const payload=activeItems.map(x=>({...x,catalog_item_id:x.catalog_item_id||null,source_material_price_m2:Number(x.source_material_price_m2??x.material_price_m2??0),material_price_m2:Number(x.source_material_price_m2??x.material_price_m2??0),supplier_discount_percent:0,estimate_id:id}));const ins=payload.length?await db.from('furniture_estimate_items').insert(payload):{error:null};
+  const payload=activeItems.map(x=>({...x,catalog_item_id:x.catalog_item_id||null,edge_catalog_item_id:x.edge_catalog_item_id||null,edge_sides:x.edge_sides||{},edge_m:calcEdgeLength(x),edge_price_per_m:Number(x.edge_price_per_m||0),material_price_sheet:Number(x.material_price_sheet||0),source_material_price_m2:Number(x.material_price_sheet||0),material_price_m2:Number(x.material_price_sheet||0),supplier_discount_percent:0,estimate_id:id}));const ins=payload.length?await db.from('furniture_estimate_items').insert(payload):{error:null};
   if(ins.error){alert('Просчёт сохранён, но детали не записались: '+ins.error.message);return}
   const oldLines=await db.from('furniture_estimate_lines').delete().eq('estimate_id',id);
   if(oldLines.error){alert('Просчёт сохранён, но позиции сметы не обновились: '+oldLines.error.message);return}
