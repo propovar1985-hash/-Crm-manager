@@ -260,7 +260,6 @@
  async function deleteEstimate(id){
   const row=estimates.find(x=>x.id===id);if(!row)return;
   const label=[row.estimate_no||'Просчёт',row.title,row.client_name].filter(Boolean).join(' · ');
-  if(!confirm('Удалить '+label+'?\nБудут удалены сам просчёт, его детали и позиции сметы. Это действие нельзя отменить.'))return;
   const detailDelete=await db.from('furniture_estimate_items').delete().eq('estimate_id',id);
   if(detailDelete.error){alert('Не удалось удалить детали просчёта: '+detailDelete.error.message);return}
   const lineDelete=await db.from('furniture_estimate_lines').delete().eq('estimate_id',id);
