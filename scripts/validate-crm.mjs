@@ -115,5 +115,12 @@ else pass('Newly created catalog position is added to the current estimate');
 
 
 
+if (estimates.includes("from('furniture_estimate_catalog').delete(")) fail('Estimate UI can delete existing shared price catalog entries');
+else pass('Existing shared price catalog entries cannot be deleted from estimate UI');
+if (!estimates.includes("costLines.splice(Number(el.dataset.cdel),1)")) fail('Removing a row from the estimate does not target only the current estimate');
+else pass('Removing a row changes only the current estimate line list');
+if (!estimates.includes('В общем прайсе она останется.')) fail('Current-estimate removal does not explain that the shared catalog item is retained');
+else pass('Current-estimate removal explicitly preserves the shared catalog item');
+
 if (process.exitCode) process.exit(1);
 console.log('CRM validation completed successfully.');
