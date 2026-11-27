@@ -168,7 +168,17 @@
   }
   function renderCuttingSummary(){
   const host=$('cCuttingSummary');if(!host)return;const c=calculateDetailCosts(),format=$('cSheetFormat')?.value||'2800x2070';
-  host.innerHTML='<b>Раскрой и кромка</b><div class="small">Лист '+format.replace('x',' × ')+' мм · пропил 3 мм · поворот деталей на 90° разрешён.</div>'+
+  const facadeRows=items.filter(isFacadeItem).map(it=>{
+   const p=selectedCatalog(it.catalog_item_id),w=Number(it.width_mm||0),h=Number(it.height_mm||0),qty=Math.max(0,Number(it.quantity||0));
+   if(!p||p.category!=='Облицовка и фасады'||w<=0||h<=0||qty<=0)return null;
+   const areaOne=w*h/1000000,areaTotal=areaOne*qty,price=Number(it.material_price_sheet||p.source_price||0);
+   return {name:it.item_name||'Фасад',material:p.item_name||it.material||'Фасад',w,h,qty,areaOne,areaTotal,price,sum:areaTotal*price};
+  }).filter(Boolean);
+  const facadeArea=facadeRows.reduce((a,x)=>a+x.areaTotal,0),facadeSum=facadeRows.reduce((a,x)=>a+x.sum,0);
+  const facadeReport=facadeRows.length
+   ?'<section style="padding:12px;margin:10px 0;border:1px solid var(--line);border-radius:10px"><h3 style="margin:0 0 8px">Подробный расчёт фасадов</h3><div class="scroll"><table class="c-items"><thead><tr><th>Фасад</th><th>Материал</th><th>Размер, мм</th><th>Кол-во</th><th>Площадь 1 шт., м²</th><th>Общая площадь, м²</th><th>Цена за м²</th><th>Сумма</th></tr></thead><tbody>'+facadeRows.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.material)+'</td><td>'+x.w+' × '+x.h+'</td><td>'+x.qty+'</td><td>'+x.areaOne.toFixed(3)+'</td><td>'+x.areaTotal.toFixed(3)+'</td><td>'+money(x.price)+'</td><td><b>'+money(x.sum)+'</b></td></tr>').join('')+'</tbody></table></div><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:10px"><b>Общая площадь фасадов: '+facadeArea.toFixed(3)+' м²</b><b>ИТОГО фасады: '+money(facadeSum)+'</b></div><div class="small" style="margin-top:6px">Расчёт: ширина × высота ÷ 1 000 000 × количество × цена за м².</div></section>'
+   :'<section style="padding:12px;margin:10px 0;border:1px solid var(--line);border-radius:10px"><b>Подробный расчёт фасадов</b><div class="small">Фасады не найдены. Проверьте, что для детали выбран материал из раздела «Облицовка и фасады», указаны размеры и количество.</div><b style="display:block;margin-top:8px">ИТОГО фасады: '+money(0)+'</b></section>';
+  host.innerHTML=facadeReport+'<b>Раскрой и кромка</b><div class="small">Лист '+format.replace('x',' × ')+' мм · пропил 3 мм · поворот деталей на 90° разрешён.</div>'+
    (c.plans.length?c.plans.map(p=>'<div style="padding:8px 0;border-bottom:1px solid var(--line)"><b>'+esc(p.name)+': '+p.count+' лист. × '+money(p.price)+' = '+money(p.count*p.price)+'</b>'+p.sheets.map((parts,si)=>'<div class="small" style="margin-top:8px">Лист '+(si+1)+'</div><svg viewBox="0 0 560 414" role="img" aria-label="Карта раскроя '+esc(p.name)+'" style="width:100%;max-width:560px;border:1px solid var(--line);background:#fff">'+parts.map((r,ri)=>'<rect x="'+(r.x/5)+'" y="'+(r.y/5)+'" width="'+(r.w/5)+'" height="'+(r.h/5)+'" fill="#dbeafe" stroke="#315b8a" stroke-width="1"/><text x="'+(r.x/5+3)+'" y="'+(r.y/5+12)+'" font-size="10" fill="#172b4d">'+esc(r.label)+(r.rotated?' ↻':'')+'</text>').join('')+'</svg>').join('')+'</div>').join(''):'<div class="small">Выбери листовой материал у деталей, чтобы рассчитать раскрой.</div>')+
    '<div style="padding-top:7px">Кромка: '+c.edgeMeters.toFixed(2)+' м · '+money(c.edgeCost)+'</div><b>Материалы деталировки: '+money(c.total)+'</b>';
  }
