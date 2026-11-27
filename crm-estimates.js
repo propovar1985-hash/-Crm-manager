@@ -23,8 +23,8 @@
  .c-manager-toggle{display:flex;align-items:center;gap:7px;font-size:12px;color:#526783}
  .c-manager .small,.c-manager b{grid-column:1/-1}
  @media(max-width:650px){.c-summary{grid-template-columns:1fr}.c-total-grand{grid-column:auto}.c-manager{grid-template-columns:1fr}.c-manager .small,.c-manager b{grid-column:auto}.c-manager-label{justify-content:space-between}}
- .c-list{display:grid;gap:9px}.c-row{display:flex;justify-content:space-between;gap:12px;padding:13px;border:1px solid var(--line);border-radius:10px}
- @media(max-width:650px){.c-panel{padding:13px}.c-grid{grid-template-columns:1fr}.c-grid .wide{grid-column:auto}.c-summary{grid-template-columns:1fr}.c-row{flex-direction:column}}
+ .c-list{display:grid;gap:9px}.c-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px;border:1px solid var(--line);border-radius:10px}.c-row-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}.c-row-actions .danger{color:#b42318;border-color:#f1c7c7;background:#fff}
+ @media(max-width:650px){.c-panel{padding:13px}.c-grid{grid-template-columns:1fr}.c-grid .wide{grid-column:auto}.c-summary{grid-template-columns:1fr}.c-row{flex-direction:column;align-items:stretch}.c-row-actions{justify-content:flex-end}}
  `;document.head.appendChild(css);
  function ensure(){
   const s=$('calc');if(!s)return;
@@ -253,8 +253,22 @@
  }
  function render(){
   const q=($('cSearch')?.value||'').toLocaleLowerCase('ru');const list=estimates.filter(x=>[x.client_name,x.title,x.estimate_no].join(' ').toLocaleLowerCase('ru').includes(q));
-  $('cRows').innerHTML=list.length?list.map(x=>`<div class="c-row"><div><b>${esc(x.estimate_no||'Просчёт')} · ${esc(x.title)}</b><div class="small">${esc(x.client_name)} · ${esc(x.status)} · ${new Date(x.created_at).toLocaleDateString('ru-RU')}</div></div><button class="btn" data-edit="${esc(x.id)}">Открыть</button></div>`).join(''):'<div class="empty">Просчётов пока нет.</div>';
+  $('cRows').innerHTML=list.length?list.map(x=>`<div class="c-row"><div><b>${esc(x.estimate_no||'Просчёт')} · ${esc(x.title)}</b><div class="small">${esc(x.client_name)} · ${esc(x.status)} · ${new Date(x.created_at).toLocaleDateString('ru-RU')}</div></div><div class="c-row-actions"><button type="button" class="btn" data-edit="${esc(x.id)}">Открыть</button><button type="button" class="btn danger" data-delete="${esc(x.id)}">Удалить</button></div></div>`).join(''):'<div class="empty">Просчётов пока нет.</div>';
   $('cRows').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>open(estimates.find(x=>x.id===b.dataset.edit)));
+  $('cRows').querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>deleteEstimate(b.dataset.delete));
+ }
+ async function deleteEstimate(id){
+  const row=estimates.find(x=>x.id===id);if(!row)return;
+  const label=[row.estimate_no||'Просчёт',row.title,row.client_name].filter(Boolean).join(' · ');
+  const detailDelete=await db.from('furniture_estimate_items').delete().eq('estimate_id',id);
+  if(detailDelete.error){alert('Не удалось удалить детали просчёта: '+detailDelete.error.message);return}
+  const lineDelete=await db.from('furniture_estimate_lines').delete().eq('estimate_id',id);
+  if(lineDelete.error){alert('Не удалось удалить позиции сметы: '+lineDelete.error.message);return}
+  const estimateDelete=await db.from('furniture_estimates').delete().eq('id',id);
+  if(estimateDelete.error){alert('Не удалось удалить просчёт: '+estimateDelete.error.message);return}
+  estimates=estimates.filter(x=>x.id!==id);
+  try{localStorage.removeItem('crm-estimate-preview:'+id)}catch(error){console.warn('Не удалось удалить локальную миниатюру просчёта:',error)}
+  render();
  }
  function fillSelects(){
   const f=$('cForm');f.elements.order_id.innerHTML='<option value="">Без привязки</option>'+orders.map(o=>`<option value="${esc(o.id)}">${esc(o.order_no||'Заказ')} · ${esc(o.client_name)} · ${esc(o.title)}</option>`).join('');

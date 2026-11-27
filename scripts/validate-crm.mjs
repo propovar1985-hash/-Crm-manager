@@ -47,6 +47,13 @@ else pass('H1715 wood texture asset exists');
 
 if (!estimates.includes("$('cPrint').onclick=printEstimate")) fail('Estimate print button handler is missing');
 else pass('Estimate print button is connected');
+if (!estimates.includes('data-delete="\u0024{esc(x.id)}"') || !estimates.includes('async function deleteEstimate(id)')) fail('Saved estimates do not have a delete action');
+else pass('Saved estimates have a delete action');
+if (!estimates.includes("from('furniture_estimate_items').delete().eq('estimate_id',id)") || !estimates.includes("from('furniture_estimate_lines').delete().eq('estimate_id',id)") || !estimates.includes("from('furniture_estimates').delete().eq('id',id)")) fail('Deleting an estimate does not remove its child rows before the estimate');
+else pass('Deleting an estimate removes its detail and price rows before the estimate');
+if (estimates.includes("if(!confirm('Удалить '+label")) fail('Estimate deletion still asks for confirmation');
+else pass('Estimate deletion runs without a confirmation prompt');
+
 if (!estimates.includes('Подробный расчёт фасадов')) fail('Facade detail report is missing');
 else pass('Facade detail report is present');
 if (!estimates.includes('Не помещается в лист')) fail('Oversized panel warning is missing');
