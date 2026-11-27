@@ -96,37 +96,64 @@
  
  const blankCost=()=>({category:'Фурнитура',item_name:'',unit:'шт',quantity:1,unit_price:0,source_unit_price:0});
  const serviceDefaults=[
-  ['СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ (100% ОТ МАТЕРИАЛА)',0,'расчёт'],
-  ['ДОСТАВКА МАТЕРИАЛА',2000,'услуга'],
-  ['ЗАМЕР',0,'услуга'],
-  ['ДОСТАВКА',2000,'услуга'],
-  ['ПРЕДСБОРКА',0,'услуга'],
-  ['СБОРКА НА АДРЕСЕ 10%',4000,'услуга'],
-  ['ФОРС-МАЖОР',5000,'услуга']
+  ['СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ (100% ОТ МАТЕРИАЛА)',0,'₽'],
+  ['ДОСТАВКА МАТЕРИАЛА',2000,'₽'],['ЗАМЕР',0,'₽'],['ДОСТАВКА',2000,'₽'],
+  ['ПРЕДСБОРКА',0,'₽'],['СБОРКА НА АДРЕСЕ 10%',4000,'₽'],['ФОРС МАЖОР',5000,'₽']
  ];
  function ensureServiceLines(){serviceDefaults.forEach(([name,price,unit])=>{if(!costLines.some(x=>x.category==='Работы и доставка'&&x.item_name===name))costLines.push({category:'Работы и доставка',item_name:name,unit,quantity:1,unit_price:price,source_unit_price:price});});}
  function money(v){return Number(v||0).toLocaleString('ru-RU',{maximumFractionDigits:2})+' ₽'}
- const excelHardware=[
-  ['ПЕТЛB BLUM',500,'шт'],['ПЕТЛИ UNIHOPPER',120,'шт'],['ПЕТЛИ БОЯРД',100,'шт'],['ПЕТЛИ HETTICH',380,'шт'],
-  ['НАПРАВЛЯЮЩИЕ BLUM',5000,'шт'],['НАПРАВЛЯЮЩИЕ UNIHOPPER',750,'шт'],['НАПРАВЛЯЮЩИЕ БОЯРД',1000,'шт'],['НАПРАВЛЯЮЩИЕ HETTICH',1600,'шт'],
-  ['VB',12,'шт'],['ГАЗЛИФТ',0,'шт'],['ПЛАНКА ТОРЦЕВАЯ ДЛЯ СТОЛЕШНИЦЫ КЕДР',180,'шт'],
-  ['ПЛАНКА СОЕДИНИТЕЛЬНАЯ ДЛЯ СТОЛЕШНИЦЫ КЕДР',235,'шт'],['СОЕДИНИТЕЛЬ СТЕНОВОЙ ПАНЕЛИ',250,'шт'],
-  ['ПЛИНТУС СТОЛЕШНИЦЫ 3 М',700,'шт'],['ОПОРЫ КУХОННЫЕ',30,'шт'],['ЦОКОЛЬ ПЛАСТИКОВЫЙ 4М',1100,'шт'],
-  ['ФИТИНГИ ЦОКОЛЯ',45,'шт'],['РЕШЕТКА АЛЮМИННИЕВАЯ',350,'шт'],['ВЕНТИЛЯЦИЯ ТРУБЫ',450,'шт'],
-  ['ШТАНГА ДЛЯ ОДЕЖДЫ ОВАЛЬНАЯ 2000ММ',1000,'шт'],['КОМАРЫ ОБЫЧНЫЕ',120,'шт']
- ].map((x,i)=>({id:'excel-hardware-'+i,category:'Фурнитура',subgroup:'Фурнитура',item_name:x[0],source_price:x[1],unit:x[2],is_active:true,excelFallback:true}));
+ const fallbackCatalog=(category,subgroup,rows,prefix)=>rows.map((x,i)=>({id:prefix+'-'+i,category,subgroup,item_name:x[0],source_price:x[1],unit:x[2]||'шт',is_active:true,excelFallback:true}));
+ const excelHardware=fallbackCatalog('Фурнитура','Фурнитура',[
+  ['ПЕТЛB BLUM',500],['ПЕТЛИ UNIHOPPER',120],['ПЕТЛИ БОЯРД',100],['ПЕТЛИ HETTICH',380],
+  ['НАПРАВЛЯЮЩИЕ BLUM',5000],['НАПРАВЛЯЮЩИЕ UNIHOPPER',750],['НАПРАВЛЯЮЩИЕ БОЯРД',1000],['НАПРАВЛЯЮЩИЕ HETTICH',1600],
+  ['VB',12],['ГАЗЛИФТ',0],['ПЛАНКА ТОРЦЕВАЯ ДЛЯ СТОЛЕШНИЦЫ КЕДР',180],
+  ['ПЛАНКА СОЕДЕНИТЕЛЬНАЯ ДЛЯ СТОЛЕШНИЦЫ КЕДР',235],['СОЕДИНИТЕЛЬ СТЕНОВОЙ ПАНЕЛИ',250],
+  ['ПЛИНТУС СТОЛЕШНИЦЫ 3 М',700],['ОПОРЫ КУХОННЫЕ',30],['ЦОКОЛЬ ПЛАСТИКОВЫЙ 4М',1100],
+  ['ФИТИНГИ ЦОКОЛЯ',45],['РЕШЕТКА АЛЮМИННИЕВАЯ',350],['ВЕНТИЛЯЦИЯ ТРУБЫ',450],
+  ['ШТАНГА ДЛЯ ОДЕЖДЫ ОВАЛЬНАЯ 2000ММ',1000],['КОМАРЫ ОБЫЧНЫЕ',120]
+ ],'excel-hardware');
+ const excelWardrobe=fallbackCatalog('Шкафы-купе','Шкафы-купе',[
+  ['Ветрикальный профиль С Золото матовое 5400ММ',4000],['Направляющая верхняя двухполозная Золото матовое 3000ММ',3000],
+  ['Направляющая нижняя двухполозная Золото матовое 3000ММ',1400],['Рамка верхняя Золото матовое 6000ММ',2700],
+  ['Рамка нижняя Золото матовое 6000ММ',5500],['Рамка средняя Золото матовое 6000ММ',2400],
+  ['INTEGRO Доводчик для двери шкафа-купе',2000],['INTEGRO верхний ролик с функцией антиподскакивания',400],
+  ['INTEGRO Комплект роликов на 1 дверь ROL асимм.',357],['INTEGRO Уплотнитель для нижней направляющей, прозрачный',82],
+  ['INTEGRO Щеточный уплотнитель, 12 мм',82,'м²'],['INTEGRO Уплотнитель 4+ мм',61,'м²'],
+  ['Саморез с цилиндрической головкой и внутренним шестигранником',18],['INTEGRO Стопор',35]
+ ],'excel-wardrobe');
+ const excelFrontHardware=fallbackCatalog('Лицевая фурнитура','Лицевая фурнитура',[
+  ['РУЧКА НАКЛАДНАЯ ОТ:',300],['РУЧКА РЕЙЛИНГОВАЯ ОТ:',600],['tip-on',200],['РУЧКА СКОБА ОТ:',200],
+  ['РУЧКА GOLA 3000ММ',5000],['ФИТИНГ GOLA',120],['РУЧКА КНОПКА ОТ:',100],['ШТАНГА ЛИЦЕВАЯ',0]
+ ],'excel-front-hardware');
+ const excelFasteners=fallbackCatalog('Крепёж','Крепёж',[
+  ['КОНФИРМАТ',2],['ЭКСЦЕНТРИК',6],['САМОРЕЗЫ 45',1.5],['САМОРЕЗЫ 30',1],['САМОРЕЗЫ 20',1],
+  ['САМОРЕЗЫ 16',0.5],['СТЯЖКА МЕБЕЛЬНАЯ',10],['УГОЛКИ МЕБЕЛЬНЫЕ МОНТАЖНЫЕ',20],['УГОЛОК БОЛЬШОЙ С ЗАГЛУШКОЙ',35]
+ ],'excel-fasteners');
+ const excelLighting=fallbackCatalog('Свет','Свет',[
+  ['ТРАНСФОРМАТОР 30',400],['ТРАНСФОРМАТОР 60',600],['ТРАНСФОРМАТОР 100',1000],['ТРАНСФОРМАТОР 150',1300],
+  ['ТРАНСФОРМАТОР 200',1600],['ЛЕНТА СВЕТОДИОДНАЯ 5 М',650],['КАБЕЛЬ СЛАБОТОЧНЫЙ',10,'м'],
+  ['ПРОФИЛЬ ДЛЯ ЛЕНТЫ+ОТРАЖАТЕЛЬ3м',1000],['НАКОНЕЧНИКИ',5],['ДАТЧИК НА ПРЕГРАДУ 1Х 220В',2150],
+  ['ДАТЧИК НА ПРЕГРАДУ 2Х 220В',1315],['ДАТЧИК ДВИЖЕНИЯ',2000],['ДАТЧИК НА ВЗМАХ ВРЕЗНОЙ',9],
+  ['КНОПКА ВРЕЗНАЯ',10],['ДАТЧИК СЕНСОРНЫЙ ДИМИРУЕМЫЙ',850]
+ ],'excel-lighting');
+ const excelComponents=fallbackCatalog('Комплектующие','Комплектующие',[
+  ['ЛОТОК ПОД ПРИБОРЫ',1000],['СУШИЛКА ДЛЯ ПОСУДЫ',5],['БУТЫЛОЧНИЦА',1.5],['КОРЗИНА ВЫДВИЖНАЯ',1],
+  ['МОЙКА',1500],['СМЕСИТЕЛЬ',1000],['клей',800],['ДВЕРИ КУПЕ',0]
+ ],'excel-components');
+ const excelFallbackByCategory={'Фурнитура':excelHardware,'Шкафы-купе':excelWardrobe,'Лицевая фурнитура':excelFrontHardware,'Крепёж':excelFasteners,'Свет':excelLighting,'Комплектующие':excelComponents};
  function catalogOptions(category,selected,unitFilter,selectedName){
   let rows=estimateCatalog.filter(p=>p.is_active&&(!category||p.category===category)&&(!unitFilter||p.unit===unitFilter));
-  if(category==='Фурнитура'){
+  const fallback=excelFallbackByCategory[category]||[];
+  if(fallback.length){
    const names=new Set(rows.map(p=>String(p.item_name||'').trim().toLocaleUpperCase('ru')));
-   rows=rows.concat(excelHardware.filter(p=>!names.has(p.item_name.trim().toLocaleUpperCase('ru'))));
+   rows=rows.concat(fallback.filter(p=>!names.has(p.item_name.trim().toLocaleUpperCase('ru'))));
   }
   return '<option value="">Выбрать из прайса пользователя…</option>'+rows.map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selected||(!selected&&selectedName&&p.item_name===selectedName)?'selected':'')+'>'+esc(p.subgroup+' · '+p.item_name)+' · '+money(p.source_price)+' / '+esc(p.unit)+'</option>').join('');
  }
  function applyEstimateCatalog(target,id,kind){const p=estimateCatalog.find(x=>x.id===id);if(!p)return;target.catalog_item_id=p.id;target.item_name=p.item_name;target.unit=p.unit||'шт';target.supplier_name=p.supplier_name||'Прайс пользователя';target.supplier_id='';target.supplier_discount_percent=0;target.price_checked_at=p.updated_at||new Date().toISOString();if(kind==='material'){const price=Number(p.source_price||0);target.material=p.item_name;target.source_material_price_m2=price;target.material_price_m2=price}else{target.source_unit_price=Number(p.source_price||0);target.unit_price=Number(p.source_price||0)}}
  function calc(){
   const sums=Object.fromEntries(costCategories.map(c=>[c,0]));
-  costLines.forEach(x=>{const amount=Number(x.quantity||0)*Number(x.unit_price||0);if(x.category==='Фурнитура'&&String(x.item_name||'').trim().toLocaleUpperCase('ru').includes('КОМАР'))return;sums[x.category]=(sums[x.category]||0)+amount});
+  costLines.forEach(x=>{const amount=Number(x.quantity||0)*Number(x.unit_price||0);sums[x.category]=(sums[x.category]||0)+amount});
   const detail=calculateDetailCosts(),materials=(sums['Материалы']||0)+detail.total;
   const categoriesBase=costCategories.filter(c=>c!=='Работы и доставка').reduce((a,c)=>a+(sums[c]||0),0)+detail.total,production=materials;
   const service=costLines.filter(x=>x.category==='Работы и доставка'&&!x.item_name.startsWith('СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ')).reduce((a,x)=>a+Number(x.quantity||0)*Number(x.unit_price||0),0);
