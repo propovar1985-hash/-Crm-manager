@@ -49,3 +49,32 @@ h2{letter-spacing:-.02em}
 .wb-legend .wb-legend-shelf,.wb-legend .wb-legend-drawer{background:#f5f6f8!important;border-color:#dfe3e8!important;color:#475467!important}
 .wb-stat{box-shadow:none!important;border-radius:8px!important}
 @media(max-width:760px){.content{padding:16px!important}.cards{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+
+/* Responsive workshop CRM: phone, tablet and desktop */
+@media(max-width:900px){
+ .app{grid-template-columns:178px minmax(0,1fr)}
+ .content{padding:16px}
+ .c-panel,.order-drawer-panel{max-width:100%;width:min(920px,100%)}
+}
+@media(max-width:760px){
+ .app{display:block;min-height:100dvh}
+ .side{position:sticky;top:0;z-index:30;display:flex;flex-direction:row;gap:5px;overflow-x:auto;overscroll-behavior-x:contain;padding:8px max(9px,env(safe-area-inset-left))}
+ .navbtn{flex:0 0 auto;min-height:42px;padding:10px 12px;white-space:nowrap}
+ .top{padding:12px 14px;min-height:54px}
+ .content{padding:14px 10px calc(18px + env(safe-area-inset-bottom))}
+ .head{align-items:flex-start;flex-wrap:wrap}
+ .head h1{font-size:22px}
+ .panel,.card{padding:13px}
+ .scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+ .c-modal{padding:0;align-items:stretch}
+ .c-panel{width:100%;height:100dvh;max-height:100dvh;border-radius:0;padding:calc(12px + env(safe-area-inset-top)) 11px calc(12px + env(safe-area-inset-bottom))}
+ .c-items{min-width:760px}
+ .c-items input,.c-items select{min-height:40px}
+ .c-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .c-toolbar .btn,.actions .btn{min-height:42px}
+}
+@media(max-width:420px){
+ .c-summary{grid-template-columns:1fr 1fr}
+ .top-right{gap:5px}
+ .top-right .btn{padding:8px}
+}
