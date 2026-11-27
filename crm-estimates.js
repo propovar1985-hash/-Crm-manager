@@ -58,7 +58,7 @@
   const categoriesBase=(sums['Материалы']||0)+(sums['Облицовка и фасады']||0)+(sums['Фурнитура']||0)+(sums['Шкафы-купе']||0)+(sums['Лицевая фурнитура']||0)+(sums['Крепёж']||0)+(sums['Свет']||0)+(sums['Комплектующие']||0);
   const production=materials;
   const assembly=(categoriesBase+production)*0.10;
-  const service=sums['Работы и доставка']||0;
+  const service=costLines.filter(x=>x.category==='Работы и доставка'&&!String(x.item_name||'').toLocaleUpperCase('ru').includes('СБОРКА НА АДРЕСЕ')).reduce((a,x)=>a+Number(x.quantity||0)*Number(x.unit_price||0),0);
   const cost=categoriesBase+production+service+assembly;
   const margin=cost*0.80;
   const managerCommission=(categoriesBase+production)*0.05;
