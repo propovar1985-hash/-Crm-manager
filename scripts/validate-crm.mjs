@@ -102,6 +102,16 @@ else pass('Wardrobe dimensions use 1 mm arrow increments');
 if (!wardrobeStudio.includes('id="wbN" type="number" min="1" max="8" step="1"') || !wardrobeStudio.includes('id="wbDoors" type="number" min="0" max="8" step="1"')) fail('Wardrobe section and door counts do not use 1-unit arrow increments');
 else pass('Wardrobe section and door counts use 1-unit arrow increments');
 
+if (!estimates.includes('id="cCatalogModal"') || !estimates.includes('id="cCatalogForm"')) fail('New catalog position popup is missing');
+else pass('New catalog position popup is available');
+if (!estimates.includes("from('furniture_estimate_catalog').insert(payload)")) fail('New catalog positions are not saved to the shared price catalog');
+else pass('New catalog positions are saved to the shared price catalog');
+if (!estimates.includes("openCatalogModal(el.dataset.addCategory)")) fail('Add-position buttons do not open the catalog popup');
+else pass('Add-position buttons open the catalog popup');
+if (!estimates.includes("costLines.push(line)")) fail('Newly created catalog position is not added to the current estimate');
+else pass('Newly created catalog position is added to the current estimate');
+
+
 
 
 
