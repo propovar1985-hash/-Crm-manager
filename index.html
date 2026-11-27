@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Мастер мебельщик — CRM</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#142033">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Мастер мебельщик">
+<link rel="icon" type="image/svg+xml" href="./assets/app-icon.svg">
+<link rel="apple-touch-icon" href="./assets/app-icon.svg">
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
 <style>
@@ -66,6 +74,43 @@ input,select,textarea{padding:10px 11px;border:1px solid #d6deea;border-radius:8
 
 @media(max-width:680px){.calendar-toolbar{align-items:stretch}.calendar-nav{justify-content:space-between}.calendar-nav strong{flex:1}.calendar-filters{display:grid;grid-template-columns:1fr 1fr}.calendar-filters select{width:100%;min-width:0}.cal-cell{min-height:84px;padding:3px}.cal-event{padding:3px}.cal-event b{font-size:9px}.cal-event small,.cal-event-time{font-size:8px}.cal-month-grid{gap:3px}.cal-weekdays{gap:3px}}
 
+
+/* Mobile-first usability: compact controls and no page-level sideways scrolling */
+@media(max-width:680px){
+ html,body{width:100%;max-width:100%;overflow-x:hidden}
+ .app{display:block;width:100%;min-width:0;overflow-x:hidden}
+ .side{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:7px!important;position:sticky;top:0;z-index:20;width:100%;overflow:visible!important}
+ .logo{display:none!important}
+ .side>.navbtn{width:100%!important;min-width:0;white-space:normal!important;text-align:center!important;font-size:11px!important;line-height:1.15;padding:8px 3px!important;margin:0!important;min-height:36px;display:flex;align-items:center;justify-content:center}
+ .side>.nav-group{grid-column:1/-1;width:100%;margin:0!important;padding:0!important;border:0!important}
+ .nav-group summary{text-align:center;padding:8px 10px!important;font-size:12px;background:#20334f;border-radius:8px}
+ .nav-group-items{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:4px 0 0!important}
+ .nav-group-items .navbtn{font-size:11px!important;padding:8px 3px!important;min-width:0;white-space:normal}
+ .top{gap:6px;flex-wrap:wrap;padding:9px 11px!important}
+ .top-right{display:flex;align-items:center;gap:6px;min-width:0}
+ .content{padding:11px 8px!important;min-width:0;width:100%;overflow-x:hidden}
+ .head{gap:8px;flex-wrap:wrap}
+ .head>.btn,.head button,.btn{font-size:12px!important;padding:7px 9px!important;min-height:32px}
+ .cards{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .panel,.card,.dialog{min-width:0;max-width:100%}
+ .grid{grid-template-columns:minmax(0,1fr)!important}
+ .wide{grid-column:auto!important}
+ .calendar-toolbar,.calendar-filters{min-width:0}
+ .calendar-filters{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .cal-month-grid{gap:2px!important}
+ .cal-cell{min-width:0!important;overflow:hidden}
+ .cal-event{min-width:0!important}
+ .modal{padding:7px!important}
+ .dialog{padding:14px!important;width:100%!important;max-height:96vh}
+ table{font-size:11px}
+ th,td{padding:7px 5px!important}
+}
+@media(max-width:380px){
+ .side{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .side>.nav-group{grid-column:1/-1}
+ .cards{grid-template-columns:1fr 1fr!important}
+ .calendar-filters{grid-template-columns:1fr!important}
+}
 </style>
 <link rel="stylesheet" href="./crm-ui.css?v=responsive-001">
 </head>
@@ -1169,5 +1214,6 @@ window.__fullOrdersModuleEmbedded=true;
 <script src="./crm-estimates.js?v=dense-maxrects-global-fit-024"></script>
 <script src="./crm-wardrobe-studio.js?v=partial-facade-height-027"></script>
 <script src="./crm-suppliers.js?v=syntax-fix-de01e3b"></script>
+<script>if('serviceWorker' in navigator && location.protocol.startsWith('http')){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(e=>console.warn('SW registration:',e)));}</script>
 </body>
 </html>
