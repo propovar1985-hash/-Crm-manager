@@ -482,7 +482,7 @@ try {
     if(activeId===id)closeDrawer();
     // История удаляется автоматически через ON DELETE CASCADE у furniture_order_events.order_id.
     const result=await db.from('furniture_orders').delete().eq('id',id);
-    if(result.error){alert('Не удалось удалить заказ: '+result.error.message);return;}
+    if(result.error){const msg=result.error.message||String(result.error);alert(msg.toLowerCase().includes('permission denied')?'Supabase запрещает удаление заказа. Выполните SQL из файла supabase-fix-order-delete-permissions.sql в Supabase → SQL Editor, затем повторите удаление.\n\nТехническая ошибка: '+msg:'Не удалось удалить заказ: '+msg);return;}
     orders=orders.filter(o=>o.id!==id);
     render();
   }
@@ -839,7 +839,7 @@ window.__fullOrdersModuleEmbedded=true;
     if(activeId===id)closeDrawer();
     // История удаляется автоматически через ON DELETE CASCADE у furniture_order_events.order_id.
     const result=await db.from('furniture_orders').delete().eq('id',id);
-    if(result.error){alert('Не удалось удалить заказ: '+result.error.message);return;}
+    if(result.error){const msg=result.error.message||String(result.error);alert(msg.toLowerCase().includes('permission denied')?'Supabase запрещает удаление заказа. Выполните SQL из файла supabase-fix-order-delete-permissions.sql в Supabase → SQL Editor, затем повторите удаление.\n\nТехническая ошибка: '+msg:'Не удалось удалить заказ: '+msg);return;}
     orders=orders.filter(o=>o.id!==id);
     render();
   }
