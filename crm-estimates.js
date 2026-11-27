@@ -45,7 +45,7 @@
  function calcEdgeLength(item){const w=Number(item.width_mm||0),h=Number(item.height_mm||0),s=item.edge_sides||{};return ((s.top?w:0)+(s.bottom?w:0)+(s.left?h:0)+(s.right?h:0))*Number(item.quantity||0)/1000}
  function cuttingPlan(){
   const kerf=Math.max(0,Number($('cKerf')?.value||4)),W=2800,H=2070,groups=new Map();
-  items.filter(x=>Number(x.width_mm)>0&&Number(x.height_mm)>0&&x.catalog_item_id&&selectedCatalog(x.catalog_item_id)?.unit==='лист').forEach((it,index)=>{
+  items.filter(x=>{const p=selectedCatalog(x.catalog_item_id);if(!(Number(x.width_mm)>0&&Number(x.height_mm)>0&&p&&p.unit==='лист'))return false;const isFacade=['Фасад','Дверь'].includes(String(x.item_name||''));return !isFacade||(p.category==='Материалы'&&/ЛДСП/i.test(String(p.item_name||'')));}).forEach((it,index)=>{
    const key=it.catalog_item_id,p=selectedCatalog(key);if(!groups.has(key))groups.set(key,{name:p?.item_name||it.material||'Материал',price:Number(p?.source_price||it.material_price_sheet||0),parts:[]});
    for(let n=0;n<Math.max(1,Number(it.quantity||1));n++)groups.get(key).parts.push({w:Number(it.width_mm)+kerf,h:Number(it.height_mm)+kerf,label:it.item_name+' '+(index+1)});
   });
