@@ -68,8 +68,13 @@
    if(!p&&!hdf)return;
    if(!hdf&&p?.unit!=='лист')return;
    if(isFacade&&!(p?.category==='Материалы'&&/ЛДСП/i.test(String(p?.item_name||''))))return;
-   const key=p?.id||it.catalog_item_id||String(it.material||'ХДФ'),price=Number(it.material_price_sheet||p?.source_price||0),groupKey=key+'|'+price;
-   if(!groups.has(groupKey))groups.set(groupKey,{name:p?.item_name||it.material||'ХДФ',price,parts:[],oversized:[]});
+   const materialName=p?.item_name||it.material||'ХДФ';
+   const normalize=s=>String(s||'').normalize('NFKC').toLocaleUpperCase('ru').replace(/Ё/g,'Е').replace(/\s+/g,' ').trim();
+   const thickness=(String(materialName)+' '+String(it.material||'')).match(/(?:^|\D)(\\d{1,2})\s*мм\\b/i)?.[1]||'';
+   const groupKey=normalize(materialName)+'|'+thickness;
+   const price=Number(it.material_price_sheet||p?.source_price||0);
+   if(!groups.has(groupKey))groups.set(groupKey,{name:materialName,price,parts:[],oversized:[]});
+   else groups.get(groupKey).price=Math.max(groups.get(groupKey).price,price);
    for(let n=0;n<Math.max(1,Number(it.quantity||1));n++)groups.get(groupKey).parts.push({w:Number(it.width_mm)+kerf,h:Number(it.height_mm)+kerf,label:it.item_name});
   });
   const result=[];
