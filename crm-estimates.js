@@ -258,26 +258,18 @@
     const isProduction=x.item_name.startsWith('СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ');
     const price=isProduction?calc().production:Number(x.unit_price??x.source_unit_price??0);
     const amount=isProduction?calc().production:Number(x.quantity||0)*Number(x.unit_price||0);
+    if(isService)return '<tr><td><b>'+esc(x.item_name)+'</b></td><td>'+money(amount)+'</td></tr>';
     return '<tr>'+
-     '<td>'+(isService?'<b>'+esc(x.item_name)+'</b>':'<select data-ci="'+x._i+'" data-ck="catalog_item_id">'+catalogOptions(category,x.catalog_item_id,null,x.item_name)+'</select>')+'</td>'+
+     '<td><select data-ci="'+x._i+'" data-ck="catalog_item_id">'+catalogOptions(category,x.catalog_item_id,null,x.item_name)+'</select></td>'+
      '<td><input data-ci="'+x._i+'" data-ck="unit" value="'+esc(x.unit||'шт')+'" style="width:75px" readonly></td>'+
-     '<td><input data-ci="'+x._i+'" data-ck="quantity" type="number" min="0" step=".001" value="'+Number(x.quantity||0)+'" '+(isService?'readonly':'')+'></td>'+
+     '<td><input data-ci="'+x._i+'" data-ck="quantity" type="number" min="0" step=".001" value="'+Number(x.quantity||0)+'"></td>'+
      '<td><input data-ci="'+x._i+'" data-ck="source_unit_price" type="number" min="0" step=".01" value="'+price+'" '+(isProduction?'readonly':'')+'></td>'+
      '<td>'+money(amount)+'</td>'+
-     '<td>'+(isService?'':'<button type="button" class="btn danger" data-cdel="'+x._i+'">×</button>')+'</td></tr>';
+     '<td><button type="button" class="btn danger" data-cdel="'+x._i+'">×</button></td></tr>';
    }).join('');
    return '<section class="panel" style="padding:12px;margin:10px 0"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><b>'+esc((ci+1)+'. '+category)+'</b>'+(isService?'<span class="small">Раздел всегда открыт — все строки видны</span>':'<button type="button" class="btn" data-add-category="'+esc(category)+'">＋ Добавить позицию</button>')+'</div>'+
-    (rows.length?'<div class="scroll"><table class="c-items"><thead><tr><th>Наименование</th><th>Ед.</th><th>Количество</th><th>Цена, ₽</th><th>Сумма, ₽</th><th></th></tr></thead><tbody>'+htmlRows+'</tbody></table></div>':'<div class="small" style="padding:10px 0">Пока нет позиций</div>')+
-    (isService?(()=>{const z=calc();return '<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px"><b>Расчёт по разделу 9 — РАБОТА</b><table class="c-items"><tbody>'+
-    '<tr><td>МАТЕРИАЛ — сумма разделов</td><td>'+money(z.categoriesBase)+'</td></tr>'+
-    '<tr><td>СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ (100% от материалов без фасадов)</td><td>'+money(z.production)+'</td></tr>'+
-    '<tr><td>Работы, доставка и услуги</td><td>'+money(z.service)+'</td></tr>'+
-    '<tr><td><b>СТОИМОСТЬ до моржи</b></td><td><b>'+money(z.cost)+'</b></td></tr>'+
-    '<tr><td>МОРЖА — 80%</td><td>'+money(z.margin)+'</td></tr>'+
-    '<tr><td><b>ИТОГО</b></td><td><b>'+money(z.subtotal)+'</b></td></tr>'+
-    '<tr><td>КОМИССИЯ МЕНЕДЖЕРА — 5%</td><td>'+money(z.managerCommission)+'</td></tr>'+
-    '<tr><td><b>ИТОГОВАЯ СТОИМОСТЬ</b></td><td><b>'+money(z.total)+'</b></td></tr>'+
-    '</tbody></table></div>'})():'')+'</section>';
+    (rows.length?'<div class="scroll"><table class="c-items"><thead><tr>'+(isService?'<th>Наименование</th><th>Сумма, ₽</th>':'<th>Наименование</th><th>Ед.</th><th>Количество</th><th>Цена, ₽</th><th>Сумма, ₽</th><th></th>')+'</tr></thead><tbody>'+htmlRows+'</tbody></table></div>':'<div class="small" style="padding:10px 0">Пока нет позиций</div>')+
+    '</section>';
   }).join('');
   host.querySelectorAll('[data-add-category]').forEach(el=>el.onclick=()=>{costLines.push({...blankCost(),category:el.dataset.addCategory});drawCosts()});
   host.querySelectorAll('[data-ci]').forEach(el=>el.onchange=()=>{
@@ -320,7 +312,7 @@
   if(lineInsert.error){alert('Просчёт сохранён, но позиции сметы не записались: '+lineInsert.error.message);return}
   await load();close();alert('Просчёт сохранён.');
  }
- window.addEventListener('crm:wardrobe-generated',e=>{const d=e.detail||{};if(!Array.isArray(d.items))return;active=null;const imported=d.items.map(row=>{const x={...row};const mp=findMaterialCatalog(x.material);if(mp){x.catalog_item_id=mp.id;x.material=mp.item_name;x.material_price_sheet=Number(/ХДФ/i.test(mp.item_name)?commonHdfPrice||mp.source_price:commonMaterialPrice||mp.source_price)}else if(isFacadeItem(x)){const fp=excelFacades.find(p=>String(p.item_name).trim().toLocaleUpperCase('ru')===String(x.material||'').trim().toLocaleUpperCase('ru'))||estimateCatalog.find(p=>p.is_active&&p.category==='Облицовка и фасады'&&String(p.item_name).trim().toLocaleUpperCase('ru')===String(x.material||'').trim().toLocaleUpperCase('ru'));if(fp){x.catalog_item_id=fp.id;x.material=fp.item_name;x.material_price_sheet=Number(fp.source_price||0)}}return x});items=d.append?items.concat(imported):imported;costLines=d.append?costLines:[];ensureServiceLines();if(!d.append)$('cForm').elements.id.value='';if(!d.append){$('cForm').reset();$('cForm').elements.id.value='';fillSelects();$('cForm').elements.status.value='Черновик';}drawItems();if(d.title&&$('cForm')?.elements.title)$('cForm').elements.title.value=d.title;summary();$('cModal').classList.add('open');});
+ window.addEventListener('crm:wardrobe-generated',e=>{const d=e.detail||{};if(!Array.isArray(d.items))return;active=null;const imported=d.items.map(row=>{const x={...row};const mp=findMaterialCatalog(x.material);if(mp){x.catalog_item_id=mp.id;x.material=mp.item_name;x.material_price_sheet=Number(/ХДФ/i.test(mp.item_name)?commonHdfPrice||mp.source_price:commonMaterialPrice||mp.source_price)}else if(isFacadeItem(x)){const fp=excelFacades.find(p=>String(p.item_name).trim().toLocaleUpperCase('ru')===String(x.material||'').trim().toLocaleUpperCase('ru'))||estimateCatalog.find(p=>p.is_active&&p.category==='Облицовка и фасады'&&String(p.item_name).trim().toLocaleUpperCase('ru')===String(x.material||'').trim().toLocaleUpperCase('ru'));if(fp){x.catalog_item_id=fp.id;x.material=fp.item_name;x.material_price_sheet=Number(fp.source_price||0)}}return x});items=d.append?items.concat(imported):imported;costLines=d.append?costLines:[];ensureServiceLines();if(!d.append)$('cForm').elements.id.value='';if(!d.append){$('cForm').reset();$('cForm').elements.id.value='';fillSelects();$('cForm').elements.status.value='Черновик';}drawItems();drawCosts();if(d.title&&$('cForm')?.elements.title)$('cForm').elements.title.value=d.title;summary();$('cModal').classList.add('open');});
  function init(){
   if(!window.__crmAuthenticated||typeof db==='undefined'||!$('calc'))return;
   if(!window.__calcUI){ensure();window.__calcUI=true}
