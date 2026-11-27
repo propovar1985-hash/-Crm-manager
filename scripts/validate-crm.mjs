@@ -122,5 +122,18 @@ else pass('Removing a row changes only the current estimate line list');
 if (!estimates.includes('В общем прайсе она останется.')) fail('Current-estimate removal does not explain that the shared catalog item is retained');
 else pass('Current-estimate removal explicitly preserves the shared catalog item');
 
+if (!estimates.includes('function renderCatalogExistingList()')) fail('Existing price catalog positions are not displayed in the add-position popup');
+else pass('Existing price catalog positions are displayed in the add-position popup');
+if (!estimates.includes("data-catalog-add") || !estimates.includes("costLines.push({...blankCost(),category:p.category")) fail('Existing catalog positions cannot be added to the current estimate');
+else pass('Existing catalog positions can be added to the current estimate');
+if (!estimates.includes("update({is_active:false,updated_at:new Date().toISOString()})")) fail('Catalog deletion does not safely deactivate a price item');
+else pass('Catalog deletion deactivates the item without deleting saved estimate snapshots');
+if (estimates.includes("from('furniture_estimate_catalog').delete(")) fail('Catalog UI performs a destructive hard delete');
+else pass('Catalog UI does not hard-delete price catalog rows');
+if (!estimates.includes('legacyCatalogSeed=') || !estimates.includes('restoreLegacyCatalogIfNeeded')) fail('Legacy price list is not restored automatically from the original catalog seed');
+else pass('Legacy price list can be restored automatically from the original catalog seed');
+if (!estimates.includes("ignoreDuplicates:true")) fail('Legacy catalog restoration may overwrite existing supplier prices');
+else pass('Legacy catalog restoration preserves existing prices and skips duplicates');
+
 if (process.exitCode) process.exit(1);
 console.log('CRM validation completed successfully.');
