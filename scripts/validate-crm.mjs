@@ -72,5 +72,48 @@ else pass('Section 9 saves manual sums without quantity multiplication');
 if (!estimates.includes("cat==='Работы и доставка'?")) fail('Section 9 print rows do not use manual sums');
 else pass('Section 9 print output uses manual sums');
 
+if (!estimates.includes("costCategories.map((category,ci)=>")) fail('Estimate category sections are not rendered');
+else pass('All estimate category sections are rendered');
+if (!estimates.includes("if(costLinesLoadError){alert('Сохранение остановлено")) fail('Saving is not protected when saved estimate lines fail to load');
+else pass('Saving is protected when saved estimate lines fail to load');
+if (!estimates.includes("host.innerHTML=(costLinesLoadError?")) fail('Estimate line-load warning is missing');
+else pass('Estimate line-load warning is available');
+if (estimates.includes('Работа на производстве (100% от материалов без фасадов)')) fail('Automatic production calculation card is still present');
+else pass('Automatic production calculation card is removed');
+if (estimates.includes('crmManagerCommissionSettings') || estimates.includes('ИТОГО К ОПЛАТЕ')) fail('Automatic margin/commission/total calculation remains in estimate UI or print');
+else pass('Automatic margin, commission and total calculation is removed from estimate UI and print');
+
+const wardrobeStudio = fs.readFileSync('crm-wardrobe-studio.js', 'utf8');
+if (!wardrobeStudio.includes('previewImage:capturePreview()')) fail('Wardrobe constructor does not send a 3D preview to the estimate');
+else pass('Wardrobe constructor sends a 3D preview to the estimate');
+if (!estimates.includes('crm-estimate-preview:') || !estimates.includes('alt="3D-модель шкафа"')) fail('Estimate PDF/print does not include the saved wardrobe preview');
+else pass('Estimate PDF/print includes the saved wardrobe preview');
+if (!estimates.includes('width:145px;height:96px')) fail('Wardrobe preview is not kept compact at the top of the print document');
+else pass('Wardrobe preview is compact at the top of the print document');
+
+if (!estimates.includes('data-k="width_mm" type="number" min="0" step="1"') || !estimates.includes('data-k="height_mm" type="number" min="0" step="1"')) fail('Estimate dimensions do not use 1 mm arrow increments');
+else pass('Estimate dimensions use 1 mm arrow increments');
+if (!estimates.includes('data-ck="service_amount" type="number" min="0" step="100"') || !estimates.includes('data-ck="source_unit_price" type="number" min="0" step="100"') || !estimates.includes('id="cMaterialPrice" type="number" min="0" step="100"')) fail('Estimate ruble amounts do not use 100 ruble arrow increments');
+else pass('Estimate ruble amounts use 100 ruble arrow increments');
+if (!estimates.includes('data-ck="quantity" type="number" min="0" step="1"') || !estimates.includes('data-k="quantity" type="number" min="1" step="1"')) fail('Estimate quantities do not use 1-unit arrow increments');
+else pass('Estimate quantities use 1-unit arrow increments');
+if (!wardrobeStudio.includes('id="wbW" type="number" min="300" max="6000" step="1"') || !wardrobeStudio.includes('id="wbH" type="number" min="300" max="3000" step="1"') || !wardrobeStudio.includes('id="wbD" type="number" min="200" max="1200" step="1"')) fail('Wardrobe dimensions do not use 1 mm arrow increments');
+else pass('Wardrobe dimensions use 1 mm arrow increments');
+if (!wardrobeStudio.includes('id="wbN" type="number" min="1" max="8" step="1"') || !wardrobeStudio.includes('id="wbDoors" type="number" min="0" max="8" step="1"')) fail('Wardrobe section and door counts do not use 1-unit arrow increments');
+else pass('Wardrobe section and door counts use 1-unit arrow increments');
+
+if (!estimates.includes('id="cCatalogModal"') || !estimates.includes('id="cCatalogForm"')) fail('New catalog position popup is missing');
+else pass('New catalog position popup is available');
+if (!estimates.includes("from('furniture_estimate_catalog').insert(payload)")) fail('New catalog positions are not saved to the shared price catalog');
+else pass('New catalog positions are saved to the shared price catalog');
+if (!estimates.includes("openCatalogModal(el.dataset.addCategory)")) fail('Add-position buttons do not open the catalog popup');
+else pass('Add-position buttons open the catalog popup');
+if (!estimates.includes("costLines.push(line)")) fail('Newly created catalog position is not added to the current estimate');
+else pass('Newly created catalog position is added to the current estimate');
+
+
+
+
+
 if (process.exitCode) process.exit(1);
 console.log('CRM validation completed successfully.');
