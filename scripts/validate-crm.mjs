@@ -59,5 +59,16 @@ else pass('Hardware catalog fallback is available');
 if (!estimates.includes("'Работы и доставка'")) fail('Service and section 9 category is missing');
 else pass('Service and section 9 category is available');
 
+if (estimates.includes('Расчёт по разделу 9 — РАБОТА')) fail('Removed automatic section 9 calculation block is still present');
+else pass('Automatic section 9 calculation block is removed');
+if (estimates.includes("['СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ (100% ОТ МАТЕРИАЛОВ БЕЗ ФАСАДОВ)'")) fail('Automatic production work row is still added to section 9');
+else pass('Automatic production work row is not added to section 9');
+if (!estimates.includes('data-ck="service_amount"')) fail('Manual amount input for section 9 is missing');
+else pass('Section 9 has an editable amount field');
+if (!estimates.includes("x.category==='Работы и доставка'?1")) fail('Manual section 9 amounts are not normalized for saving');
+else pass('Section 9 saves manual sums without quantity multiplication');
+if (!estimates.includes("cat==='Работы и доставка'?")) fail('Section 9 print rows do not use manual sums');
+else pass('Section 9 print output uses manual sums');
+
 if (process.exitCode) process.exit(1);
 console.log('CRM validation completed successfully.');

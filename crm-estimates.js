@@ -130,7 +130,6 @@
  
  const blankCost=()=>({category:'Фурнитура',item_name:'',unit:'шт',quantity:1,unit_price:0,source_unit_price:0});
  const serviceDefaults=[
-  ['СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ (100% ОТ МАТЕРИАЛОВ БЕЗ ФАСАДОВ)',0,'расчёт'],
   ['ДОСТАВКА МАТЕРИАЛА',2000,'услуга'],
   ['ЗАМЕР',0,'услуга'],
   ['ДОСТАВКА',2000,'услуга'],
@@ -138,7 +137,11 @@
   ['СБОРКА НА АДРЕСЕ 10%',4000,'услуга'],
   ['ФОРС-МАЖОР',5000,'услуга']
  ];
- function ensureServiceLines(){serviceDefaults.forEach(([name,price,unit])=>{if(!costLines.some(x=>x.category==='Работы и доставка'&&x.item_name===name))costLines.push({category:'Работы и доставка',item_name:name,unit,quantity:1,unit_price:price,source_unit_price:price});});}
+ function ensureServiceLines(){
+  costLines=costLines.filter(x=>!(x.category==='Работы и доставка'&&String(x.item_name||'').startsWith('СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ')));
+  costLines.forEach(x=>{if(x.category==='Работы и доставка'){x.unit='услуга';x.unit_price=Number(x.quantity||1)*Number(x.unit_price||0);x.source_unit_price=x.unit_price;x.quantity=1;}});
+  serviceDefaults.forEach(([name,price,unit])=>{if(!costLines.some(x=>x.category==='Работы и доставка'&&x.item_name===name))costLines.push({category:'Работы и доставка',item_name:name,unit,quantity:1,unit_price:price,source_unit_price:price});});
+ }
  function money(v){return Number(v||0).toLocaleString('ru-RU',{maximumFractionDigits:2})+' ₽'}
  const excelHardware=[
   ['ПЕТЛB BLUM',500,'шт'],['ПЕТЛИ UNIHOPPER',120,'шт'],['ПЕТЛИ БОЯРД',100,'шт'],['ПЕТЛИ HETTICH',380,'шт'],
@@ -255,35 +258,25 @@
    const rows=costLines.map((x,i)=>({...x,_i:i})).filter(x=>x.category===category);
    const isService=category==='Работы и доставка';
    const htmlRows=rows.map(x=>{
-    const isProduction=x.item_name.startsWith('СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ');
-    const price=isProduction?calc().production:Number(x.unit_price??x.source_unit_price??0);
-    const amount=isProduction?calc().production:Number(x.quantity||0)*Number(x.unit_price||0);
+    const amount=Number(x.unit_price||0);
+    if(isService)return '<tr><td><b>'+esc(x.item_name)+'</b></td><td><input data-ci="'+x._i+'" data-ck="service_amount" type="number" min="0" step=".01" value="'+amount+'" aria-label="Сумма, ₽" style="width:100%;max-width:180px"></td></tr>';
     return '<tr>'+
-     '<td>'+(isService?'<b>'+esc(x.item_name)+'</b>':'<select data-ci="'+x._i+'" data-ck="catalog_item_id">'+catalogOptions(category,x.catalog_item_id,null,x.item_name)+'</select>')+'</td>'+
+     '<td><select data-ci="'+x._i+'" data-ck="catalog_item_id">'+catalogOptions(category,x.catalog_item_id,null,x.item_name)+'</select></td>'+
      '<td><input data-ci="'+x._i+'" data-ck="unit" value="'+esc(x.unit||'шт')+'" style="width:75px" readonly></td>'+
-     '<td><input data-ci="'+x._i+'" data-ck="quantity" type="number" min="0" step=".001" value="'+Number(x.quantity||0)+'" '+(isService?'readonly':'')+'></td>'+
-     '<td><input data-ci="'+x._i+'" data-ck="source_unit_price" type="number" min="0" step=".01" value="'+price+'" '+(isProduction?'readonly':'')+'></td>'+
-     '<td>'+money(amount)+'</td>'+
-     '<td>'+(isService?'':'<button type="button" class="btn danger" data-cdel="'+x._i+'">×</button>')+'</td></tr>';
+     '<td><input data-ci="'+x._i+'" data-ck="quantity" type="number" min="0" step=".001" value="'+Number(x.quantity||0)+'"></td>'+
+     '<td><input data-ci="'+x._i+'" data-ck="source_unit_price" type="number" min="0" step=".01" value="'+Number(x.unit_price??x.source_unit_price??0)+'"></td>'+
+     '<td>'+money(Number(x.quantity||0)*Number(x.unit_price||0))+'</td>'+
+     '<td><button type="button" class="btn danger" data-cdel="'+x._i+'">×</button></td></tr>';
    }).join('');
    return '<section class="panel" style="padding:12px;margin:10px 0"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><b>'+esc((ci+1)+'. '+category)+'</b>'+(isService?'<span class="small">Раздел всегда открыт — все строки видны</span>':'<button type="button" class="btn" data-add-category="'+esc(category)+'">＋ Добавить позицию</button>')+'</div>'+
-    (rows.length?'<div class="scroll"><table class="c-items"><thead><tr><th>Наименование</th><th>Ед.</th><th>Количество</th><th>Цена, ₽</th><th>Сумма, ₽</th><th></th></tr></thead><tbody>'+htmlRows+'</tbody></table></div>':'<div class="small" style="padding:10px 0">Пока нет позиций</div>')+
-    (isService?(()=>{const z=calc();return '<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px"><b>Расчёт по разделу 9 — РАБОТА</b><table class="c-items"><tbody>'+
-    '<tr><td>МАТЕРИАЛ — сумма разделов</td><td>'+money(z.categoriesBase)+'</td></tr>'+
-    '<tr><td>СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ (100% от материалов без фасадов)</td><td>'+money(z.production)+'</td></tr>'+
-    '<tr><td>Работы, доставка и услуги</td><td>'+money(z.service)+'</td></tr>'+
-    '<tr><td><b>СТОИМОСТЬ до моржи</b></td><td><b>'+money(z.cost)+'</b></td></tr>'+
-    '<tr><td>МОРЖА — 80%</td><td>'+money(z.margin)+'</td></tr>'+
-    '<tr><td><b>ИТОГО</b></td><td><b>'+money(z.subtotal)+'</b></td></tr>'+
-    '<tr><td>КОМИССИЯ МЕНЕДЖЕРА — 5%</td><td>'+money(z.managerCommission)+'</td></tr>'+
-    '<tr><td><b>ИТОГОВАЯ СТОИМОСТЬ</b></td><td><b>'+money(z.total)+'</b></td></tr>'+
-    '</tbody></table></div>'})():'')+'</section>';
+    (rows.length?'<div class="scroll"><table class="c-items"><thead><tr>'+(isService?'<th>Наименование</th><th>Сумма, ₽</th>':'<th>Наименование</th><th>Ед.</th><th>Количество</th><th>Цена, ₽</th><th>Сумма, ₽</th><th></th>')+'</tr></thead><tbody>'+htmlRows+'</tbody></table></div>':'<div class="small" style="padding:10px 0">Пока нет позиций</div>')+'</section>';
   }).join('');
   host.querySelectorAll('[data-add-category]').forEach(el=>el.onclick=()=>{costLines.push({...blankCost(),category:el.dataset.addCategory});drawCosts()});
   host.querySelectorAll('[data-ci]').forEach(el=>el.onchange=()=>{
    const x=costLines[Number(el.dataset.ci)],k=el.dataset.ck;
    if(k==='catalog_item_id'){const fallback=excelHardware.find(p=>p.id===el.value);if(fallback){x.catalog_item_id=fallback.id;x.item_name=fallback.item_name;x.unit=fallback.unit;x.source_unit_price=Number(fallback.source_price);x.unit_price=Number(fallback.source_price);x.supplier_name='Таблица пользователя';}else applyEstimateCatalog(x,el.value,'line');drawCosts();summary();return;}
    if(k==='source_unit_price'){x.source_unit_price=Number(el.value);x.unit_price=Number(el.value);}
+   else if(k==='service_amount'){x.unit_price=Math.max(0,Number(el.value)||0);x.source_unit_price=x.unit_price;x.quantity=1;}
    else if(k==='unit')x.unit=el.value;
    else x.quantity=Number(el.value);
    drawCosts();summary();
@@ -295,7 +288,7 @@
   const now=new Date(),date=now.toLocaleDateString('ru-RU'),estimateNo=$('cNo')?.textContent||'Новый просчёт',z=calc(),detail=calculateDetailCosts(),format=$('cSheetFormat')?.value||'2800x2070';
   const detailRows=items.filter(x=>String(x.item_name||'').trim()).map(x=>{const p=selectedCatalog(x.catalog_item_id),w=Number(x.width_mm||0),h=Number(x.height_mm||0),q=Number(x.quantity||0),isF=isFacadeItem(x),area=w*h/1e6*q,price=Number(x.material_price_sheet||p?.source_price||0),sum=isF&&p?.category==='Облицовка и фасады'?area*price:0;return '<tr><td>'+esc(x.item_name)+'</td><td>'+esc(p?.item_name||x.material||'—')+'</td><td>'+w+' × '+h+'</td><td>'+q+'</td><td>'+(isF?area.toFixed(3)+' м²':'—')+'</td><td>'+(isF?money(price)+'/м²':'—')+'</td><td>'+(isF?money(sum):'—')+'</td></tr>'}).join('');
   const facadeRows=items.filter(x=>isFacadeItem(x)).map(x=>{const p=selectedCatalog(x.catalog_item_id);if(!p||p.category!=='Облицовка и фасады')return '';const w=Number(x.width_mm||0),h=Number(x.height_mm||0),q=Number(x.quantity||0),one=w*h/1e6,area=one*q,price=Number(x.material_price_sheet||p.source_price||0);return '<tr><td>'+esc(x.item_name)+'</td><td>'+esc(p.item_name)+'</td><td>'+w+' × '+h+'</td><td>'+q+'</td><td>'+one.toFixed(3)+'</td><td>'+area.toFixed(3)+'</td><td>'+money(price)+'</td><td>'+money(area*price)+'</td></tr>'}).join('');
-  const lineRows=costCategories.map(cat=>{const rows=costLines.filter(x=>x.category===cat&&String(x.item_name||'').trim());if(!rows.length)return '';return '<tr class="group"><th colspan="5">'+esc(cat)+'</th></tr>'+rows.map(x=>{const isProduction=x.item_name.startsWith('СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ'),rowPrice=isProduction?z.production:Number(x.unit_price||0);return '<tr><td>'+esc(x.item_name)+'</td><td>'+esc(x.unit||'шт')+'</td><td>'+Number(x.quantity||0)+'</td><td>'+money(rowPrice)+'</td><td>'+money(isProduction?z.production:Number(x.quantity||0)*Number(x.unit_price||0))+'</td></tr>'}).join('')}).join('');
+  const lineRows=costCategories.map(cat=>{const rows=costLines.filter(x=>x.category===cat&&String(x.item_name||'').trim());if(!rows.length)return '';return '<tr class="group"><th colspan="5">'+esc(cat)+'</th></tr>'+rows.map(x=>cat==='Работы и доставка'?'<tr><td>'+esc(x.item_name)+'</td><td colspan="3"></td><td>'+money(x.unit_price)+'</td></tr>':'<tr><td>'+esc(x.item_name)+'</td><td>'+esc(x.unit||'шт')+'</td><td>'+Number(x.quantity||0)+'</td><td>'+money(x.unit_price)+'</td><td>'+money(Number(x.quantity||0)*Number(x.unit_price||0))+'</td></tr>').join('')}).join('');
   const planRows=detail.plans.map(p=>'<tr><td>'+esc(p.name)+'</td><td>'+p.count+'</td><td>'+money(p.price)+'</td><td>'+money(p.count*p.price)+'</td><td>'+(p.oversized?.length?p.oversized.map(x=>esc(x.label)+' ('+x.w+' × '+x.h+' мм)').join('; '):'—')+'</td></tr>').join('');
   const w=window.open('','_blank');if(!w){alert('Браузер заблокировал окно печати. Разрешите всплывающие окна для CRM и повторите.');return}
   const html='<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>'+esc(estimateNo)+' — '+esc(title)+'</title><style>@page{size:A4;margin:16mm}*{box-sizing:border-box}body{font:12px Arial,sans-serif;color:#17202a;line-height:1.4}h1{font-size:22px;margin:0}h2{font-size:15px;margin:22px 0 8px;border-bottom:1px solid #9aa4b2;padding-bottom:5px}h3{font-size:13px;margin:12px 0 6px}.brand{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #26384a;padding-bottom:12px}.muted{color:#596579}.meta{display:grid;grid-template-columns:1fr 1fr;gap:7px 20px;margin:16px 0}.meta div{padding:5px 0;border-bottom:1px solid #e2e6eb}.meta b{display:inline-block;min-width:110px}table{width:100%;border-collapse:collapse;margin:7px 0 14px;font-size:10px}th,td{border:1px solid #cbd2da;padding:6px;text-align:left;vertical-align:top}th{background:#edf1f5;font-weight:700}.group th{background:#dfe6ed}.totals{width:65%;margin-left:auto}.totals td:last-child{text-align:right;font-weight:bold}.grand{font-size:14px;background:#edf1f5;font-weight:bold}.note{white-space:pre-wrap;border:1px solid #d5dbe2;padding:9px;min-height:35px}.sign{display:flex;justify-content:space-between;gap:30px;margin-top:40px}.sign div{width:45%;border-top:1px solid #657080;padding-top:6px}.footer{margin-top:24px;padding-top:8px;border-top:1px solid #cbd2da;color:#687386;font-size:10px}@media print{.no-print{display:none}}</style></head><body><header class="brand"><div><div class="muted">КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ / РАСЧЁТ СТОИМОСТИ</div><h1>МАСТЕР МЕБЕЛЬЩИК</h1><div class="muted">Изготовление мебели на заказ</div></div><div style="text-align:right"><b>'+esc(estimateNo)+'</b><br>'+date+'</div></header><section class="meta"><div><b>Клиент:</b> '+esc(client)+'</div><div><b>Изделие:</b> '+esc(title)+'</div><div><b>Статус:</b> '+esc(status)+'</div><div><b>Формат листа:</b> '+format.replace('x',' × ')+' мм</div></section><h2>1. Деталировка изделия</h2><table><thead><tr><th>Деталь</th><th>Материал</th><th>Размер, мм</th><th>Кол-во</th><th>Площадь фасада</th><th>Цена за м²</th><th>Сумма фасада</th></tr></thead><tbody>'+detailRows+'</tbody></table><h2>2. Подробный расчёт фасадов</h2><table><thead><tr><th>Наименование</th><th>Материал</th><th>Размер, мм</th><th>Кол-во</th><th>Площадь 1 шт., м²</th><th>Общая площадь, м²</th><th>Цена за м²</th><th>Сумма</th></tr></thead><tbody>'+facadeRows+'</tbody><tfoot><tr class="grand"><td colspan="5">ИТОГО по фасадам</td><td>'+items.filter(isFacadeItem).reduce((a,x)=>a+Number(x.width_mm||0)*Number(x.height_mm||0)/1e6*Number(x.quantity||0),0).toFixed(3)+' м²</td><td></td><td>'+money(detail.facadeCost)+'</td></tr></tfoot></table><h2>3. Раскрой листовых материалов</h2><table><thead><tr><th>Материал</th><th>Листов</th><th>Цена за лист</th><th>Сумма</th><th>Детали, не помещающиеся в лист</th></tr></thead><tbody>'+planRows+'</tbody></table><p>Кромка: '+detail.edgeMeters.toFixed(2)+' м · '+money(detail.edgeCost)+'. Материалы деталировки: '+money(detail.total)+'.</p><h2>4. Комплектующие, фурнитура и услуги</h2><table><thead><tr><th>Наименование</th><th>Ед.</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr></thead><tbody>'+lineRows+'</tbody></table><h2>5. Итоговая стоимость</h2><table class="totals"><tbody><tr><td>Материалы, комплектующие и деталировка</td><td>'+money(z.categoriesBase)+'</td></tr><tr><td>Работа на производстве</td><td>'+money(z.production)+'</td></tr><tr><td>Работы, доставка и услуги</td><td>'+money(z.service)+'</td></tr><tr><td>Себестоимость до маржи</td><td>'+money(z.base)+'</td></tr><tr><td>Маржа (80%)</td><td>'+money(z.margin)+'</td></tr><tr><td>Промежуточный итог</td><td>'+money(z.subtotal)+'</td></tr><tr><td>Комиссия менеджера (5%)</td><td>'+money(z.managerCommission)+'</td></tr><tr class="grand"><td>ИТОГО К ОПЛАТЕ</td><td>'+money(z.total)+'</td></tr></tbody></table><h2>6. Примечания</h2><div class="note">'+(notes?esc(notes):'Не указаны')+'</div><div class="sign"><div>Исполнитель / подпись</div><div>Заказчик / подпись</div></div><div class="footer">Документ сформирован в CRM «Мастер мебельщик» '+date+'. Расчёт носит информационный характер и подлежит согласованию с заказчиком.</div><script>window.onload=function(){setTimeout(function(){window.print()},300)};</script></body></html>';
@@ -315,7 +308,7 @@
   if(ins.error){alert('Просчёт сохранён, но детали не записались: '+ins.error.message);return}
   const oldLines=await db.from('furniture_estimate_lines').delete().eq('estimate_id',id);
   if(oldLines.error){alert('Просчёт сохранён, но позиции сметы не обновились: '+oldLines.error.message);return}
-  const productionAmount=calc().production;const linePayload=costLines.filter(x=>String(x.item_name||'').trim()).map(x=>{const isProduction=x.item_name.startsWith('СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ');const unitPrice=isProduction?productionAmount:Number(x.unit_price||0);return {...x,catalog_item_id:String(x.catalog_item_id||'').startsWith('excel-hardware-')?null:(x.catalog_item_id||null),supplier_id:null,supplier_name:null,supplier_discount_percent:0,source_unit_price:isProduction?productionAmount:Number(x.source_unit_price??x.unit_price??0),unit_price,price_checked_at:x.price_checked_at||null,supplier_product_id:null,estimate_id:id}});
+  const linePayload=costLines.filter(x=>String(x.item_name||'').trim()).map(x=>({...x,catalog_item_id:String(x.catalog_item_id||'').startsWith('excel-hardware-')?null:(x.catalog_item_id||null),supplier_id:null,supplier_name:null,supplier_discount_percent:0,source_unit_price:Number(x.unit_price||0),unit_price:Number(x.unit_price||0),quantity:x.category==='Работы и доставка'?1:Number(x.quantity||0),price_checked_at:x.price_checked_at||null,supplier_product_id:null,estimate_id:id}));
   const lineInsert=linePayload.length?await db.from('furniture_estimate_lines').insert(linePayload):{error:null};
   if(lineInsert.error){alert('Просчёт сохранён, но позиции сметы не записались: '+lineInsert.error.message);return}
   await load();close();alert('Просчёт сохранён.');
