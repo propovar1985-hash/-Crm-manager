@@ -456,6 +456,8 @@ async function initApp(){
     $('authGate').style.display='none';
     $('userEmail').textContent=session.user.email||'';
     await Promise.all([loadClients(),loadDeals()]);
+    // После успешной авторизации всегда открываем основную рабочую страницу — воронку продаж.
+    tab('leads');
     $('connectionState').textContent='Подключено к Supabase. Клиенты и сделки сохраняются в облачной базе.';
     window.dispatchEvent(new CustomEvent('crm:authenticated'));
     if (typeof window.initOrdersModule === 'function') window.initOrdersModule();
