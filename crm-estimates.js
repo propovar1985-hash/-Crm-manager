@@ -258,16 +258,17 @@
     const isProduction=x.item_name.startsWith('СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ');
     const price=isProduction?calc().production:Number(x.unit_price??x.source_unit_price??0);
     const amount=isProduction?calc().production:Number(x.quantity||0)*Number(x.unit_price||0);
+    if(isService)return '<tr><td><b>'+esc(x.item_name)+'</b></td><td>'+money(amount)+'</td></tr>';
     return '<tr>'+
-     '<td>'+(isService?'<b>'+esc(x.item_name)+'</b>':'<select data-ci="'+x._i+'" data-ck="catalog_item_id">'+catalogOptions(category,x.catalog_item_id,null,x.item_name)+'</select>')+'</td>'+
+     '<td><select data-ci="'+x._i+'" data-ck="catalog_item_id">'+catalogOptions(category,x.catalog_item_id,null,x.item_name)+'</select></td>'+
      '<td><input data-ci="'+x._i+'" data-ck="unit" value="'+esc(x.unit||'шт')+'" style="width:75px" readonly></td>'+
-     '<td><input data-ci="'+x._i+'" data-ck="quantity" type="number" min="0" step=".001" value="'+Number(x.quantity||0)+'" '+(isService?'readonly':'')+'></td>'+
+     '<td><input data-ci="'+x._i+'" data-ck="quantity" type="number" min="0" step=".001" value="'+Number(x.quantity||0)+'"></td>'+
      '<td><input data-ci="'+x._i+'" data-ck="source_unit_price" type="number" min="0" step=".01" value="'+price+'" '+(isProduction?'readonly':'')+'></td>'+
      '<td>'+money(amount)+'</td>'+
-     '<td>'+(isService?'':'<button type="button" class="btn danger" data-cdel="'+x._i+'">×</button>')+'</td></tr>';
+     '<td><button type="button" class="btn danger" data-cdel="'+x._i+'">×</button></td></tr>';
    }).join('');
    return '<section class="panel" style="padding:12px;margin:10px 0"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><b>'+esc((ci+1)+'. '+category)+'</b>'+(isService?'<span class="small">Раздел всегда открыт — все строки видны</span>':'<button type="button" class="btn" data-add-category="'+esc(category)+'">＋ Добавить позицию</button>')+'</div>'+
-    (rows.length?'<div class="scroll"><table class="c-items"><thead><tr><th>Наименование</th><th>Ед.</th><th>Количество</th><th>Цена, ₽</th><th>Сумма, ₽</th><th></th></tr></thead><tbody>'+htmlRows+'</tbody></table></div>':'<div class="small" style="padding:10px 0">Пока нет позиций</div>')+
+    (rows.length?'<div class="scroll"><table class="c-items"><thead><tr>'+(isService?'<th>Наименование</th><th>Сумма, ₽</th>':'<th>Наименование</th><th>Ед.</th><th>Количество</th><th>Цена, ₽</th><th>Сумма, ₽</th><th></th>')+'</tr></thead><tbody>'+htmlRows+'</tbody></table></div>':'<div class="small" style="padding:10px 0">Пока нет позиций</div>')+
     (isService?(()=>{const z=calc();return '<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px"><b>Расчёт по разделу 9 — РАБОТА</b><table class="c-items"><tbody>'+
     '<tr><td>МАТЕРИАЛ — сумма разделов</td><td>'+money(z.categoriesBase)+'</td></tr>'+
     '<tr><td>СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ (100% от материалов без фасадов)</td><td>'+money(z.production)+'</td></tr>'+
