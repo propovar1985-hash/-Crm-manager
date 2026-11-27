@@ -171,8 +171,7 @@
   async function deleteOrder(id){
     const order=orders.find(o=>o.id===id);if(!order)return;
     if(activeId===id)closeDrawer();
-    const historyResult=await db.from('furniture_order_events').delete().eq('order_id',id);
-    if(historyResult.error){alert('Не удалось удалить историю заказа: '+historyResult.error.message);return;}
+    // История удаляется автоматически через ON DELETE CASCADE у furniture_order_events.order_id.
     const result=await db.from('furniture_orders').delete().eq('id',id);
     if(result.error){alert('Не удалось удалить заказ: '+result.error.message);return;}
     orders=orders.filter(o=>o.id!==id);
