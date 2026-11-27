@@ -176,6 +176,9 @@
     if(result.error){alert('Не удалось удалить заказ: '+result.error.message);return;}
     orders=orders.filter(o=>o.id!==id);
     render();
+    // Сразу обновляем источник заказов в воронке, чтобы удалённая карточка исчезла и там.
+    if(typeof loadPipelineOrders==='function'){await loadPipelineOrders();if(typeof renderDeals==='function')renderDeals();}
+    else if(typeof window.loadDeals==='function'){await window.loadDeals();}
   }
   async function save(e) {
     e.preventDefault();
