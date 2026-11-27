@@ -259,7 +259,7 @@
    const isService=category==='Работы и доставка';
    const htmlRows=rows.map(x=>{
     const amount=Number(x.unit_price||0);
-    if(isService)return '<tr><td><b>'+esc(x.item_name)+'</b></td><td colspan="3"><input data-ci="'+x._i+'" data-ck="service_amount" type="number" min="0" step=".01" value="'+amount+'" aria-label="Сумма, ₽" style="width:100%;max-width:180px"></td><td>'+money(amount)+'</td><td></td></tr>';
+    if(isService)return '<tr><td><b>'+esc(x.item_name)+'</b></td><td><input data-ci="'+x._i+'" data-ck="service_amount" type="number" min="0" step=".01" value="'+amount+'" aria-label="Сумма, ₽" style="width:100%;max-width:180px"></td></tr>';
     return '<tr>'+
      '<td><select data-ci="'+x._i+'" data-ck="catalog_item_id">'+catalogOptions(category,x.catalog_item_id,null,x.item_name)+'</select></td>'+
      '<td><input data-ci="'+x._i+'" data-ck="unit" value="'+esc(x.unit||'шт')+'" style="width:75px" readonly></td>'+
@@ -269,7 +269,7 @@
      '<td><button type="button" class="btn danger" data-cdel="'+x._i+'">×</button></td></tr>';
    }).join('');
    return '<section class="panel" style="padding:12px;margin:10px 0"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><b>'+esc((ci+1)+'. '+category)+'</b>'+(isService?'<span class="small">Раздел всегда открыт — все строки видны</span>':'<button type="button" class="btn" data-add-category="'+esc(category)+'">＋ Добавить позицию</button>')+'</div>'+
-    (rows.length?'<div class="scroll"><table class="c-items"><thead><tr>'+(isService?'<th>Наименование</th><th colspan="4">Сумма, ₽</th><th></th>':'<th>Наименование</th><th>Ед.</th><th>Количество</th><th>Цена, ₽</th><th>Сумма, ₽</th><th></th>')+'</tr></thead><tbody>'+htmlRows+'</tbody></table></div>':'<div class="small" style="padding:10px 0">Пока нет позиций</div>')+'</section>';
+    (rows.length?'<div class="scroll"><table class="c-items"><thead><tr>'+(isService?'<th>Наименование</th><th>Сумма, ₽</th>':'<th>Наименование</th><th>Ед.</th><th>Количество</th><th>Цена, ₽</th><th>Сумма, ₽</th><th></th>')+'</tr></thead><tbody>'+htmlRows+'</tbody></table></div>':'<div class="small" style="padding:10px 0">Пока нет позиций</div>')+'</section>';
   }).join('');
   host.querySelectorAll('[data-add-category]').forEach(el=>el.onclick=()=>{costLines.push({...blankCost(),category:el.dataset.addCategory});drawCosts()});
   host.querySelectorAll('[data-ci]').forEach(el=>el.onchange=()=>{
