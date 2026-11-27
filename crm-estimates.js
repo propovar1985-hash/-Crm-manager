@@ -38,9 +38,9 @@
  const blank=()=>({item_name:nextDetailName('Боковина'),material:'',catalog_item_id:'',material_price_sheet:commonMaterialPrice,edge_catalog_item_id:'',edge_name:'',edge_price_per_m:commonEdgePrice,edge_sides:{top:true,right:true,bottom:true,left:true},edge_m:0,width_mm:0,height_mm:0,quantity:1,supplier_id:'',supplier_name:'',supplier_discount_percent:0});
  function selectedCatalog(id){return estimateCatalog.find(p=>p.id===id)||excelHardware.find(p=>p.id===id)||excelFacades.find(p=>p.id===id)||null}
  const detailTypes=['Боковина','Полка','Перегородка','Дно','Крышка','Цоколь','Фасад','Дверь','Задняя стенка','Планка','Деталь ящика','Другое'];
- function detailBase(name){const v=String(name||'');return detailTypes.find(t=>v===t||v.startsWith(t+' '))||v||'Деталь'}
+ function detailBase(name){const v=String(name||'').replace(/^Шкаф\s+\d+\s+—\s*/i,'').trim();return detailTypes.find(t=>v===t||v.startsWith(t+' ')||v.startsWith(t+' —'))||v||'Деталь'}
  function nextDetailName(base,skip=-1){return base+' '+(items.filter((x,i)=>i!==skip&&detailBase(x.item_name)===base).length+1)}
- function isFacadeItem(x){return /^(Фасад|Дверь)(\s|$)/.test(String(x?.item_name||''))}
+ function isFacadeItem(x){const n=String(x?.item_name||'').replace(/^Шкаф\s+\d+\s+—\s*/i,'').trim();return /^(Фасад распашной|Фасад\s+\d+|Дверь)(\s|—|$)/i.test(n)}
  function materialOptions(selected=''){return '<option value="">Выбрать листовой материал…</option>'+estimateCatalog.filter(p=>p.is_active&&p.category==='Материалы'&&p.unit==='лист').map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selected?'selected':'')+'>'+esc(p.item_name)+' · '+money(p.source_price)+'/лист</option>').join('')}
   function hdfOptions(selected=''){return '<option value="">Выбрать ХДФ…</option>'+estimateCatalog.filter(p=>p.is_active&&p.category==='Материалы'&&p.unit==='лист'&&/ХДФ/i.test(p.item_name)).map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selected?'selected':'')+'>'+esc(p.item_name)+' · '+money(p.source_price)+'/лист</option>').join('')}
   function isHdfItem(x){return /ХДФ/i.test(String(x.material||selectedCatalog(x.catalog_item_id)?.item_name||''))}
@@ -55,7 +55,7 @@
  function calcEdgeLength(item){const w=Number(item.width_mm||0),h=Number(item.height_mm||0),s=item.edge_sides||{};return ((s.top?w:0)+(s.bottom?w:0)+(s.left?h:0)+(s.right?h:0))*Number(item.quantity||0)/1000}
  function cuttingPlan(){
   const kerf=3,format=$('cSheetFormat')?.value||'2800x2070',[W,H]=format.split('x').map(Number),groups=new Map();
-  items.filter(x=>{const p=selectedCatalog(x.catalog_item_id);if(!(Number(x.width_mm)>0&&Number(x.height_mm)>0&&p&&p.unit==='лист'))return false;const isFacade=['Фасад','Дверь'].includes(String(x.item_name||''));return !isFacade||(p.category==='Материалы'&&/ЛДСП/i.test(String(p.item_name||'')));}).forEach((it,index)=>{
+  items.filter(x=>{const p=selectedCatalog(x.catalog_item_id);if(!(Number(x.width_mm)>0&&Number(x.height_mm)>0&&p&&p.unit==='лист'))return false;const isFacade=isFacadeItem(x);return !isFacade||(p.category==='Материалы'&&/ЛДСП/i.test(String(p.item_name||'')));}).forEach((it,index)=>{
    const key=it.catalog_item_id,p=selectedCatalog(key),price=Number(it.material_price_sheet||p?.source_price||0),groupKey=key+'|'+price;if(!groups.has(groupKey))groups.set(groupKey,{name:p?.item_name||it.material||'Материал',price,parts:[]});
    for(let n=0;n<Math.max(1,Number(it.quantity||1));n++)groups.get(groupKey).parts.push({w:Number(it.width_mm)+kerf,h:Number(it.height_mm)+kerf,label:it.item_name});
   });
@@ -78,7 +78,7 @@
   const plans=cuttingPlan();let sheetsCost=0,edgeMeters=0,edgeCost=0;
   plans.forEach(p=>sheetsCost+=p.count*p.price);
   items.forEach(x=>{const m=calcEdgeLength(x);x.edge_m=m;edgeMeters+=m;edgeCost+=m*Number(x.edge_price_per_m||0)});
-  const facadeCost=items.reduce((sum,it)=>{const p=selectedCatalog(it.catalog_item_id);if(!p||p.category!=='Облицовка и фасады')return sum;const qty=Number(it.quantity||0);const amount=facadeAreaPricing(p)?(Number(it.width_mm||0)*Number(it.height_mm||0)/1000000*qty):(p.unit==='м²'?(Number(it.width_mm||0)*Number(it.height_mm||0)/1000000*qty):qty);return sum+amount*Number(it.material_price_sheet||p.source_price||0)},0);
+   const facadeCost=items.reduce((sum,it)=>{if(!isFacadeItem(it))return sum;const p=selectedCatalog(it.catalog_item_id);if(!p||p.category!=='Облицовка и фасады')return sum;const area=Number(it.width_mm||0)*Number(it.height_mm||0)/1000000*Number(it.quantity||0);return sum+area*Number(it.material_price_sheet||p.source_price||0)},0);
   return {plans,sheetsCost,edgeMeters,edgeCost,facadeCost,total:sheetsCost+edgeCost+facadeCost};
  }
  const costCategories=['Материалы','Облицовка и фасады','Фурнитура','Шкафы-купе','Лицевая фурнитура','Крепёж','Свет','Комплектующие','Работы и доставка'];
