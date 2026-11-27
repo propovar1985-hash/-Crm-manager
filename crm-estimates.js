@@ -37,14 +37,14 @@
  const blank=()=>({item_name:'Боковина',material:'',catalog_item_id:'',material_price_sheet:0,edge_catalog_item_id:'',edge_name:'',edge_price_per_m:0,edge_sides:{top:true,right:true,bottom:true,left:true},edge_m:0,width_mm:0,height_mm:0,quantity:1,supplier_id:'',supplier_name:'',supplier_discount_percent:0});
  function selectedCatalog(id){return estimateCatalog.find(p=>p.id===id)||null}
  function materialOptions(selected=''){return '<option value="">Выбрать листовой материал…</option>'+estimateCatalog.filter(p=>p.is_active&&p.category==='Материалы'&&p.unit==='лист').map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selected?'selected':'')+'>'+esc(p.item_name)+' · '+money(p.source_price)+'/лист</option>').join('')}
- function facadeOptions(selected=''){return '<option value="">Выбрать материал фасада…</option>'+estimateCatalog.filter(p=>p.is_active&&p.category==='Облицовка и фасады'&&p.unit==='лист').map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selected?'selected':'')+'>'+esc(p.item_name)+' · '+money(p.source_price)+'/лист</option>').join('')}
+ function facadeOptions(selected=''){return '<option value="">Выбрать материал фасада…</option>'+estimateCatalog.filter(p=>p.is_active&&p.category==='Облицовка и фасады').map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selected?'selected':'')+'>'+esc(p.item_name)+' · '+money(p.source_price)+'/'+esc(p.unit)+'</option>').join('')}
  function edgeOptions(selected=''){return '<option value="">Без кромки</option>'+estimateCatalog.filter(p=>p.is_active&&p.category==='Материалы'&&p.unit==='м'&&p.item_name.toLocaleUpperCase('ru').includes('КРОМКА')).map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selected?'selected':'')+'>'+esc(p.item_name)+' · '+money(p.source_price)+'/м</option>').join('')}
  function setMaterial(item,id){const p=selectedCatalog(id);item.catalog_item_id=p?.id||'';item.material=p?.item_name||'';item.material_price_sheet=Number(p?.source_price||0);item.source_material_price_m2=item.material_price_sheet;item.material_price_m2=item.material_price_sheet}
  function setEdge(item,id){const p=selectedCatalog(id);item.edge_catalog_item_id=p?.id||'';item.edge_name=p?.item_name||'';item.edge_price_per_m=Number(p?.source_price||0);item.edge_sides={top:true,right:true,bottom:true,left:true};item.edge_m=calcEdgeLength(item)}
  function calcEdgeLength(item){const w=Number(item.width_mm||0),h=Number(item.height_mm||0),s=item.edge_sides||{};return ((s.top?w:0)+(s.bottom?w:0)+(s.left?h:0)+(s.right?h:0))*Number(item.quantity||0)/1000}
  function cuttingPlan(){
   const kerf=Math.max(0,Number($('cKerf')?.value||4)),W=2800,H=2070,groups=new Map();
-  items.filter(x=>Number(x.width_mm)>0&&Number(x.height_mm)>0&&x.catalog_item_id).forEach((it,index)=>{
+  items.filter(x=>Number(x.width_mm)>0&&Number(x.height_mm)>0&&x.catalog_item_id&&selectedCatalog(x.catalog_item_id)?.unit==='лист').forEach((it,index)=>{
    const key=it.catalog_item_id,p=selectedCatalog(key);if(!groups.has(key))groups.set(key,{name:p?.item_name||it.material||'Материал',price:Number(p?.source_price||it.material_price_sheet||0),parts:[]});
    for(let n=0;n<Math.max(1,Number(it.quantity||1));n++)groups.get(key).parts.push({w:Number(it.width_mm)+kerf,h:Number(it.height_mm)+kerf,label:it.item_name+' '+(index+1)});
   });
@@ -67,7 +67,7 @@
   const plans=cuttingPlan();let sheetsCost=0,edgeMeters=0,edgeCost=0;
   plans.forEach(p=>sheetsCost+=p.count*p.price);
   items.forEach(x=>{const m=calcEdgeLength(x);x.edge_m=m;edgeMeters+=m;edgeCost+=m*Number(x.edge_price_per_m||0)});
-  return {plans,sheetsCost,edgeMeters,edgeCost,total:sheetsCost+edgeCost};
+  const facadeCost=items.reduce((sum,it)=>{const p=selectedCatalog(it.catalog_item_id);if(!p||p.category!=='Облицовка и фасады')return sum;const qty=Number(it.quantity||0);const amount=p.unit==='м²'?(Number(it.width_mm||0)*Number(it.height_mm||0)/1000000*qty):qty;return sum+amount*Number(p.source_price||0)},0);\n  return {plans,sheetsCost,edgeMeters,edgeCost,facadeCost,total:sheetsCost+edgeCost+facadeCost};
  }
  const costCategories=['Материалы','Облицовка и фасады','Фурнитура','Шкафы-купе','Лицевая фурнитура','Крепёж','Свет','Комплектующие','Работы и доставка'];
  
