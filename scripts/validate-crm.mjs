@@ -135,12 +135,16 @@ else pass('Legacy price list can be restored automatically from the original cat
 if (!estimates.includes("ignoreDuplicates:true")) fail('Legacy catalog restoration may overwrite existing supplier prices');
 else pass('Legacy catalog restoration preserves existing prices and skips duplicates');
 
-if (!estimates.includes('function calc(){') || !estimates.includes('ИТОГО К ОПЛАТЕ')) fail('Final estimate totals are missing from the bottom summary');
-else pass('Final estimate totals are shown at the bottom of the estimate');
-if (!estimates.includes('totals.categoriesBase') || !estimates.includes('totals.service') || !estimates.includes('totals.total')) fail('Printed estimate does not include final totals');
-else pass('Printed estimate includes materials, services and grand total');
-if (estimates.includes('Работа на производстве (100%') || estimates.includes('Маржа (80%)') || estimates.includes('Комиссия менеджера')) fail('Removed automatic production, margin or manager commission has been reintroduced');
-else pass('Bottom totals do not restore automatic production, margin or manager commission');
+if (!estimates.includes('function calc(){') || !estimates.includes('ИТОГОВАЯ СТОИМОСТЬ')) fail('Detailed bottom estimate summary is missing');
+else pass('Detailed bottom estimate summary is present');
+if (!estimates.includes('СТОИМОСТЬ МАТЕРИАЛОВ') || !estimates.includes('СТОИМОСТЬ РАБОТ') || !estimates.includes('МАРЖА (80%)')) fail('Materials, manual works or 80% margin are missing from the summary');
+else pass('Summary shows materials, manual works and 80% margin separately');
+if (!estimates.includes('cManagerCommissionPercent') || !estimates.includes('crmManagerCommissionSettings') || !estimates.includes('managerCommissionEnabled?subtotal*managerCommissionPercent/100:0')) fail('Editable manager commission coefficient is missing or not applied to subtotal');
+else pass('Manager commission coefficient is editable, persisted and calculated from subtotal');
+if (!estimates.includes('totals.materials') || !estimates.includes('totals.service') || !estimates.includes('totals.margin') || !estimates.includes('totals.managerCommission') || !estimates.includes('totals.total')) fail('Printed estimate does not include the complete totals breakdown');
+else pass('Printed estimate includes materials, works, margin, manager commission and grand total');
+if (estimates.includes('Работа на производстве (100%') || estimates.includes('Маржа (80%)</span>')) fail('Automatic production calculation has been reintroduced into the estimate');
+else pass('Automatic production calculation is not restored');
 
 if (process.exitCode) process.exit(1);
 console.log('CRM validation completed successfully.');
