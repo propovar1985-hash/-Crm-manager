@@ -8,9 +8,9 @@ const fail = (message) => {
 const pass = (message) => console.log(`OK: ${message}`);
 
 const html = fs.readFileSync('index.html', 'utf8');
-const scriptTags = [...html.matchAll(/<script\\b[^>]*src=["']([^"']+)["'][^>]*>/gi)];
+const scriptTags = [...html.matchAll(/<script\b[^>]*src=["']([^"']+)["'][^>]*>/gi)];
 for (const [, src] of scriptTags) {
-  if (/^(https?:)?\\/\\//i.test(src) || src.startsWith('data:')) continue;
+  if (/^(https?:)?\/\//i.test(src) || src.startsWith('data:')) continue;
   const clean = src.split('?')[0].split('#')[0];
   const target = path.resolve(clean);
   if (!fs.existsSync(target)) fail(`index.html references missing local script: ${src}`);
@@ -20,7 +20,7 @@ if (!process.exitCode) pass('All local script references exist');
 const studio = fs.readFileSync('crm-wardrobe-studio.js', 'utf8');
 const estimates = fs.readFileSync('crm-estimates.js', 'utf8');
 
-const open = studio.match(/function open\\(\\)\\{([\\s\\S]*?)\\n?\\s*\\}/);
+const open = studio.match(/function open\(\)\{([\s\S]*?)\n?\s*\}/);
 if (!open) fail('Wardrobe constructor open() function not found');
 else {
   if (!open[1].includes("$('wbW').value=600")) fail('Wardrobe opening width must default to 600 mm');
