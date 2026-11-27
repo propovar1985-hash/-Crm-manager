@@ -91,14 +91,14 @@ else pass('Estimate PDF/print includes the saved wardrobe preview');
 if (!estimates.includes('width:145px;height:96px')) fail('Wardrobe preview is not kept compact at the top of the print document');
 else pass('Wardrobe preview is compact at the top of the print document');
 
-if (!estimates.includes('data-k="width_mm" type="number" min="0" step="10"') || !estimates.includes('data-k="height_mm" type="number" min="0" step="10"')) fail('Estimate dimensions do not use 10 mm arrow increments');
-else pass('Estimate dimensions use 10 mm arrow increments');
-if (!estimates.includes('data-ck="service_amount" type="number" min="0" step="10"') || !estimates.includes('data-ck="source_unit_price" type="number" min="0" step="10"')) fail('Estimate ruble amounts do not use 10 ruble arrow increments');
-else pass('Estimate ruble amounts use 10 ruble arrow increments');
+if (!estimates.includes('data-k="width_mm" type="number" min="0" step="1"') || !estimates.includes('data-k="height_mm" type="number" min="0" step="1"')) fail('Estimate dimensions do not use 1 mm arrow increments');
+else pass('Estimate dimensions use 1 mm arrow increments');
+if (!estimates.includes('data-ck="service_amount" type="number" min="0" step="100"') || !estimates.includes('data-ck="source_unit_price" type="number" min="0" step="100"') || !estimates.includes('id="cMaterialPrice" type="number" min="0" step="100"')) fail('Estimate ruble amounts do not use 100 ruble arrow increments');
+else pass('Estimate ruble amounts use 100 ruble arrow increments');
 if (!estimates.includes('data-ck="quantity" type="number" min="0" step="1"') || !estimates.includes('data-k="quantity" type="number" min="1" step="1"')) fail('Estimate quantities do not use 1-unit arrow increments');
 else pass('Estimate quantities use 1-unit arrow increments');
-if (!wardrobeStudio.includes('id="wbW" type="number" min="300" max="6000" step="10"') || !wardrobeStudio.includes('id="wbH" type="number" min="300" max="3000" step="10"') || !wardrobeStudio.includes('id="wbD" type="number" min="200" max="1200" step="10"')) fail('Wardrobe dimensions do not use 10 mm arrow increments');
-else pass('Wardrobe dimensions use 10 mm arrow increments');
+if (!wardrobeStudio.includes('id="wbW" type="number" min="300" max="6000" step="1"') || !wardrobeStudio.includes('id="wbH" type="number" min="300" max="3000" step="1"') || !wardrobeStudio.includes('id="wbD" type="number" min="200" max="1200" step="1"')) fail('Wardrobe dimensions do not use 1 mm arrow increments');
+else pass('Wardrobe dimensions use 1 mm arrow increments');
 if (!wardrobeStudio.includes('id="wbN" type="number" min="1" max="8" step="1"') || !wardrobeStudio.includes('id="wbDoors" type="number" min="0" max="8" step="1"')) fail('Wardrobe section and door counts do not use 1-unit arrow increments');
 else pass('Wardrobe section and door counts use 1-unit arrow increments');
 
