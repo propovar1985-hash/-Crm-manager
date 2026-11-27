@@ -36,6 +36,7 @@
  }
  let commonMaterialPrice=0,commonFacadePrice=0,commonHdfPrice=0,commonEdgePrice=0;
  let managerCommissionEnabled=true,managerCommissionPercent=5;
+ try{const saved=JSON.parse(localStorage.getItem('crmManagerCommissionSettings')||'null');if(saved&&typeof saved==='object'){managerCommissionEnabled=saved.enabled!==false;managerCommissionPercent=Math.min(100,Math.max(0,Number(saved.percent??5)||0))}}catch(e){}
  const blank=()=>({item_name:nextDetailName('Боковина'),material:'',catalog_item_id:'',material_price_sheet:commonMaterialPrice,edge_catalog_item_id:'',edge_name:'',edge_price_per_m:commonEdgePrice,edge_sides:{top:true,right:true,bottom:true,left:true},edge_m:0,width_mm:0,height_mm:0,quantity:1,supplier_id:'',supplier_name:'',supplier_discount_percent:0});
  function selectedCatalog(id){return estimateCatalog.find(p=>p.id===id)||excelHardware.find(p=>p.id===id)||excelFacades.find(p=>p.id===id)||null}
  const detailTypes=['Боковина','Полка','Перегородка','Дно','Крышка','Цоколь','Фасад','Дверь','Задняя стенка','Планка','Деталь ящика','Другое'];
@@ -150,8 +151,8 @@
    <div class="c-total"><span class="small">ИТОГОВАЯ СТОИМОСТЬ</span><b id="cGrandTotal">${money(x.total)}</b></div>
    <div class="small wide">Комиссия менеджера рассчитывается от суммы с моржой. Галочку можно снять, а процент изменить.</div>`;
   const toggle=$('cManagerCommissionEnabled'),percent=$('cManagerCommissionPercent');
-  if(toggle)toggle.onchange=()=>{managerCommissionEnabled=toggle.checked;summary()};
-  if(percent){percent.oninput=e=>{e.stopPropagation();managerCommissionPercent=Math.min(100,Math.max(0,Number(percent.value)||0));const z=calc();const amount=$('cManagerCommissionAmount'),total=$('cGrandTotal');if(amount)amount.textContent=money(z.managerCommission);if(total)total.textContent=money(z.total)};percent.onchange=()=>summary()}
+  if(toggle)toggle.onchange=()=>{managerCommissionEnabled=toggle.checked;try{localStorage.setItem('crmManagerCommissionSettings',JSON.stringify({enabled:managerCommissionEnabled,percent:managerCommissionPercent}))}catch(e){}summary()};
+  if(percent){percent.oninput=e=>{e.stopPropagation();managerCommissionPercent=Math.min(100,Math.max(0,Number(percent.value)||0));try{localStorage.setItem('crmManagerCommissionSettings',JSON.stringify({enabled:managerCommissionEnabled,percent:managerCommissionPercent}))}catch(e){}const z=calc();const amount=$('cManagerCommissionAmount'),total=$('cGrandTotal');if(amount)amount.textContent=money(z.managerCommission);if(total)total.textContent=money(z.total)};percent.onchange=()=>summary()}
  }
  function drawItems(){
    const defaults=$('cDefaultMaterial'),facades=$('cDefaultFacade'),hdf=$('cDefaultHdf'),defaultEdge=$('cDefaultEdge');
