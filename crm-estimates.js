@@ -24,7 +24,7 @@
   <label>Привязать к заказу<select name="order_id"><option value="">Без привязки</option></select></label><label>Связанный замер<select name="measurement_id"><option value="">Не выбран</option></select></label>
   <label>Статус<select name="status"><option>Черновик</option><option>На согласовании</option><option>Согласован</option><option>Архив</option></select></label>
   
-  <label>Длина листа, мм<input name="sheet_length_mm" type="number" min="1" value="2800"></label><label>Ширина листа, мм<input name="sheet_width_mm" type="number" min="1" value="2070"></label>
+  
   </div><h3>Детали изделия</h3><div class="small">Размеры деталей можно заполнить отдельно. Материалы и комплектующие выбираются из прайса ниже.</div><div class="scroll"><table class="c-items"><thead><tr><th>Деталь</th><th>Материал</th><th>Поставщик</th><th>Ширина</th><th>Высота</th><th>Кол-во</th><th>Кромка, м</th><th>Цена м², ₽</th><th></th></tr></thead><tbody id="cItemRows"></tbody></table></div>
   <div class="c-toolbar"><button type="button" class="btn" id="cAddItem">＋ Добавить деталь</button></div><h3>Прайс и деталировка по разделам</h3><div class="small">Выбери позицию из выпадающего списка. Цена и единица измерения подставятся из твоей таблицы.</div><div id="cCostSections"></div>
   <div class="c-grid">
@@ -44,7 +44,7 @@
  function supplierOptions(selected){return '<option value="">Не выбран</option>'+suppliers.filter(x=>x.is_active).map(x=>'<option value="'+esc(x.id)+'" '+(x.id===selected?'selected':'')+'>'+esc(x.name)+' · '+Number(x.discount_percent||0)+'%</option>').join('')}
  function productOptions(selected){return '<option value="">Выбрать товар из каталога…</option>'+supplierProducts.filter(p=>p.is_active).map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selected?'selected':'')+'>'+esc(p.product_name)+' · '+esc(p.article||'без артикула')+' · '+money(p.calc_price)+'</option>').join('')}
  function applyCatalogProduct(target,id){const p=supplierProducts.find(x=>x.id===id);if(!p)return;target.supplier_product_id=p.id;target.price_checked_at=p.updated_at||new Date().toISOString();target.item_name=p.product_name;target.unit=p.unit||'шт';target.supplier_id=p.supplier_id;const s=suppliers.find(x=>x.id===p.supplier_id);target.supplier_name=s?.name||'';target.supplier_discount_percent=0;target.source_unit_price=Number(p.calc_price||0);target.unit_price=Number(p.calc_price||0)}
- function setCostSupplier(x,id){const p=suppliers.find(v=>v.id===id);x.supplier_id=p?.id||'';x.supplier_name=p?.name||'';x.supplier_discount_percent=Number(p?.discount_percent||0);const base=Number(x.source_unit_price??x.unit_price??0);x.source_unit_price=base;x.unit_price=base}
+ function setCostSupplier(x,id){const p=suppliers.find(v=>v.id===id);x.supplier_id=p?.id||'';x.supplier_name=p?.name||'';x.supplier_discount_percent=0;const base=Number(x.source_unit_price??x.unit_price??0);x.source_unit_price=base;x.unit_price=base}
  function setMaterialSupplier(x,id){const p=suppliers.find(v=>v.id===id);x.supplier_id=p?.id||'';x.supplier_name=p?.name||'';x.supplier_discount_percent=Number(p?.discount_percent||0);x.source_material_price_m2=Number(x.source_material_price_m2??x.material_price_m2??0);x.material_price_m2=x.source_material_price_m2}
  function calc(){
   const sums=Object.fromEntries(costCategories.map(c=>[c,0]));
@@ -143,7 +143,7 @@
   e.preventDefault();if(!items.length&&!costLines.length){alert('Добавьте хотя бы одну деталь или позицию сметы.');return}
   const activeItems=items.filter(x=>x.item_name.trim()||Number(x.width_mm)>0||Number(x.height_mm)>0);if(activeItems.some(x=>!x.item_name.trim()||Number(x.width_mm)<=0||Number(x.height_mm)<=0||Number(x.quantity)<1)){alert('Заполните название, размеры и количество каждой добавленной детали.');return}
   const f=Object.fromEntries(new FormData(e.target));const {data:{user}}=await db.auth.getUser();
-  const row={client_name:f.client_name.trim(),title:f.title.trim(),order_id:f.order_id||null,measurement_id:f.measurement_id||null,status:f.status,sheet_length_mm:Number(f.sheet_length_mm||2800),sheet_width_mm:Number(f.sheet_width_mm||2070),fittings_cost:0,labor_cost:0,other_cost:0,notes:f.notes||null,updated_at:new Date().toISOString()};
+  const row={client_name:f.client_name.trim(),title:f.title.trim(),order_id:f.order_id||null,measurement_id:f.measurement_id||null,status:f.status,fittings_cost:0,labor_cost:0,other_cost:0,notes:f.notes||null,updated_at:new Date().toISOString()};
   const result=active?await db.from('furniture_estimates').update(row).eq('id',active).select().single():await db.from('furniture_estimates').insert({...row,created_by:user?.id||null}).select().single();
   if(result.error){alert('Не удалось сохранить просчёт: '+result.error.message);return}
   const id=result.data.id;const del=await db.from('furniture_estimate_items').delete().eq('estimate_id',id);
@@ -152,12 +152,12 @@
   if(ins.error){alert('Просчёт сохранён, но детали не записались: '+ins.error.message);return}
   const oldLines=await db.from('furniture_estimate_lines').delete().eq('estimate_id',id);
   if(oldLines.error){alert('Просчёт сохранён, но позиции сметы не обновились: '+oldLines.error.message);return}
-  const linePayload=costLines.filter(x=>x.item_name.trim()&&x.catalog_item_id).map(x=>({...x,supplier_id:null,supplier_name:'Таблица пользователя',supplier_discount_percent:0,source_unit_price:Number(x.source_unit_price??x.unit_price??0),unit_price:Number(x.unit_price||0),markup_percent:0,price_checked_at:x.price_checked_at||null,supplier_product_id:null,estimate_id:id}));
+  const linePayload=costLines.filter(x=>x.item_name.trim()&&x.catalog_item_id).map(x=>({...x,supplier_id:null,supplier_name:'Таблица пользователя',supplier_discount_percent:0,source_unit_price:Number(x.source_unit_price??x.unit_price??0),unit_price:Number(x.unit_price||0),price_checked_at:x.price_checked_at||null,supplier_product_id:null,estimate_id:id}));
   const lineInsert=linePayload.length?await db.from('furniture_estimate_lines').insert(linePayload):{error:null};
   if(lineInsert.error){alert('Просчёт сохранён, но позиции сметы не записались: '+lineInsert.error.message);return}
   await load();close();alert('Просчёт сохранён.');
  }
- window.addEventListener('crm:wardrobe-generated',e=>{const d=e.detail||{};if(!Array.isArray(d.items))return;active=null;items=d.append?items.concat(d.items):d.items;costLines=d.append?costLines:[];if(!d.append)$('cForm').elements.id.value='';if(!d.append){$('cForm').reset();$('cForm').elements.id.value='';fillSelects();$('cForm').elements.status.value='Черновик';$('cForm').elements.markup_percent.value=0;}renderMarkupSettings();drawItems();if(d.title&&$('cForm')?.elements.title)$('cForm').elements.title.value=d.title;summary();$('cModal').classList.add('open');});
+ window.addEventListener('crm:wardrobe-generated',e=>{const d=e.detail||{};if(!Array.isArray(d.items))return;active=null;items=d.append?items.concat(d.items):d.items;costLines=d.append?costLines:[];if(!d.append)$('cForm').elements.id.value='';if(!d.append){$('cForm').reset();$('cForm').elements.id.value='';fillSelects();$('cForm').elements.status.value='Черновик';}drawItems();if(d.title&&$('cForm')?.elements.title)$('cForm').elements.title.value=d.title;summary();$('cModal').classList.add('open');});
  function init(){
   if(!window.__crmAuthenticated||typeof db==='undefined'||!$('calc'))return;
   if(!window.__calcUI){ensure();window.__calcUI=true}
