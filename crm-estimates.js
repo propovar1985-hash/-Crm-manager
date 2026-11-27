@@ -167,7 +167,7 @@
   if(lineInsert.error){alert('Просчёт сохранён, но позиции сметы не записались: '+lineInsert.error.message);return}
   await load();close();alert('Просчёт сохранён.');
  }
- window.addEventListener('crm:wardrobe-generated',e=>{const d=e.detail||{};if(!Array.isArray(d.items))return;active=null;items=d.append?items.concat(d.items):d.items;costLines=d.append?costLines:[];if(!d.append)$('cForm').elements.id.value='';if(!d.append){$('cForm').reset();$('cForm').elements.id.value='';fillSelects();$('cForm').elements.status.value='Черновик';}drawItems();if(d.title&&$('cForm')?.elements.title)$('cForm').elements.title.value=d.title;summary();$('cModal').classList.add('open');});
+ window.addEventListener('crm:wardrobe-generated',e=>{const d=e.detail||{};if(!Array.isArray(d.items))return;active=null;items=d.append?items.concat(d.items):d.items;costLines=d.append?costLines:[];ensureServiceLines();if(!d.append)$('cForm').elements.id.value='';if(!d.append){$('cForm').reset();$('cForm').elements.id.value='';fillSelects();$('cForm').elements.status.value='Черновик';}drawItems();if(d.title&&$('cForm')?.elements.title)$('cForm').elements.title.value=d.title;summary();$('cModal').classList.add('open');});
  function init(){
   if(!window.__crmAuthenticated||typeof db==='undefined'||!$('calc'))return;
   if(!window.__calcUI){ensure();window.__calcUI=true}
