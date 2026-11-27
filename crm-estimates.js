@@ -58,7 +58,7 @@
     }
     if(!placed){const sh={parts:[],free:[{x:0,y:0,w:W,h:H}]};sheets.push(sh);let best=null;[[part.w,part.h,false],[part.h,part.w,true]].forEach(([pw,ph,rot])=>{if(pw<=W&&ph<=H){const score=Math.min(W-pw,H-ph)*100000+Math.max(W-pw,H-ph);if(!best||score<best.score)best={pw,ph,rot,score}}});if(best){sh.parts.push({x:0,y:0,w:best.pw,h:best.ph,label:part.label,rotated:best.rot});sh.free=[{x:best.pw,y:0,w:W-best.pw,h:best.ph},{x:0,y:best.ph,w:W,h:H-best.ph}].filter(r=>r.w>0&&r.h>0)}}
    }
-   result.push({name:g.name,price:g.price,count:sheets.filter(s=>s.parts.length).length});
+   result.push({name:g.name,price:g.price,sheets:sheets.filter(s=>s.parts.length).map(sh=>sh.parts),count:sheets.filter(s=>s.parts.length).length});
   }
   return result;
  }
@@ -126,7 +126,7 @@
  function renderCuttingSummary(){
   const host=$('cCuttingSummary');if(!host)return;const c=calculateDetailCosts();
   host.innerHTML='<b>Раскрой и кромка</b><div class="small">Лист 2800 × 2070 мм · пропил '+Number($('cKerf')?.value||4)+' мм · поворот деталей на 90° разрешён.</div>'+
-   (c.plans.length?c.plans.map(p=>'<div style="padding:6px 0;border-bottom:1px solid var(--line)">'+esc(p.name)+': <b>'+p.count+' лист.</b> × '+money(p.price)+' = <b>'+money(p.count*p.price)+'</b></div>').join(''):'<div class="small">Выбери листовой материал у деталей, чтобы рассчитать раскрой.</div>')+
+   (c.plans.length?c.plans.map(p=>'<div style="padding:8px 0;border-bottom:1px solid var(--line)"><b>'+esc(p.name)+': '+p.count+' лист. × '+money(p.price)+' = '+money(p.count*p.price)+'</b>'+p.sheets.map((parts,si)=>'<div class="small" style="margin-top:8px">Лист '+(si+1)+'</div><svg viewBox="0 0 560 414" role="img" aria-label="Карта раскроя '+esc(p.name)+'" style="width:100%;max-width:560px;border:1px solid var(--line);background:#fff">'+parts.map((r,ri)=>'<rect x="'+(r.x/5)+'" y="'+(r.y/5)+'" width="'+(r.w/5)+'" height="'+(r.h/5)+'" fill="#dbeafe" stroke="#315b8a" stroke-width="1"/><text x="'+(r.x/5+3)+'" y="'+(r.y/5+12)+'" font-size="10" fill="#172b4d">'+esc(r.label)+(r.rotated?' ↻':'')+'</text>').join('')+'</svg>').join('')+'</div>').join(''):'<div class="small">Выбери листовой материал у деталей, чтобы рассчитать раскрой.</div>')+
    '<div style="padding-top:7px">Кромка: '+c.edgeMeters.toFixed(2)+' м · '+money(c.edgeCost)+'</div><b>Материалы деталировки: '+money(c.total)+'</b>';
  }
  async function load(){
