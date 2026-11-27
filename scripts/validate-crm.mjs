@@ -34,8 +34,12 @@ else {
 
 if (!studio.includes('materials.door=new THREE.MeshStandardMaterial({color:0x8b929b')) fail('Expected gray facade material not found');
 else pass('Gray facade material configured');
-if (!studio.includes('materials.body=new THREE.MeshStandardMaterial({color:0x9a7048')) fail('Expected brown cabinet body material not found');
-else pass('Brown cabinet body material configured');
+if (!studio.includes("materials.body=new THREE.MeshStandardMaterial({map:bodyTexture")) fail('H1715 wood texture is not assigned to cabinet body');
+else pass('H1715 wood texture is assigned to cabinet body');
+if (!studio.includes("new THREE.TextureLoader().load('assets/H1715-wood.svg")) fail('H1715 wood texture asset is not loaded');
+else pass('H1715 wood texture asset is loaded');
+if (!fs.existsSync('assets/H1715-wood.svg')) fail('H1715 wood texture asset is missing');
+else pass('H1715 wood texture asset exists');
 
 if (!estimates.includes("$('cPrint').onclick=printEstimate")) fail('Estimate print button handler is missing');
 else pass('Estimate print button is connected');
