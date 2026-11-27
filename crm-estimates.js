@@ -69,13 +69,13 @@
   if(!$('cSummary'))return;const x=calc();
   $('cSummary').innerHTML=`
    <div class="c-total"><span class="small">Материалы и комплектующие по прайсу</span><b>${money(x.categoriesBase)}</b></div>
-   <div class="c-total"><span class="small">Работа на производстве (как в Excel)</span><b>${money(x.production)}</b></div>
+   <div class="c-total"><span class="small">Работа на производстве (100% от раздела «Материалы»)</span><b>${money(x.production)}</b></div>
    <div class="c-total"><span class="small">Работы, доставка и услуги</span><b>${money(x.service)}</b></div>
-   <div class="c-total"><span class="small">Сборка на адресе (10%)</span><b>${money(x.assembly)}</b></div>
+   <div class="c-total"><span class="small">Работы и доставка из прайса</span><b>${money(x.assembly)}</b></div>
    <div class="c-total"><span class="small">Моржа (80%)</span><b>${money(x.margin)}</b></div>
    <div class="c-total"><span class="small">Комиссия менеджера (5%)</span><b>${money(x.managerCommission)}</b></div>
    <div class="c-total"><span class="small">ИТОГОВАЯ СТОИМОСТЬ</span><b>${money(x.total)}</b></div>
-   <div class="small wide">Расчёт повторяет итоговые формулы исходного Excel: производство = стоимость раздела «Материалы»; сборка = 10% от базы производства; моржа = 80% от себестоимости; комиссия = 5% от базы производства. Проценты поверх этих формул не добавляются.</div>`;
+   <div class="small wide">Итог по формулам основного листа Excel: сумма разделов + производство (100% материалов) + работы и доставка; моржа 80% от этой суммы; комиссия менеджера 5% от суммы с моржой. Дополнительные проценты и скидки не применяются.</div>`;
  }
  function drawItems(){
   $('cItemRows').innerHTML=items.map((x,i)=>\`<tr>
