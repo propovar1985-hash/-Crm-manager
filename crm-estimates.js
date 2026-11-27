@@ -55,8 +55,19 @@
  function calcEdgeLength(item){const w=Number(item.width_mm||0),h=Number(item.height_mm||0),s=item.edge_sides||{};return ((s.top?w:0)+(s.bottom?w:0)+(s.left?h:0)+(s.right?h:0))*Number(item.quantity||0)/1000}
  function cuttingPlan(){
   const kerf=3,format=$('cSheetFormat')?.value||'2800x2070',[W,H]=format.split('x').map(Number),groups=new Map();
-  items.filter(x=>{const p=selectedCatalog(x.catalog_item_id);if(!(Number(x.width_mm)>0&&Number(x.height_mm)>0&&p&&p.unit==='лист'))return false;const isFacade=isFacadeItem(x);return !isFacade||(p.category==='Материалы'&&/ЛДСП/i.test(String(p.item_name||'')));}).forEach((it,index)=>{
-   const key=it.catalog_item_id,p=selectedCatalog(key),price=Number(it.material_price_sheet||p?.source_price||0),groupKey=key+'|'+price;if(!groups.has(groupKey))groups.set(groupKey,{name:p?.item_name||it.material||'Материал',price,parts:[]});
+  items.forEach(it=>{
+   if(!(Number(it.width_mm)>0&&Number(it.height_mm)>0))return;
+   const isFacade=isFacadeItem(it);
+   let p=selectedCatalog(it.catalog_item_id);
+   // ХДФ — листовой материал для раскроя даже если в прайсе его единица указана как «шт»,
+   // либо позиция конструктора ещё не получила catalog_item_id.
+   if(!p&&isHdfItem(it))p=findMaterialCatalog(it.material)||null;
+   const hdf=isHdfItem(it)||/ХДФ/i.test(String(p?.item_name||''));
+   if(!p&&!hdf)return;
+   if(!hdf&&p?.unit!=='лист')return;
+   if(isFacade&&!(p?.category==='Материалы'&&/ЛДСП/i.test(String(p?.item_name||''))))return;
+   const key=p?.id||it.catalog_item_id||String(it.material||'ХДФ'),price=Number(it.material_price_sheet||p?.source_price||0),groupKey=key+'|'+price;
+   if(!groups.has(groupKey))groups.set(groupKey,{name:p?.item_name||it.material||'ХДФ',price,parts:[]});
    for(let n=0;n<Math.max(1,Number(it.quantity||1));n++)groups.get(groupKey).parts.push({w:Number(it.width_mm)+kerf,h:Number(it.height_mm)+kerf,label:it.item_name});
   });
   const result=[];
