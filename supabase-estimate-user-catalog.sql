@@ -116,3 +116,13 @@ values
 ('Комплектующие','Комплектующие','клей','шт',800,'Таблица пользователя'),
 ('Комплектующие','Комплектующие','ДВЕРИ КУПЕ','шт',0,'Таблица пользователя')
 on conflict(category,subgroup,item_name) do update set unit=excluded.unit,source_price=excluded.source_price,supplier_name=excluded.supplier_name,is_active=true,updated_at=now();
+
+insert into public.furniture_estimate_catalog(category,subgroup,item_name,unit,source_price,supplier_name)
+values
+('Работы и доставка','Работы','ДОСТАВКА МАТЕРИАЛА','услуга',2000,'Таблица пользователя'),
+('Работы и доставка','Работы','ЗАМЕР','услуга',0,'Таблица пользователя'),
+('Работы и доставка','Работы','ДОСТАВКА','услуга',2000,'Таблица пользователя'),
+('Работы и доставка','Работы','ПРЕДСБОРКА','услуга',0,'Таблица пользователя'),
+('Работы и доставка','Работы','СБОРКА НА АДРЕСЕ 10%','услуга',4000,'Таблица пользователя'),
+('Работы и доставка','Работы','ФОРС МАЖОР','услуга',5000,'Таблица пользователя')
+on conflict(category,subgroup,item_name) do update set unit=excluded.unit,source_price=excluded.source_price,supplier_name=excluded.supplier_name,is_active=true,updated_at=now();
