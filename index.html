@@ -300,6 +300,35 @@ input,select,textarea{padding:10px 11px;border:1px solid #d6deea;border-radius:8
  #leads .order-card-client{font-size:10px}
 }
 
+
+/* Restore full colored stage backgrounds; keep stage names neutral black */
+#leads .pipeline>.stage:nth-child(1){background:rgba(59,130,246,.34)!important;border-color:rgba(59,130,246,.58)!important}
+#leads .pipeline>.stage:nth-child(2){background:rgba(16,185,129,.34)!important;border-color:rgba(16,185,129,.58)!important}
+#leads .pipeline>.stage:nth-child(3){background:rgba(245,158,11,.35)!important;border-color:rgba(245,158,11,.60)!important}
+#leads .pipeline>.stage:nth-child(4){background:rgba(139,92,246,.34)!important;border-color:rgba(139,92,246,.58)!important}
+#leads .pipeline>.stage:nth-child(5){background:rgba(236,72,153,.32)!important;border-color:rgba(236,72,153,.56)!important}
+#leads .pipeline>.stage:nth-child(6){background:rgba(6,182,212,.34)!important;border-color:rgba(6,182,212,.58)!important}
+#leads .pipeline>.stage:nth-child(7){background:rgba(132,204,22,.34)!important;border-color:rgba(132,204,22,.58)!important}
+#leads .pipeline>.stage:nth-child(8){background:rgba(249,115,22,.36)!important;border-color:rgba(249,115,22,.62)!important}
+#leads .pipeline>.stage:nth-child(9){background:rgba(22,163,74,.34)!important;border-color:rgba(22,163,74,.58)!important}
+#leads .pipeline>.stage .stage-head,
+#leads .pipeline>.stage:nth-child(n) .stage-head{color:#171717!important}
+#leads .pipeline>.stage .stage-head span:last-child{color:#171717!important}
+#leads .pipeline-order-card .order-card-title{display:block!important;color:#171717!important;font-size:12px;font-weight:750;line-height:1.2}
+#leads .pipeline-order-card .order-card-client{color:#171717!important}
+@media(max-width:680px){
+ #leads .pipeline>.stage:nth-child(1){background:rgba(59,130,246,.38)!important}
+ #leads .pipeline>.stage:nth-child(2){background:rgba(16,185,129,.38)!important}
+ #leads .pipeline>.stage:nth-child(3){background:rgba(245,158,11,.39)!important}
+ #leads .pipeline>.stage:nth-child(4){background:rgba(139,92,246,.38)!important}
+ #leads .pipeline>.stage:nth-child(5){background:rgba(236,72,153,.36)!important}
+ #leads .pipeline>.stage:nth-child(6){background:rgba(6,182,212,.38)!important}
+ #leads .pipeline>.stage:nth-child(7){background:rgba(132,204,22,.38)!important}
+ #leads .pipeline>.stage:nth-child(8){background:rgba(249,115,22,.40)!important}
+ #leads .pipeline>.stage:nth-child(9){background:rgba(22,163,74,.38)!important}
+ #leads .pipeline-order-card .order-card-title{font-size:11px!important}
+}
+
 </style>
 <link rel="stylesheet" href="./crm-ui.css?v=responsive-001">
 </head>
@@ -678,7 +707,7 @@ try {
       <label>Клиент *<input name="client_name" required list="orderClientOptions"><datalist id="orderClientOptions">${(typeof clients!=='undefined'&&Array.isArray(clients)?clients:[]).map(c=>`<option>${esc(c.full_name)}</option>`).join('')}</datalist></label>
       <label>Телефон<input name="phone"></label><label class="wide">Адрес объекта<input name="address"></label>
       <label>Тип мебели<select name="furniture_type"><option>Кухня</option><option>Шкаф</option><option>Гардеробная</option><option>Комод / тумба</option><option>Мебель для ванной</option><option>Другая корпусная мебель</option></select></label>
-      <label>Название изделия<input name="title" required placeholder="Например, кухня в квартиру"></label>
+      <label>Название изделия / заказа<input name="title" required placeholder="Например, кухня в квартиру"></label>
       <label>Ответственный<input name="manager"></label><label>Крайний срок по договору<input name="due_date" type="date"></label>
       <label>Стоимость, ₽<input name="amount" type="number" min="0" step="0.01"></label>
       <label>Статус оплаты<select name="payment_status"><option>Не выставлено</option><option>Ожидает предоплату</option><option>Частично оплачено</option><option>Оплачено</option></select></label>
