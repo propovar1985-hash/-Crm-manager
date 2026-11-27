@@ -96,7 +96,7 @@
  
  const blankCost=()=>({category:'Фурнитура',item_name:'',unit:'шт',quantity:1,unit_price:0,source_unit_price:0});
  const serviceDefaults=[
-  ['СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ (100% ОТ МАТЕРИАЛА)',0,'расчёт'],
+  ['СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ (100% ОТ МАТЕРИАЛОВ БЕЗ ФАСАДОВ)',0,'расчёт'],
   ['ДОСТАВКА МАТЕРИАЛА',2000,'услуга'],
   ['ЗАМЕР',0,'услуга'],
   ['ДОСТАВКА',2000,'услуга'],
@@ -128,7 +128,7 @@
   const sums=Object.fromEntries(costCategories.map(c=>[c,0]));
   costLines.forEach(x=>{const amount=Number(x.quantity||0)*Number(x.unit_price||0);if(x.category==='Фурнитура'&&String(x.item_name||'').trim().toLocaleUpperCase('ru').includes('КОМАР'))return;sums[x.category]=(sums[x.category]||0)+amount});
   const detail=calculateDetailCosts(),materials=(sums['Материалы']||0)+detail.total;
-  const categoriesBase=costCategories.filter(c=>c!=='Работы и доставка').reduce((a,c)=>a+(sums[c]||0),0)+detail.total,production=materials;
+  const categoriesBase=costCategories.filter(c=>c!=='Работы и доставка').reduce((a,c)=>a+(sums[c]||0),0)+detail.total,production=Math.max(0,materials-detail.facadeCost);
   const service=costLines.filter(x=>x.category==='Работы и доставка'&&!x.item_name.startsWith('СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ')).reduce((a,x)=>a+Number(x.quantity||0)*Number(x.unit_price||0),0);
   const cost=categoriesBase+production+service,margin=cost*0.80,subtotal=cost+margin,managerCommission=subtotal*0.05,total=subtotal+managerCommission;
   const area=items.reduce((a,x)=>a+Number(x.width_mm||0)*Number(x.height_mm||0)/1e6*Number(x.quantity||0),0);
@@ -138,7 +138,7 @@
   if(!$('cSummary'))return;const x=calc();
   $('cSummary').innerHTML=`
    <div class="c-total"><span class="small">Материалы, комплектующие, листы и кромка</span><b>${money(x.categoriesBase)}</b></div>
-   <div class="c-total"><span class="small">Работа на производстве (100% от раздела «Материалы»)</span><b>${money(x.production)}</b></div>
+   <div class="c-total"><span class="small">Работа на производстве (100% от материалов без фасадов)</span><b>${money(x.production)}</b></div>
    <div class="c-total"><span class="small">Работы, доставка и услуги</span><b>${money(x.service)}</b></div>
    <div class="c-total"><span class="small">Моржа (80%)</span><b>${money(x.margin)}</b></div>
    <div class="c-total"><span class="small">Комиссия менеджера (5%)</span><b>${money(x.managerCommission)}</b></div>
@@ -229,7 +229,7 @@
     (rows.length?'<div class="scroll"><table class="c-items"><thead><tr><th>Наименование</th><th>Ед.</th><th>Количество</th><th>Цена, ₽</th><th>Сумма, ₽</th><th></th></tr></thead><tbody>'+htmlRows+'</tbody></table></div>':'<div class="small" style="padding:10px 0">Пока нет позиций</div>')+
     (isService?(()=>{const z=calc();return '<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px"><b>Расчёт по разделу 9 — РАБОТА</b><table class="c-items"><tbody>'+
     '<tr><td>МАТЕРИАЛ — сумма разделов</td><td>'+money(z.categoriesBase)+'</td></tr>'+
-    '<tr><td>СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ (100% от материала)</td><td>'+money(z.production)+'</td></tr>'+
+    '<tr><td>СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ (100% от материалов без фасадов)</td><td>'+money(z.production)+'</td></tr>'+
     '<tr><td>Работы, доставка и услуги</td><td>'+money(z.service)+'</td></tr>'+
     '<tr><td><b>СТОИМОСТЬ до моржи</b></td><td><b>'+money(z.cost)+'</b></td></tr>'+
     '<tr><td>МОРЖА — 80%</td><td>'+money(z.margin)+'</td></tr>'+
