@@ -2,7 +2,7 @@
 (() => {
  'use strict';
  const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- let estimates=[],orders=[],measurements=[],estimateCatalog=[],active=null,items=[],costLines=[],costLinesLoadError=false,wardrobePreviewImage='';
+ let estimates=[],orders=[],measurements=[],estimateCatalog=[],active=null,items=[],costLines=[],costLinesLoadError=false,catalogLoadError=false,wardrobePreviewImage='';
  const SHEET_AREA=5.796;
  const css=document.createElement('style');css.textContent=`
  #calc .c-toolbar{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}
@@ -29,11 +29,11 @@
   <div class="c-toolbar"><button type="button" class="btn" id="cAddItem">＋ Добавить деталь</button></div><h3>Прайс и деталировка по разделам</h3><div class="small">Выбери позицию из выпадающего списка. Цена и единица измерения подставятся из твоей таблицы.</div><div id="cCostSections"></div>
   <div class="c-grid">
   <label class="wide">Примечание<textarea name="notes"></textarea></label></div>
-  <div id="cSummary" class="c-summary"></div><div class="actions"><button type="button" class="btn" id="cCancel">Отмена</button><button class="btn primary">Сохранить просчёт</button></div></form></div></div><div class="c-catalog-modal" id="cCatalogModal" role="dialog" aria-modal="true" aria-labelledby="cCatalogTitle"><div class="c-catalog-card"><div class="head"><h3 id="cCatalogTitle">Новая позиция прайса</h3><button type="button" class="btn" id="cCatalogClose">✕</button></div><form id="cCatalogForm"><label>Раздел<select id="cCatalogCategory" required></select></label><label>Группа<input id="cCatalogSubgroup" maxlength="120" placeholder="Например, направляющие"></label><label>Наименование<input id="cCatalogName" maxlength="200" required placeholder="Введите название позиции"></label><label>Единица измерения<select id="cCatalogUnit" required><option value="шт">шт</option><option value="лист">лист</option><option value="м">м</option><option value="м²">м²</option><option value="компл">компл</option><option value="упак">упак</option><option value="кг">кг</option><option value="услуга">услуга</option></select></label><label>Цена, ₽<input id="cCatalogPrice" type="number" min="0" step="100" value="0" required></label><label>Поставщик<input id="cCatalogSupplier" maxlength="160" placeholder="Необязательно"></label><div id="cCatalogError" class="error" style="display:none"></div><div class="c-catalog-actions"><button type="button" class="btn" id="cCatalogCancel">Отмена</button><button type="submit" class="btn primary" id="cCatalogSave">Создать позицию</button></div></form></div></div>`;
+  <div id="cSummary" class="c-summary"></div><div class="actions"><button type="button" class="btn" id="cCancel">Отмена</button><button class="btn primary">Сохранить просчёт</button></div></form></div></div><div class="c-catalog-modal" id="cCatalogModal" role="dialog" aria-modal="true" aria-labelledby="cCatalogTitle"><div class="c-catalog-card"><div class="head"><h3 id="cCatalogTitle">Новая позиция прайса</h3><button type="button" class="btn" id="cCatalogClose">✕</button></div><form id="cCatalogForm"><label>Раздел<select id="cCatalogCategory" required></select></label><label>Группа<input id="cCatalogSubgroup" maxlength="120" placeholder="Например, направляющие"></label><label>Наименование<input id="cCatalogName" maxlength="200" required placeholder="Введите название позиции"></label><label>Единица измерения<select id="cCatalogUnit" required><option value="шт">шт</option><option value="лист">лист</option><option value="м">м</option><option value="м²">м²</option><option value="компл">компл</option><option value="упак">упак</option><option value="кг">кг</option><option value="услуга">услуга</option></select></label><label>Цена, ₽<input id="cCatalogPrice" type="number" min="0" step="100" value="0" required></label><label>Поставщик<input id="cCatalogSupplier" maxlength="160" placeholder="Необязательно"></label><div id="cCatalogError" class="error" style="display:none"></div><div class="c-catalog-actions"><button type="button" class="btn" id="cCatalogCancel">Отмена</button><button type="submit" class="btn primary" id="cCatalogSave">Создать позицию</button></div></form><div class="c-catalog-existing"><h4>Существующие позиции прайса</h4><div id="cCatalogExistingList" class="small"></div></div></div></div>`;
   $('cNew').type='button';$('cWardrobe').type='button';$('cNew').onclick=()=>open();$('cWardrobe').onclick=()=>{if(!active){$('cForm').reset();items=[blank()];costLines=[];fillSelects();$('cForm').elements.status.value='Черновик';$('cNo').textContent='НОВЫЙ ПРОСЧЁТ';$('cModal').classList.remove('open');}if(typeof window.openWardrobeBuilder==='function'){window.openWardrobeBuilder();}else{window.dispatchEvent(new CustomEvent('crm:open-wardrobe-builder'));}};$('cClose').onclick=close;$('cPrint').onclick=printEstimate;$('cCancel').onclick=close;$('cModal').onclick=e=>{if(e.target.id==='cModal')close()};
   $('cSearch').oninput=render;$('cRefresh').onclick=load;$('cAddItem').onclick=()=>{const x=blank();if($('cDefaultMaterial')?.value)setMaterial(x,$('cDefaultMaterial').value);if($('cDefaultEdge')?.value)setEdge(x,$('cDefaultEdge').value);items.push(x);drawItems()};
   $('cForm').onsubmit=save;$('cForm').oninput=summary;
-  $('cCatalogClose').onclick=closeCatalogModal;$('cCatalogCancel').onclick=closeCatalogModal;$('cCatalogModal').onclick=e=>{if(e.target.id==='cCatalogModal')closeCatalogModal()};$('cCatalogForm').onsubmit=createCatalogPosition;
+  $('cCatalogClose').onclick=closeCatalogModal;$('cCatalogCancel').onclick=closeCatalogModal;$('cCatalogModal').onclick=e=>{if(e.target.id==='cCatalogModal')closeCatalogModal()};$('cCatalogForm').onsubmit=createCatalogPosition;$('cCatalogCategory').onchange=renderCatalogExistingList;$('cCatalogExistingList').onclick=handleCatalogExistingAction;
  }
  let commonMaterialPrice=0,commonFacadePrice=0,commonHdfPrice=0,commonEdgePrice=0;
  const blank=()=>({item_name:nextDetailName('Боковина'),material:'',catalog_item_id:'',material_price_sheet:commonMaterialPrice,edge_catalog_item_id:'',edge_name:'',edge_price_per_m:commonEdgePrice,edge_sides:{top:true,right:true,bottom:true,left:true},edge_m:0,width_mm:0,height_mm:0,quantity:1,supplier_id:'',supplier_name:'',supplier_discount_percent:0});
@@ -201,7 +201,7 @@
  async function load(){
   const [a,b,c,g]=await Promise.all([db.from('furniture_estimates').select('*').order('created_at',{ascending:false}),db.from('furniture_orders').select('id,order_no,title,client_name').order('created_at',{ascending:false}),db.from('furniture_measurements').select('id,client_name,room_name,measured_at').order('created_at',{ascending:false}),db.from('furniture_estimate_catalog').select('id,category,subgroup,item_name,unit,source_price,supplier_name,is_active,updated_at').eq('is_active',true).order('category').order('subgroup').order('item_name')]);
   if(a.error){$('cRows').innerHTML='<div class="error">Ошибка загрузки: '+esc(a.error.message)+'. Проверьте SQL-миграцию.</div>';return}
-  estimates=a.data||[];orders=b.data||[];measurements=c.data||[];estimateCatalog=g.error?[]:(g.data||[]);if(g.error)console.warn('Каталог пользовательской таблицы не загружен. Выполните supabase-estimate-user-catalog.sql:',g.error.message);render();
+  estimates=a.data||[];orders=b.data||[];measurements=c.data||[];catalogLoadError=!!g.error;estimateCatalog=g.error?[]:(g.data||[]);if(g.error)console.warn('Каталог пользовательской таблицы не загружен. Выполните supabase-estimate-user-catalog.sql:',g.error.message);render();
  }
  function render(){
   const q=($('cSearch')?.value||'').toLocaleLowerCase('ru');const list=estimates.filter(x=>[x.client_name,x.title,x.estimate_no].join(' ').toLocaleLowerCase('ru').includes(q));
@@ -229,7 +229,29 @@
   catalogModalCategory=category;
   const select=$('cCatalogCategory');
   select.innerHTML=costCategories.filter(x=>x!=='Работы и доставка').map(x=>'<option value="'+esc(x)+'" '+(x===category?'selected':'')+'>'+esc(x)+'</option>').join('');
-  $('cCatalogSubgroup').value='';$('cCatalogName').value='';$('cCatalogUnit').value=category==='Материалы'?'лист':category==='Облицовка и фасады'?'м²':'шт';$('cCatalogPrice').value='0';$('cCatalogSupplier').value='';$('cCatalogError').style.display='none';$('cCatalogError').textContent='';$('cCatalogModal').classList.add('open');$('cCatalogName').focus();
+  $('cCatalogSubgroup').value='';$('cCatalogName').value='';$('cCatalogUnit').value=category==='Материалы'?'лист':category==='Облицовка и фасады'?'м²':'шт';$('cCatalogPrice').value='0';$('cCatalogSupplier').value='';$('cCatalogError').style.display='none';$('cCatalogError').textContent='';$('cCatalogModal').classList.add('open');renderCatalogExistingList();$('cCatalogName').focus();
+ }
+ function renderCatalogExistingList(){
+  const host=$('cCatalogExistingList');if(!host)return;
+  const category=$('cCatalogCategory')?.value||catalogModalCategory;
+  const rows=estimateCatalog.filter(p=>p.is_active&&p.category===category).sort((a,b)=>String(a.subgroup||'').localeCompare(String(b.subgroup||''),'ru')||String(a.item_name||'').localeCompare(String(b.item_name||''),'ru'));
+  if(catalogLoadError){host.innerHTML='<div class="error">Не удалось загрузить старый прайс из базы. Выполните SQL-файл supabase-estimate-user-catalog.sql в Supabase.</div>';return;}
+  host.innerHTML=rows.length?rows.map(p=>'<div class="c-catalog-existing-row" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)"><div style="min-width:0"><b>'+esc(p.item_name)+'</b><div class="small">'+esc(p.subgroup||category)+' · '+esc(p.unit)+' · '+money(p.source_price)+'</div></div><div style="display:flex;gap:6px;flex-shrink:0"><button type="button" class="btn" data-catalog-add="'+esc(p.id)+'">Добавить</button><button type="button" class="btn danger" data-catalog-delete="'+esc(p.id)+'" title="Убрать из общего прайса">Удалить</button></div></div>').join(''):'<div class="small">В этом разделе пока нет сохранённых позиций. Проверьте загрузку старого прайса.</div>';
+ }
+ async function handleCatalogExistingAction(e){
+  const add=e.target.closest('[data-catalog-add]'),del=e.target.closest('[data-catalog-delete]');
+  if(add){const p=estimateCatalog.find(x=>x.id===add.dataset.catalogAdd);if(!p)return;costLines.push({...blankCost(),category:p.category,catalog_item_id:p.id,item_name:p.item_name,unit:p.unit||'шт',unit_price:Number(p.source_price||0),source_unit_price:Number(p.source_price||0),supplier_name:p.supplier_name||''});drawCosts();summary();return;}
+  if(del){
+   const p=estimateCatalog.find(x=>x.id===del.dataset.catalogDelete);if(!p)return;
+   if(!confirm('Удалить «'+p.item_name+'» из общего прайса? Уже сохранённые сметы сохранят свою копию позиции.'))return;
+   del.disabled=true;
+   try{
+    const result=await db.from('furniture_estimate_catalog').update({is_active:false,updated_at:new Date().toISOString()}).eq('id',p.id).select('id').single();
+    if(result.error)throw result.error;
+    estimateCatalog=estimateCatalog.filter(x=>x.id!==p.id);renderCatalogExistingList();drawCosts();summary();
+   }catch(err){alert('Не удалось удалить позицию из прайса: '+(err?.message||'ошибка базы данных'));}
+   finally{del.disabled=false;}
+  }
  }
  function closeCatalogModal(){$('cCatalogModal')?.classList.remove('open');}
  async function createCatalogPosition(e){
@@ -243,7 +265,7 @@
    const payload={category,subgroup,item_name:name,unit,source_price:price,supplier_name:supplier||'Пользовательская позиция',is_active:true};
    const result=await db.from('furniture_estimate_catalog').insert(payload).select('id,category,subgroup,item_name,unit,source_price,supplier_name,is_active,updated_at').single();
    if(result.error)throw result.error;
-   const p=result.data;estimateCatalog.push(p);
+   const p=result.data;estimateCatalog.push(p);renderCatalogExistingList();
    const line={...blankCost(),category:p.category,catalog_item_id:p.id,item_name:p.item_name,unit:p.unit,unit_price:Number(p.source_price||0),source_unit_price:Number(p.source_price||0),supplier_name:p.supplier_name||''};
    costLines.push(line);closeCatalogModal();drawCosts();summary();
   }catch(err){error.textContent='Не удалось создать позицию: '+(err?.message||'ошибка базы данных');error.style.display='block';}
