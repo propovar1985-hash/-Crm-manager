@@ -485,6 +485,9 @@ try {
     if(result.error){const msg=result.error.message||String(result.error);alert(msg.toLowerCase().includes('permission denied')?'Supabase запрещает удаление заказа. Выполните SQL из файла supabase-fix-order-delete-permissions.sql в Supabase → SQL Editor, затем повторите удаление.\n\nТехническая ошибка: '+msg:'Не удалось удалить заказ: '+msg);return;}
     orders=orders.filter(o=>o.id!==id);
     render();
+    // Сразу обновляем источник заказов в воронке, чтобы удалённая карточка исчезла и там.
+    if(typeof loadPipelineOrders==='function'){await loadPipelineOrders();if(typeof renderDeals==='function')renderDeals();}
+    else if(typeof window.loadDeals==='function'){await window.loadDeals();}
   }
   async function save(e) {
     e.preventDefault();
@@ -842,6 +845,9 @@ window.__fullOrdersModuleEmbedded=true;
     if(result.error){const msg=result.error.message||String(result.error);alert(msg.toLowerCase().includes('permission denied')?'Supabase запрещает удаление заказа. Выполните SQL из файла supabase-fix-order-delete-permissions.sql в Supabase → SQL Editor, затем повторите удаление.\n\nТехническая ошибка: '+msg:'Не удалось удалить заказ: '+msg);return;}
     orders=orders.filter(o=>o.id!==id);
     render();
+    // Сразу обновляем источник заказов в воронке, чтобы удалённая карточка исчезла и там.
+    if(typeof loadPipelineOrders==='function'){await loadPipelineOrders();if(typeof renderDeals==='function')renderDeals();}
+    else if(typeof window.loadDeals==='function'){await window.loadDeals();}
   }
   async function save(e) {
     e.preventDefault();
