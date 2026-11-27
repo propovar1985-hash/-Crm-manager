@@ -71,20 +71,19 @@
    <div class="c-total"><span class="small">Материалы и комплектующие по прайсу</span><b>${money(x.categoriesBase)}</b></div>
    <div class="c-total"><span class="small">Работа на производстве (100% от раздела «Материалы»)</span><b>${money(x.production)}</b></div>
    <div class="c-total"><span class="small">Работы, доставка и услуги</span><b>${money(x.service)}</b></div>
-   <div class="c-total"><span class="small">Работы и доставка из прайса</span><b>${money(x.assembly)}</b></div>
    <div class="c-total"><span class="small">Моржа (80%)</span><b>${money(x.margin)}</b></div>
    <div class="c-total"><span class="small">Комиссия менеджера (5%)</span><b>${money(x.managerCommission)}</b></div>
    <div class="c-total"><span class="small">ИТОГОВАЯ СТОИМОСТЬ</span><b>${money(x.total)}</b></div>
    <div class="small wide">Итог по формулам основного листа Excel: сумма разделов + производство (100% материалов) + работы и доставка; моржа 80% от этой суммы; комиссия менеджера 5% от суммы с моржой. Дополнительные проценты и скидки не применяются.</div>`;
  }
  function drawItems(){
-  $('cItemRows').innerHTML=items.map((x,i)=>\`<tr>
-  <td><select data-i="\${i}" data-k="item_name">\${['Боковина','Полка','Перегородка','Дно','Крышка','Цоколь','Фасад','Дверь','Задняя стенка','Планка','Деталь ящика','Другое'].map(n=>'<option '+(n===x.item_name?'selected':'')+'>'+esc(n)+'</option>').join('')}</select></td>
-  <td><select data-i="\${i}" data-k="catalog_item_id">\${catalogOptions('Материалы',x.catalog_item_id,'лист')}</select><small>\${esc(x.material||'Материал не выбран')}</small></td>
-  <td><input data-i="\${i}" data-k="width_mm" type="number" min="0" value="\${x.width_mm}"></td>
-  <td><input data-i="\${i}" data-k="height_mm" type="number" min="0" value="\${x.height_mm}"></td>
-  <td><input data-i="\${i}" data-k="quantity" type="number" min="1" value="\${x.quantity}"></td>
-  <td><button type="button" class="btn danger" data-del="\${i}">×</button></td></tr>\`).join('')||'<tr><td colspan="6" class="empty">Добавьте детали изделия.</td></tr>';
+  $('cItemRows').innerHTML=items.map((x,i)=>`<tr>
+  <td><select data-i="${i}" data-k="item_name">${['Боковина','Полка','Перегородка','Дно','Крышка','Цоколь','Фасад','Дверь','Задняя стенка','Планка','Деталь ящика','Другое'].map(n=>'<option '+(n===x.item_name?'selected':'')+'>'+esc(n)+'</option>').join('')}</select></td>
+  <td><select data-i="${i}" data-k="catalog_item_id">${catalogOptions('Материалы',x.catalog_item_id,'лист')}</select><small>${esc(x.material||'Материал не выбран')}</small></td>
+  <td><input data-i="${i}" data-k="width_mm" type="number" min="0" value="${x.width_mm}"></td>
+  <td><input data-i="${i}" data-k="height_mm" type="number" min="0" value="${x.height_mm}"></td>
+  <td><input data-i="${i}" data-k="quantity" type="number" min="1" value="${x.quantity}"></td>
+  <td><button type="button" class="btn danger" data-del="${i}">×</button></td></tr>`).join('')||'<tr><td colspan="6" class="empty">Добавьте детали изделия.</td></tr>';
   $('cItemRows').querySelectorAll('[data-i]').forEach(el=>{el.onchange=()=>{const x=items[Number(el.dataset.i)],k=el.dataset.k;if(k==='catalog_item_id')applyEstimateCatalog(x,el.value,'material');else x[k]=k==='item_name'?el.value:Number(el.value);drawItems();summary()};el.oninput=()=>{const x=items[Number(el.dataset.i)],k=el.dataset.k;if(k!=='catalog_item_id'&&k!=='item_name')x[k]=Number(el.value);summary()}});
   $('cItemRows').querySelectorAll('[data-del]').forEach(el=>el.onclick=()=>{items.splice(Number(el.dataset.del),1);drawItems();summary()});summary();
  }
