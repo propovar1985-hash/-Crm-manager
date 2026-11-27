@@ -66,9 +66,11 @@
    if(!p&&!hdf)return;
    if(!hdf&&p?.unit!=='лист')return;
    if(isFacade&&!(p?.category==='Материалы'&&/ЛДСП/i.test(String(p?.item_name||''))))return;
-   const key=p?.id||it.catalog_item_id||String(it.material||'ХДФ'),price=Number(it.material_price_sheet||p?.source_price||0),groupKey=key+'|'+price;
+   const key=p?.id||it.catalog_item_id||String(it.material||'ХДФ'),price=Number(it.material_price_sheet||p?.source_price||0),groupKey=key;
+   // Цена отдельной детали не должна разделять один и тот же листовой материал на разные карты раскроя.
    if(!groups.has(groupKey))groups.set(groupKey,{name:p?.item_name||it.material||'ХДФ',price,parts:[],oversized:[]});
-   for(let n=0;n<Math.max(1,Number(it.quantity||1));n++)groups.get(groupKey).parts.push({w:Number(it.width_mm)+kerf,h:Number(it.height_mm)+kerf,label:it.item_name});
+   const group=groups.get(groupKey);group.price=Math.max(group.price,price);
+   for(let n=0;n<Math.max(1,Number(it.quantity||1));n++)group.parts.push({w:Number(it.width_mm)+kerf,h:Number(it.height_mm)+kerf,label:it.item_name});
   });
   const result=[];
   for(const [id,g] of groups){
