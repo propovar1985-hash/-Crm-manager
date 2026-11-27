@@ -183,6 +183,70 @@ input,select,textarea{padding:10px 11px;border:1px solid #d6deea;border-radius:8
  .top-right .btn{flex:0 0 auto!important;padding:5px 8px!important;min-height:28px!important;font-size:11px!important}
 }
 
+
+/* Sales pipeline visual refresh: compact header, clear colored stages, subtle motion */
+#leads>.head{align-items:center;margin-bottom:10px}
+#leads>.head h1{font-size:23px;margin:0}
+#leads>.head .muted{font-size:12px;margin-top:2px}
+#leads>.head>div:last-child .btn{padding:7px 10px;font-size:12px}
+#leads>.panel:has(#dealSearch){padding:9px 12px;margin-bottom:9px}
+#leads .tools{margin:0 0 5px}
+#leads #dealSearch{max-width:100%;padding:8px 10px;font-size:13px}
+#leads #dealSummary{font-size:11px;line-height:1.35}
+#leads .pipeline-order-source{padding:10px 12px;margin-top:9px!important}
+#leads .pipeline-order-source>b{font-size:13px}
+#leads .pipeline-order-source>.small{font-size:11px;margin:3px 0 7px!important}
+#leads .pipeline{gap:10px;margin-top:10px}
+#leads .stage{
+ position:relative;isolation:isolate;border-width:1px;border-radius:13px;padding:9px;
+ transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;
+ animation:pipelineStageIn .42s both;
+}
+#leads .stage:nth-child(2){animation-delay:.035s}#leads .stage:nth-child(3){animation-delay:.07s}
+#leads .stage:nth-child(4){animation-delay:.105s}#leads .stage:nth-child(5){animation-delay:.14s}
+#leads .stage:nth-child(6){animation-delay:.175s}#leads .stage:nth-child(7){animation-delay:.21s}
+#leads .stage:nth-child(8){animation-delay:.245s}#leads .stage:nth-child(9){animation-delay:.28s}
+#leads .stage-head{font-size:13px;padding:2px 3px 7px;align-items:center}
+#leads .stage-head span:last-child{background:#ffffffb8;border-radius:20px;min-width:23px;text-align:center;padding:2px 6px;font-size:11px}
+#leads .deal,#leads .pipeline-order-card{
+ transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+ animation:pipelineCardIn .28s ease both;
+}
+#leads .deal:hover,#leads .pipeline-order-card:hover{transform:translateY(-2px);box-shadow:0 7px 18px #172b4d18;border-color:#9aafca}
+#leads .pipeline-order-card{min-width:0;max-width:100%;width:100%;padding:9px 10px;cursor:grab}
+#leads .pipeline-order-card:active{cursor:grabbing}
+#leads .pipeline-order-card b,#leads .deal-title{font-size:13px}
+#leads .pipeline-order-card .small,#leads .deal-meta{font-size:11px;line-height:1.35}
+#leads .deal{padding:10px;margin:6px 0}
+#leads .deal-controls{margin-top:7px}
+#leads .stage.drop-target{outline:2px dashed #315f9f;outline-offset:-4px;filter:saturate(1.25);box-shadow:inset 0 0 0 999px #ffffff25}
+#leads .pipeline-order-card.dragging,#leads .deal.dragging{opacity:.42;transform:scale(.97)}
+@keyframes pipelineStageIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pipelineCardIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:680px){
+ #leads>.head{gap:6px;align-items:center}
+ #leads>.head h1{font-size:19px}
+ #leads>.head .muted{display:none}
+ #leads>.head>div:last-child{gap:5px!important}
+ #leads>.head>div:last-child .btn{font-size:10px!important;padding:6px 8px!important;min-height:29px}
+ #leads>.panel:has(#dealSearch){padding:7px 9px;margin-bottom:7px}
+ #leads .tools{margin-bottom:3px}
+ #leads #dealSearch{font-size:12px;padding:7px 9px}
+ #leads #dealSummary{font-size:10px;line-height:1.25}
+ #leads .pipeline-order-source{padding:8px 9px;margin-top:7px!important}
+ #leads .pipeline-order-source>.small{display:none}
+ #leads .pipeline-order-pool{gap:6px}
+ #leads .pipeline{grid-template-columns:repeat(auto-fit,minmax(min(205px,82vw),1fr));gap:8px;margin-top:8px}
+ #leads .stage{padding:8px;min-height:120px}
+ #leads .stage-head{font-size:12px;padding-bottom:5px}
+ #leads .pipeline-order-card{padding:8px}
+ #leads .pipeline-order-card .small,#leads .deal-meta{font-size:10px}
+ #leads .deal{padding:8px}
+}
+@media(prefers-reduced-motion:reduce){
+ #leads .stage,#leads .deal,#leads .pipeline-order-card{animation:none!important;transition:none!important}
+}
+
 </style>
 <link rel="stylesheet" href="./crm-ui.css?v=responsive-001">
 </head>
