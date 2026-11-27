@@ -39,7 +39,7 @@
  const detailTypes=['Боковина','Полка','Перегородка','Дно','Крышка','Цоколь','Фасад','Дверь','Задняя стенка','Планка','Деталь ящика','Другое'];
  function detailBase(name){const v=String(name||'');return detailTypes.find(t=>v===t||v.startsWith(t+' '))||v||'Деталь'}
  function nextDetailName(base,skip=-1){return base+' '+(items.filter((x,i)=>i!==skip&&detailBase(x.item_name)===base).length+1)}
- function isFacadeItem(x){return /^(Фасад|Дверь)(\\s|$)/.test(String(x?.item_name||''))}
+ function isFacadeItem(x){return /^(Фасад|Дверь)(\s|$)/.test(String(x?.item_name||''))}
  function materialOptions(selected=''){return '<option value="">Выбрать листовой материал…</option>'+estimateCatalog.filter(p=>p.is_active&&p.category==='Материалы'&&p.unit==='лист').map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selected?'selected':'')+'>'+esc(p.item_name)+' · '+money(p.source_price)+'/лист</option>').join('')}
  const excelFacades=[['ФАСАДЫ КРАШЕНЫЕ ОТ:',16000,'м²'],['ФАСАДЫ ПВХ ПЛЕНКА ОТ:',7500,'шт'],['ФАСАЫ FENIX',20000,'шт'],['ФАСАДЫ AGT СУПРАМАТ ОТ:',0,'шт'],['ШПОН',30000,'м²'],['КРОМКА AGT СУПРАМАТ ОТ:',120,'м'],['ФАСАДЫ АЛЮМИНИЕВЫЕ СТЕКЛО ОТ:',16000,'м²'],['СТОЛЕШНИЦА 3000 ММ КЕДР',5350,'шт'],['КРОМКА СТОЛЕШНИЦЫ КЕДР 3М',1000,'м'],['СТЕНОВАЯ ПАНЕЛЬ КЕДР 3000ММ',1600,'шт'],['ДВЕРИ КУПЕ',200,'шт'],['ЗЕРКАЛО',0,'шт']].map((x,i)=>({id:'excel-facade-'+i,category:'Облицовка и фасады',subgroup:'Облицовка',item_name:x[0],source_price:x[1],unit:x[2],is_active:true,excelFallback:true}));
  function facadeAreaPricing(p){const n=String(p?.item_name||'').toLocaleUpperCase('ru');return /КРАШЕН|ПВХ|FENIX|ШПОН|АЛЮМИНИЕВЫЕ.*СТЕКЛО|СТЕКЛО/.test(n)}
