@@ -78,12 +78,14 @@
    <div class="small wide">Расчёт повторяет итоговые формулы исходного Excel: производство = стоимость раздела «Материалы»; сборка = 10% от базы производства; моржа = 80% от себестоимости; комиссия = 5% от базы производства. Проценты поверх этих формул не добавляются.</div>`;
  }
  function drawItems(){
-  $('cItemRows').innerHTML=items.map((x,i)=>`<tr>
-  <td><input data-i="${i}" data-k="item_name" value="${esc(x.item_name)}" placeholder="Боковина"></td>
-  <td><select data-i="${i}" data-k="catalog_item_id">${catalogOptions('Материалы',x.catalog_item_id,'лист')}</select><small>${esc(x.material||'Материал не выбран')}</small></td>
-  <td><select data-i="${i}" data-k="supplier_id">${supplierOptions(x.supplier_id)}</select><small>${esc(x.supplier_name||'Поставщик не выбран')} · ${Number(x.supplier_discount_percent||0)}% скидка</small></td>
-  <td><input data-i="${i}" data-k="width_mm" type="number" min="0" value="${x.width_mm}"></td><td><input data-i="${i}" data-k="height_mm" type="number" min="0" value="${x.height_mm}"></td><td><input data-i="${i}" data-k="quantity" type="number" min="1" value="${x.quantity}"></td><td><input data-i="${i}" data-k="edge_m" type="number" min="0" step=".01" value="${x.edge_m}"></td><td><input data-i="${i}" data-k="source_material_price_m2" type="number" min="0" step=".01" value="${x.source_material_price_m2??x.material_price_m2??0}"><small>К расчёту: ${money(Number(x.source_material_price_m2??x.material_price_m2??0))}</small></td><td><button type="button" class="btn danger" data-del="${i}">×</button></td></tr>`).join('')||'<tr><td colspan="8" class="empty">Добавьте детали для расчёта.</td></tr>';
-  $('cItemRows').querySelectorAll('[data-i]').forEach(el=>{el.onchange=()=>{const x=items[Number(el.dataset.i)],k=el.dataset.k;if(k==='catalog_item_id')applyEstimateCatalog(x,el.value,'material');else if(k==='supplier_id')setMaterialSupplier(x,el.value);else if(k==='material'||k==='item_name')x[k]=el.value;drawItems();summary()};el.oninput=()=>{const x=items[Number(el.dataset.i)],k=el.dataset.k;if(k==='source_material_price_m2'){x.source_material_price_m2=Number(el.value);x.material_price_m2=x.source_material_price_m2*(1-Number(x.supplier_discount_percent||0)/100)}else if(k==='material'||k==='item_name')x[k]=el.value;else x[k]=Number(el.value);summary()}});
+  $('cItemRows').innerHTML=items.map((x,i)=>\`<tr>
+  <td><select data-i="\${i}" data-k="item_name">\${['Боковина','Полка','Перегородка','Дно','Крышка','Цоколь','Фасад','Дверь','Задняя стенка','Планка','Деталь ящика','Другое'].map(n=>'<option '+(n===x.item_name?'selected':'')+'>'+esc(n)+'</option>').join('')}</select></td>
+  <td><select data-i="\${i}" data-k="catalog_item_id">\${catalogOptions('Материалы',x.catalog_item_id,'лист')}</select><small>\${esc(x.material||'Материал не выбран')}</small></td>
+  <td><input data-i="\${i}" data-k="width_mm" type="number" min="0" value="\${x.width_mm}"></td>
+  <td><input data-i="\${i}" data-k="height_mm" type="number" min="0" value="\${x.height_mm}"></td>
+  <td><input data-i="\${i}" data-k="quantity" type="number" min="1" value="\${x.quantity}"></td>
+  <td><button type="button" class="btn danger" data-del="\${i}">×</button></td></tr>\`).join('')||'<tr><td colspan="6" class="empty">Добавьте детали изделия.</td></tr>';
+  $('cItemRows').querySelectorAll('[data-i]').forEach(el=>{el.onchange=()=>{const x=items[Number(el.dataset.i)],k=el.dataset.k;if(k==='catalog_item_id')applyEstimateCatalog(x,el.value,'material');else x[k]=k==='item_name'?el.value:Number(el.value);drawItems();summary()};el.oninput=()=>{const x=items[Number(el.dataset.i)],k=el.dataset.k;if(k!=='catalog_item_id'&&k!=='item_name')x[k]=Number(el.value);summary()}});
   $('cItemRows').querySelectorAll('[data-del]').forEach(el=>el.onclick=()=>{items.splice(Number(el.dataset.del),1);drawItems();summary()});summary();
  }
  async function load(){
@@ -141,7 +143,7 @@
   e.preventDefault();if(!items.length&&!costLines.length){alert('Добавьте хотя бы одну деталь или позицию сметы.');return}
   const activeItems=items.filter(x=>x.item_name.trim()||Number(x.width_mm)>0||Number(x.height_mm)>0);if(activeItems.some(x=>!x.item_name.trim()||Number(x.width_mm)<=0||Number(x.height_mm)<=0||Number(x.quantity)<1)){alert('Заполните название, размеры и количество каждой добавленной детали.');return}
   const f=Object.fromEntries(new FormData(e.target));const {data:{user}}=await db.auth.getUser();
-  const row={client_name:f.client_name.trim(),title:f.title.trim(),order_id:f.order_id||null,measurement_id:f.measurement_id||null,status:f.status,markup_percent:0,sheet_length_mm:Number(f.sheet_length_mm||2800),sheet_width_mm:Number(f.sheet_width_mm||2070),fittings_cost:0,labor_cost:0,other_cost:0,notes:f.notes||null,updated_at:new Date().toISOString()};
+  const row={client_name:f.client_name.trim(),title:f.title.trim(),order_id:f.order_id||null,measurement_id:f.measurement_id||null,status:f.status,sheet_length_mm:Number(f.sheet_length_mm||2800),sheet_width_mm:Number(f.sheet_width_mm||2070),fittings_cost:0,labor_cost:0,other_cost:0,notes:f.notes||null,updated_at:new Date().toISOString()};
   const result=active?await db.from('furniture_estimates').update(row).eq('id',active).select().single():await db.from('furniture_estimates').insert({...row,created_by:user?.id||null}).select().single();
   if(result.error){alert('Не удалось сохранить просчёт: '+result.error.message);return}
   const id=result.data.id;const del=await db.from('furniture_estimate_items').delete().eq('estimate_id',id);
@@ -155,7 +157,7 @@
   if(lineInsert.error){alert('Просчёт сохранён, но позиции сметы не записались: '+lineInsert.error.message);return}
   await load();close();alert('Просчёт сохранён.');
  }
- window.addEventListener('crm:wardrobe-generated',e=>{const d=e.detail||{};if(!Array.isArray(d.items))return;active=null;items=d.append?items.concat(d.items):d.items;costLines=d.append?costLines:[];if(!d.append)markupSettings=defaultMarkupSettings();$('cForm').elements.id.value='';if(!d.append){$('cForm').reset();$('cForm').elements.id.value='';fillSelects();$('cForm').elements.status.value='Черновик';$('cForm').elements.markup_percent.value=0;}renderMarkupSettings();drawItems();if(d.title&&$('cForm')?.elements.title)$('cForm').elements.title.value=d.title;summary();$('cModal').classList.add('open');});
+ window.addEventListener('crm:wardrobe-generated',e=>{const d=e.detail||{};if(!Array.isArray(d.items))return;active=null;items=d.append?items.concat(d.items):d.items;costLines=d.append?costLines:[];if(!d.append)$('cForm').elements.id.value='';if(!d.append){$('cForm').reset();$('cForm').elements.id.value='';fillSelects();$('cForm').elements.status.value='Черновик';$('cForm').elements.markup_percent.value=0;}renderMarkupSettings();drawItems();if(d.title&&$('cForm')?.elements.title)$('cForm').elements.title.value=d.title;summary();$('cModal').classList.add('open');});
  function init(){
   if(!window.__crmAuthenticated||typeof db==='undefined'||!$('calc'))return;
   if(!window.__calcUI){ensure();window.__calcUI=true}
