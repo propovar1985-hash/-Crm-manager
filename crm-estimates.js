@@ -69,8 +69,8 @@
    if(!hdf&&p?.unit!=='лист')return;
    if(isFacade&&!(p?.category==='Материалы'&&/ЛДСП/i.test(String(p?.item_name||''))))return;
    const materialName=p?.item_name||it.material||'ХДФ';
-   const normalize=s=>String(s||'').normalize('NFKC').toLocaleUpperCase('ru').replace(/Ё/g,'Е').replace(/\\s+/g,' ').trim();
-   const thickness=(String(materialName)+' '+String(it.material||'')).match(/(?:^|\\D)(\\d{1,2})\\s*мм\\b/i)?.[1]||'';
+   const normalize=s=>String(s||'').normalize('NFKC').toLocaleUpperCase('ru').replace(/Ё/g,'Е').replace(/\s+/g,' ').trim();
+   const thickness=(String(materialName)+' '+String(it.material||'')).match(/(?:^|\D)(\\d{1,2})\s*мм\\b/i)?.[1]||'';
    const groupKey=normalize(materialName)+'|'+thickness;
    const price=Number(it.material_price_sheet||p?.source_price||0);
    if(!groups.has(groupKey))groups.set(groupKey,{name:materialName,price,parts:[],oversized:[]});
