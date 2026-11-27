@@ -10,7 +10,7 @@ const pass = (message) => console.log(`OK: ${message}`);
 const html = fs.readFileSync('index.html', 'utf8');
 const scriptTags = [...html.matchAll(/<script\b[^>]*src=["']([^"']+)["'][^>]*>/gi)];
 for (const [, src] of scriptTags) {
-  if (/^(https?:)?\/\//i.test(src) || src.startsWith('data:')) continue;
+  if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('//') || src.startsWith('data:')) continue;
   const clean = src.split('?')[0].split('#')[0];
   const target = path.resolve(clean);
   if (!fs.existsSync(target)) fail(`index.html references missing local script: ${src}`);
