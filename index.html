@@ -583,6 +583,37 @@ try {
     .order-section textarea{min-height:80px}
     .order-event{padding:10px 0;border-bottom:1px solid var(--line)}
     @media(max-width:600px){.order-drawer-panel{padding:15px}.order-section{grid-template-columns:1fr}.order-section .wide{grid-column:auto}}
+
+/* Keep order form actions visible on mobile and desktop while scrolling long tabs */
+.order-drawer-panel{
+ display:flex!important;flex-direction:column!important;
+ height:100dvh!important;max-height:100dvh!important;min-height:0!important;
+ overflow:hidden!important;
+}
+.order-drawer-head,.order-tabs{flex:0 0 auto!important}
+#orderForm{
+ display:flex!important;flex:1 1 auto!important;flex-direction:column!important;
+ min-height:0!important;overflow:hidden!important;
+}
+#orderTabBody{
+ flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;
+ overscroll-behavior:contain;padding:2px 2px 14px;
+}
+#orderForm>.actions{
+ flex:0 0 auto!important;position:relative!important;z-index:5;
+ display:flex!important;justify-content:flex-end!important;gap:10px!important;
+ padding:12px 0 max(12px,env(safe-area-inset-bottom))!important;
+ margin:0!important;background:#fff!important;
+ border-top:1px solid #e3e8ef!important;
+ box-shadow:0 -5px 14px #1522380a;
+}
+#orderForm>.actions button{min-height:44px!important}
+@media(max-width:600px){
+ .order-drawer-panel{height:100dvh!important;padding:12px!important}
+ #orderForm>.actions{padding:10px 0 max(12px,env(safe-area-inset-bottom))!important}
+ #orderForm>.actions button{flex:1 1 0!important}
+}
+
   `;
   document.head.appendChild(style);
 
@@ -689,7 +720,7 @@ try {
       <div class="order-drawer" id="orderDrawer"><div class="order-drawer-panel">
         <div class="order-drawer-head"><div><div class="small" id="orderNumber">НОВЫЙ ЗАКАЗ</div><h2 id="orderTitle">Карточка заказа</h2></div><button class="btn" id="orderClose">Закрыть ✕</button></div>
         <div class="order-tabs"><button class="btn" data-otab="main">Основное</button><button class="btn" data-otab="project">Замеры и проект</button><button class="btn" data-otab="materials">Материалы</button><button class="btn" data-otab="production">Производство</button><button class="btn" data-otab="history">История</button></div>
-        <form id="orderForm"><input type="hidden" name="id"><div id="orderTabBody"></div><div class="actions"><button type="button" class="btn" id="orderCancel">Отмена</button><button class="btn primary">Сохранить заказ</button></div></form>
+        <form id="orderForm"><input type="hidden" name="id"><div id="orderTabBody"></div><div class="actions"><button type="button" class="btn" id="orderCancel">Отмена</button><button type="submit" class="btn primary">Сохранить заказ</button></div></form>
       </div></div>`;
     $('orderNew').addEventListener('click', () => openDrawer());
     $('orderClose').addEventListener('click', closeDrawer);
