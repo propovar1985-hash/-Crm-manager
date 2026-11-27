@@ -26,10 +26,10 @@
       <label class="field">Окончание<input name="end_time" type="time"></label>
       <label class="field wide">Связанный клиент / заказ<input name="related_label" placeholder="Например, Кухня — Иванов"></label>
       <label class="field wide">Описание<textarea name="description" rows="3"></textarea></label>
-      </div><div class="actions"><button type="button" class="btn" id="calCancel">Отмена</button><button class="btn primary">Сохранить</button></div><p class="small" id="calError"></p></form></div></div>`;
+      </div><div class="actions"><button type="button" class="btn danger" id="calDelete" style="display:none;margin-right:auto">Удалить</button><button type="button" class="btn" id="calCancel">Отмена</button><button class="btn primary">Сохранить</button></div><p class="small" id="calError"></p></form></div></div>`;
     $('calPrev').onclick=()=>shift(-1);$('calNext').onclick=()=>shift(1);$('calToday').onclick=()=>{cursor=new Date();cursor.setDate(1);render();};
     $('calMode').onchange=e=>{mode=e.target.value;render();};$('calStaff').onchange=render;$('calType').onchange=render;
-    $('calAdd').onclick=()=>openForm(dateKey(new Date()));$('calCancel').onclick=closeForm;
+    $('calAdd').onclick=()=>openForm(dateKey(new Date()));$('calCancel').onclick=closeForm;$('calDelete').onclick=deleteEvent;
     $('calForm').onsubmit=saveEvent;
   }
   function shift(n){if(mode==='month')cursor.setMonth(cursor.getMonth()+n);else if(mode==='week')cursor.setDate(cursor.getDate()+7*n);else cursor.setDate(cursor.getDate()+n);render();}
@@ -87,9 +87,16 @@
   }
   function weekStart(d){return addDays(dayStart(d),-((d.getDay()+6)%7));}
   function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x;}
-  function openForm(date,id){editing=id||null;$('calForm').reset();const f=$('calForm').elements;f.id.value=id||'';f.start_date.value=date||dateKey(new Date());$('calModalTitle').textContent=id?'Изменить событие':'Новое событие';$('calError').textContent='';$('calModal').classList.add('open');}
+  function openForm(date,id){editing=id||null;$('calForm').reset();const f=$('calForm').elements;f.id.value=id||'';f.start_date.value=date||dateKey(new Date());$('calModalTitle').textContent=id?'Изменить событие':'Новое событие';$('calDelete').style.display=id?'inline-flex':'none';$('calError').textContent='';$('calModal').classList.add('open');}
   function openEvent(e){if(e.source!=='manual'){alert('Это событие автоматически получено из '+(e.source==='deal'?'сделки':'заказа')+'. Измените дату в карточке соответствующей '+(e.source==='deal'?'сделки.':'заказа.'));return;}openForm(e.start_at.slice(0,10),e.id);const f=$('calForm').elements;f.title.value=e.title||'';f.event_type.value=e.event_type||'Задача';f.assigned_to.value=e.assigned_to||'';f.start_time.value=e.start_at&&e.start_at.includes('T')?e.start_at.slice(11,16):'';f.end_time.value=e.end_at&&e.end_at.includes('T')?e.end_at.slice(11,16):'';f.related_label.value=e.related_label||'';f.description.value=e.description||'';}
   function closeForm(){$('calModal').classList.remove('open');}
+  async function deleteEvent(){
+    const id=$('calForm').elements.id.value;
+    if(!id)return;
+    const {error}=await db.from('crm_calendar_events').delete().eq('id',id);
+    if(error){$('calError').textContent='Не удалось удалить событие: '+error.message;return;}
+    closeForm();await load();
+  }
   async function saveEvent(e){
     e.preventDefault();const f=Object.fromEntries(new FormData(e.currentTarget));const start=f.start_date+(f.start_time?'T'+f.start_time+':00':'T00:00:00');const end=f.end_time?f.start_date+'T'+f.end_time+':00':null;
     const {data:{user}}=await db.auth.getUser();
