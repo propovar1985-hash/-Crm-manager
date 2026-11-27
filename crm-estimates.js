@@ -25,7 +25,7 @@
   <label>Статус<select name="status"><option>Черновик</option><option>На согласовании</option><option>Согласован</option><option>Архив</option></select></label>
   
   
-  </div><h3>Детали изделия</h3><div class="c-grid" style="margin:10px 0"><label>Материал корпуса для всех деталей<select id="cDefaultMaterial"></select></label><label>Материал фасадов<select id="cDefaultFacade"></select></label><label>Кромка для всех деталей<select id="cDefaultEdge"></select></label><label>Пропил, мм<input id="cKerf" type="number" min="0" step="0.1" value="4"></label></div><div class="small">Материал корпуса автоматически назначается всем деталям, кроме фасадов. Для фасадов действует отдельный общий выбор. Выбранная кромка применяется ко всем четырём сторонам каждой детали.</div><div class="scroll"><table class="c-items"><thead><tr><th>Деталь</th><th>Ширина, мм</th><th>Высота, мм</th><th>Кол-во</th><th></th></tr></thead><tbody id="cItemRows"></tbody></table></div><div id="cCuttingSummary" class="panel" style="margin-top:10px"></div>
+  </div><h3>Детали изделия</h3><div class="c-grid" style="margin:10px 0"><label>Материал корпуса для всех деталей<select id="cDefaultMaterial"></select></label><label>Материал фасадов<select id="cDefaultFacade"></select></label><label>Кромка для всех деталей<select id="cDefaultEdge"></select></label><label>Формат листа ЛДСП<select id="cSheetFormat"><option value="2800x2070">2800 × 2070 мм</option><option value="2750x1830">2750 × 1830 мм</option></select></label></div><div class="small">Материал корпуса автоматически назначается всем деталям, кроме фасадов. Для фасадов действует отдельный общий выбор. Выбранная кромка применяется ко всем четырём сторонам каждой детали.</div><div class="scroll"><table class="c-items"><thead><tr><th>Деталь</th><th>Ширина, мм</th><th>Высота, мм</th><th>Кол-во</th><th></th></tr></thead><tbody id="cItemRows"></tbody></table></div><div id="cCuttingSummary" class="panel" style="margin-top:10px"></div>
   <div class="c-toolbar"><button type="button" class="btn" id="cAddItem">＋ Добавить деталь</button></div><h3>Прайс и деталировка по разделам</h3><div class="small">Выбери позицию из выпадающего списка. Цена и единица измерения подставятся из твоей таблицы.</div><div id="cCostSections"></div>
   <div class="c-grid">
   <label class="wide">Примечание<textarea name="notes"></textarea></label></div>
@@ -34,8 +34,12 @@
   $('cSearch').oninput=render;$('cRefresh').onclick=load;$('cAddItem').onclick=()=>{const x=blank();if($('cDefaultMaterial')?.value)setMaterial(x,$('cDefaultMaterial').value);if($('cDefaultEdge')?.value)setEdge(x,$('cDefaultEdge').value);items.push(x);drawItems()};
   $('cForm').onsubmit=save;$('cForm').oninput=summary;
  }
- const blank=()=>({item_name:'Боковина',material:'',catalog_item_id:'',material_price_sheet:0,edge_catalog_item_id:'',edge_name:'',edge_price_per_m:0,edge_sides:{top:true,right:true,bottom:true,left:true},edge_m:0,width_mm:0,height_mm:0,quantity:1,supplier_id:'',supplier_name:'',supplier_discount_percent:0});
+ const blank=()=>({item_name:nextDetailName('Боковина'),material:'',catalog_item_id:'',material_price_sheet:0,edge_catalog_item_id:'',edge_name:'',edge_price_per_m:0,edge_sides:{top:true,right:true,bottom:true,left:true},edge_m:0,width_mm:0,height_mm:0,quantity:1,supplier_id:'',supplier_name:'',supplier_discount_percent:0});
  function selectedCatalog(id){return estimateCatalog.find(p=>p.id===id)||excelHardware.find(p=>p.id===id)||excelFacades.find(p=>p.id===id)||null}
+ const detailTypes=['Боковина','Полка','Перегородка','Дно','Крышка','Цоколь','Фасад','Дверь','Задняя стенка','Планка','Деталь ящика','Другое'];
+ function detailBase(name){const v=String(name||'');return detailTypes.find(t=>v===t||v.startsWith(t+' '))||v||'Деталь'}
+ function nextDetailName(base,skip=-1){return base+' '+(items.filter((x,i)=>i!==skip&&detailBase(x.item_name)===base).length+1)}
+ function isFacadeItem(x){return /^(Фасад|Дверь)(\\s|$)/.test(String(x?.item_name||''))}
  function materialOptions(selected=''){return '<option value="">Выбрать листовой материал…</option>'+estimateCatalog.filter(p=>p.is_active&&p.category==='Материалы'&&p.unit==='лист').map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selected?'selected':'')+'>'+esc(p.item_name)+' · '+money(p.source_price)+'/лист</option>').join('')}
  const excelFacades=[['ФАСАДЫ КРАШЕНЫЕ ОТ:',16000,'м²'],['ФАСАДЫ ПВХ ПЛЕНКА ОТ:',7500,'шт'],['ФАСАЫ FENIX',20000,'шт'],['ФАСАДЫ AGT СУПРАМАТ ОТ:',0,'шт'],['ШПОН',30000,'м²'],['КРОМКА AGT СУПРАМАТ ОТ:',120,'м'],['ФАСАДЫ АЛЮМИНИЕВЫЕ СТЕКЛО ОТ:',16000,'м²'],['СТОЛЕШНИЦА 3000 ММ КЕДР',5350,'шт'],['КРОМКА СТОЛЕШНИЦЫ КЕДР 3М',1000,'м'],['СТЕНОВАЯ ПАНЕЛЬ КЕДР 3000ММ',1600,'шт'],['ДВЕРИ КУПЕ',200,'шт'],['ЗЕРКАЛО',0,'шт']].map((x,i)=>({id:'excel-facade-'+i,category:'Облицовка и фасады',subgroup:'Облицовка',item_name:x[0],source_price:x[1],unit:x[2],is_active:true,excelFallback:true}));
  function facadeAreaPricing(p){const n=String(p?.item_name||'').toLocaleUpperCase('ru');return /КРАШЕН|ПВХ|FENIX|ШПОН|АЛЮМИНИЕВЫЕ.*СТЕКЛО|СТЕКЛО/.test(n)}
@@ -46,10 +50,10 @@
  function setEdge(item,id){const p=selectedCatalog(id);item.edge_catalog_item_id=p?.id||'';item.edge_name=p?.item_name||'';item.edge_price_per_m=Number(p?.source_price||0);item.edge_sides={top:true,right:true,bottom:true,left:true};item.edge_m=calcEdgeLength(item)}
  function calcEdgeLength(item){const w=Number(item.width_mm||0),h=Number(item.height_mm||0),s=item.edge_sides||{};return ((s.top?w:0)+(s.bottom?w:0)+(s.left?h:0)+(s.right?h:0))*Number(item.quantity||0)/1000}
  function cuttingPlan(){
-  const kerf=Math.max(0,Number($('cKerf')?.value||4)),W=2800,H=2070,groups=new Map();
+  const kerf=3,format=$('cSheetFormat')?.value||'2800x2070',[W,H]=format.split('x').map(Number),groups=new Map();
   items.filter(x=>{const p=selectedCatalog(x.catalog_item_id);if(!(Number(x.width_mm)>0&&Number(x.height_mm)>0&&p&&p.unit==='лист'))return false;const isFacade=['Фасад','Дверь'].includes(String(x.item_name||''));return !isFacade||(p.category==='Материалы'&&/ЛДСП/i.test(String(p.item_name||'')));}).forEach((it,index)=>{
-   const key=it.catalog_item_id,p=selectedCatalog(key);if(!groups.has(key))groups.set(key,{name:p?.item_name||it.material||'Материал',price:Number(p?.source_price||it.material_price_sheet||0),parts:[]});
-   for(let n=0;n<Math.max(1,Number(it.quantity||1));n++)groups.get(key).parts.push({w:Number(it.width_mm)+kerf,h:Number(it.height_mm)+kerf,label:it.item_name+' '+(index+1)});
+   const key=it.catalog_item_id,p=selectedCatalog(key),price=Number(it.material_price_sheet||p?.source_price||0),groupKey=key+'|'+price;if(!groups.has(groupKey))groups.set(groupKey,{name:p?.item_name||it.material||'Материал',price,parts:[]});
+   for(let n=0;n<Math.max(1,Number(it.quantity||1));n++)groups.get(groupKey).parts.push({w:Number(it.width_mm)+kerf,h:Number(it.height_mm)+kerf,label:it.item_name});
   });
   const result=[];
   for(const [id,g] of groups){
@@ -70,7 +74,7 @@
   const plans=cuttingPlan();let sheetsCost=0,edgeMeters=0,edgeCost=0;
   plans.forEach(p=>sheetsCost+=p.count*p.price);
   items.forEach(x=>{const m=calcEdgeLength(x);x.edge_m=m;edgeMeters+=m;edgeCost+=m*Number(x.edge_price_per_m||0)});
-  const facadeCost=items.reduce((sum,it)=>{const p=selectedCatalog(it.catalog_item_id);if(!p||p.category!=='Облицовка и фасады')return sum;const qty=Number(it.quantity||0);const amount=facadeAreaPricing(p)?(Number(it.width_mm||0)*Number(it.height_mm||0)/1000000*qty):(p.unit==='м²'?(Number(it.width_mm||0)*Number(it.height_mm||0)/1000000*qty):qty);return sum+amount*Number(p.source_price||0)},0);
+  const facadeCost=items.reduce((sum,it)=>{const p=selectedCatalog(it.catalog_item_id);if(!p||p.category!=='Облицовка и фасады')return sum;const qty=Number(it.quantity||0);const amount=facadeAreaPricing(p)?(Number(it.width_mm||0)*Number(it.height_mm||0)/1000000*qty):(p.unit==='м²'?(Number(it.width_mm||0)*Number(it.height_mm||0)/1000000*qty):qty);return sum+amount*Number(it.material_price_sheet||p.source_price||0)},0);
   return {plans,sheetsCost,edgeMeters,edgeCost,facadeCost,total:sheetsCost+edgeCost+facadeCost};
  }
  const costCategories=['Материалы','Облицовка и фасады','Фурнитура','Шкафы-купе','Лицевая фурнитура','Крепёж','Свет','Комплектующие','Работы и доставка'];
@@ -128,7 +132,7 @@
  }
  function drawItems(){
    const defaults=$('cDefaultMaterial'),facades=$('cDefaultFacade'),defaultEdge=$('cDefaultEdge');
-   const facadeItem=x=>['Фасад','Дверь'].includes(String(x.item_name||''));
+   const facadeItem=isFacadeItem;
    if(defaults){const current=defaults.value;defaults.innerHTML=materialOptions(current);defaults.onchange=()=>{items.forEach(x=>{if(!facadeItem(x))setMaterial(x,defaults.value)});drawItems()}}
    if(facades){const current=facades.value;facades.innerHTML=facadeOptions(current);facades.onchange=()=>{items.forEach(x=>{if(facadeItem(x))setMaterial(x,facades.value)});drawItems()}}
    if(defaultEdge){const current=defaultEdge.value;defaultEdge.innerHTML=edgeOptions(current);defaultEdge.onchange=()=>{items.forEach(x=>setEdge(x,defaultEdge.value));drawItems()}}
@@ -192,7 +196,7 @@
      '<td>'+money(amount)+'</td>'+
      '<td>'+(isService?'':'<button type="button" class="btn danger" data-cdel="'+x._i+'">×</button>')+'</td></tr>';
    }).join('');
-   return '<section class="panel" style="padding:12px;margin:10px 0"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><b>'+esc((ci+1)+'. '+category)+'</b>'+(isService?'<span class="small">Все услуги раскрыты отдельно</span>':'<button type="button" class="btn" data-add-category="'+esc(category)+'">＋ Добавить позицию</button>')+'</div>'+
+   return '<section class="panel" style="padding:12px;margin:10px 0"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><b>'+esc((ci+1)+'. '+category)+'</b>'+(isService?'<span class="small">Раздел всегда открыт — все строки видны</span>':'<button type="button" class="btn" data-add-category="'+esc(category)+'">＋ Добавить позицию</button>')+'</div>'+
     (rows.length?'<div class="scroll"><table class="c-items"><thead><tr><th>Наименование</th><th>Ед.</th><th>Количество</th><th>Цена, ₽</th><th>Сумма, ₽</th><th></th></tr></thead><tbody>'+htmlRows+'</tbody></table></div>':'<div class="small" style="padding:10px 0">Пока нет позиций</div>')+'</section>';
   }).join('');
   host.querySelectorAll('[data-add-category]').forEach(el=>el.onclick=()=>{costLines.push({...blankCost(),category:el.dataset.addCategory});drawCosts()});
