@@ -25,7 +25,7 @@
   <label>Статус<select name="status"><option>Черновик</option><option>На согласовании</option><option>Согласован</option><option>Архив</option></select></label>
   
   
-  </div><h3>Детали изделия</h3><div class="c-grid" style="margin:10px 0"><label>Материал по умолчанию<select id="cDefaultMaterial"></select></label><label>Кромка по умолчанию<select id="cDefaultEdge"></select></label><label>Пропил, мм<input id="cKerf" type="number" min="0" step="0.1" value="4"></label></div><div class="small">Общий материал назначается деталям. Для отдельной детали можно изменить материал и кромку. Стороны кромления отмечаются отдельно.</div><div class="scroll"><table class="c-items"><thead><tr><th>Деталь</th><th>Материал</th><th>Кромка</th><th>Стороны</th><th>Ширина, мм</th><th>Высота, мм</th><th>Кол-во</th><th></th></tr></thead><tbody id="cItemRows"></tbody></table></div><div id="cCuttingSummary" class="panel" style="margin-top:10px"></div>
+  </div><h3>Детали изделия</h3><div class="c-grid" style="margin:10px 0"><label>Материал корпуса для всех деталей<select id="cDefaultMaterial"></select></label><label>Материал фасадов<select id="cDefaultFacade"></select></label><label>Кромка для всех деталей<select id="cDefaultEdge"></select></label><label>Пропил, мм<input id="cKerf" type="number" min="0" step="0.1" value="4"></label></div><div class="small">Материал корпуса автоматически назначается всем деталям, кроме фасадов. Для фасадов действует отдельный общий выбор. Выбранная кромка применяется ко всем четырём сторонам каждой детали.</div><div class="scroll"><table class="c-items"><thead><tr><th>Деталь</th><th>Ширина, мм</th><th>Высота, мм</th><th>Кол-во</th><th></th></tr></thead><tbody id="cItemRows"></tbody></table></div><div id="cCuttingSummary" class="panel" style="margin-top:10px"></div>
   <div class="c-toolbar"><button type="button" class="btn" id="cAddItem">＋ Добавить деталь</button></div><h3>Прайс и деталировка по разделам</h3><div class="small">Выбери позицию из выпадающего списка. Цена и единица измерения подставятся из твоей таблицы.</div><div id="cCostSections"></div>
   <div class="c-grid">
   <label class="wide">Примечание<textarea name="notes"></textarea></label></div>
@@ -34,12 +34,12 @@
   $('cSearch').oninput=render;$('cRefresh').onclick=load;$('cAddItem').onclick=()=>{const x=blank();if($('cDefaultMaterial')?.value)setMaterial(x,$('cDefaultMaterial').value);if($('cDefaultEdge')?.value)setEdge(x,$('cDefaultEdge').value);items.push(x);drawItems()};
   $('cForm').onsubmit=save;$('cForm').oninput=summary;
  }
- const blank=()=>({item_name:'Боковина',material:'',catalog_item_id:'',material_price_sheet:0,edge_catalog_item_id:'',edge_name:'',edge_price_per_m:0,edge_sides:{top:false,right:false,bottom:false,left:false},edge_m:0,width_mm:0,height_mm:0,quantity:1,supplier_id:'',supplier_name:'',supplier_discount_percent:0});
+ const blank=()=>({item_name:'Боковина',material:'',catalog_item_id:'',material_price_sheet:0,edge_catalog_item_id:'',edge_name:'',edge_price_per_m:0,edge_sides:{top:true,right:true,bottom:true,left:true},edge_m:0,width_mm:0,height_mm:0,quantity:1,supplier_id:'',supplier_name:'',supplier_discount_percent:0});
  function selectedCatalog(id){return estimateCatalog.find(p=>p.id===id)||null}
  function materialOptions(selected=''){return '<option value="">Выбрать листовой материал…</option>'+estimateCatalog.filter(p=>p.is_active&&p.category==='Материалы'&&p.unit==='лист').map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selected?'selected':'')+'>'+esc(p.item_name)+' · '+money(p.source_price)+'/лист</option>').join('')}
  function edgeOptions(selected=''){return '<option value="">Без кромки</option>'+estimateCatalog.filter(p=>p.is_active&&p.category==='Материалы'&&p.unit==='м'&&p.item_name.toLocaleUpperCase('ru').includes('КРОМКА')).map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selected?'selected':'')+'>'+esc(p.item_name)+' · '+money(p.source_price)+'/м</option>').join('')}
  function setMaterial(item,id){const p=selectedCatalog(id);item.catalog_item_id=p?.id||'';item.material=p?.item_name||'';item.material_price_sheet=Number(p?.source_price||0);item.source_material_price_m2=item.material_price_sheet;item.material_price_m2=item.material_price_sheet}
- function setEdge(item,id){const p=selectedCatalog(id);item.edge_catalog_item_id=p?.id||'';item.edge_name=p?.item_name||'';item.edge_price_per_m=Number(p?.source_price||0);item.edge_m=calcEdgeLength(item)}
+ function setEdge(item,id){const p=selectedCatalog(id);item.edge_catalog_item_id=p?.id||'';item.edge_name=p?.item_name||'';item.edge_price_per_m=Number(p?.source_price||0);item.edge_sides={top:true,right:true,bottom:true,left:true};item.edge_m=calcEdgeLength(item)}
  function calcEdgeLength(item){const w=Number(item.width_mm||0),h=Number(item.height_mm||0),s=item.edge_sides||{};return ((s.top?w:0)+(s.bottom?w:0)+(s.left?h:0)+(s.right?h:0))*Number(item.quantity||0)/1000}
  function cuttingPlan(){
   const kerf=Math.max(0,Number($('cKerf')?.value||4)),W=2800,H=2070,groups=new Map();
@@ -106,24 +106,24 @@
    <div class="small wide">Итог по формулам основного листа Excel: сумма разделов + производство (100% материалов) + работы и доставка; моржа 80% от этой суммы; комиссия менеджера 5% от суммы с моржой. Дополнительные проценты и скидки не применяются.</div>`;
  }
  function drawItems(){
-  const defaults=$('cDefaultMaterial'),defaultEdge=$('cDefaultEdge');
-  if(defaults){const current=defaults.value;defaults.innerHTML=materialOptions(current);defaults.onchange=()=>{items.forEach(x=>{if(!x.material_override)setMaterial(x,defaults.value)});drawItems()}}
-  if(defaultEdge){const current=defaultEdge.value;defaultEdge.innerHTML=edgeOptions(current);defaultEdge.onchange=()=>{items.forEach(x=>{if(!x.edge_override)setEdge(x,defaultEdge.value)});drawItems()}}
-  const sides=['top','right','bottom','left'],labels={top:'В',right:'П',bottom:'Н',left:'Л'};
-  $('cItemRows').innerHTML=items.map((x,i)=>'<tr><td><select data-i="'+i+'" data-k="item_name">'+['Боковина','Полка','Перегородка','Дно','Крышка','Цоколь','Фасад','Дверь','Задняя стенка','Планка','Деталь ящика','Другое'].map(n=>'<option '+(n===x.item_name?'selected':'')+'>'+esc(n)+'</option>').join('')+'</select></td>'+
-   '<td><select data-i="'+i+'" data-k="catalog_item_id">'+materialOptions(x.catalog_item_id)+'</select></td><td><select data-i="'+i+'" data-k="edge_catalog_item_id">'+edgeOptions(x.edge_catalog_item_id)+'</select></td>'+
-   '<td>'+sides.map(k=>'<label style="display:inline-flex;gap:2px;align-items:center;margin-right:3px"><input type="checkbox" data-i="'+i+'" data-side="'+k+'" '+(x.edge_sides?.[k]?'checked':'')+'>'+labels[k]+'</label>').join('')+'</td>'+
-   '<td><input data-i="'+i+'" data-k="width_mm" type="number" min="0" value="'+Number(x.width_mm||0)+'"></td><td><input data-i="'+i+'" data-k="height_mm" type="number" min="0" value="'+Number(x.height_mm||0)+'"></td><td><input data-i="'+i+'" data-k="quantity" type="number" min="1" value="'+Number(x.quantity||1)+'"></td><td><button type="button" class="btn danger" data-del="'+i+'">×</button></td></tr>').join('')||'<tr><td colspan="8" class="empty">Добавьте детали изделия.</td></tr>';
-  $('cItemRows').querySelectorAll('[data-i]').forEach(el=>{
-   if(el.dataset.side){el.onchange=()=>{const x=items[Number(el.dataset.i)];x.edge_sides=x.edge_sides||{};x.edge_sides[el.dataset.side]=el.checked;x.edge_m=calcEdgeLength(x);summary();renderCuttingSummary()};return}
-   el.onchange=()=>{const x=items[Number(el.dataset.i)],k=el.dataset.k;if(k==='catalog_item_id'){setMaterial(x,el.value);x.material_override=true}else if(k==='edge_catalog_item_id'){setEdge(x,el.value);x.edge_override=true}else if(k==='item_name')x[k]=el.value;else x[k]=Number(el.value);drawItems()};
-   el.oninput=()=>{const x=items[Number(el.dataset.i)],k=el.dataset.k;if(['width_mm','height_mm','quantity'].includes(k)){x[k]=Number(el.value);summary();renderCuttingSummary()}};
-  });
-  $('cItemRows').querySelectorAll('[data-del]').forEach(el=>el.onclick=()=>{items.splice(Number(el.dataset.del),1);drawItems()});
-  if($('cKerf'))$('cKerf').oninput=()=>{renderCuttingSummary();summary()};
-  renderCuttingSummary();summary();
- }
- function renderCuttingSummary(){
+   const defaults=$('cDefaultMaterial'),facades=$('cDefaultFacade'),defaultEdge=$('cDefaultEdge');
+   const facadeItem=x=>['Фасад','Дверь'].includes(String(x.item_name||''));
+   if(defaults){const current=defaults.value;defaults.innerHTML=materialOptions(current);defaults.onchange=()=>{items.forEach(x=>{if(!facadeItem(x))setMaterial(x,defaults.value)});drawItems()}}
+   if(facades){const current=facades.value;facades.innerHTML=materialOptions(current);facades.onchange=()=>{items.forEach(x=>{if(facadeItem(x))setMaterial(x,facades.value)});drawItems()}}
+   if(defaultEdge){const current=defaultEdge.value;defaultEdge.innerHTML=edgeOptions(current);defaultEdge.onchange=()=>{items.forEach(x=>setEdge(x,defaultEdge.value));drawItems()}}
+   $('cItemRows').innerHTML=items.map((x,i)=>'<tr><td><select data-i="'+i+'" data-k="item_name">'+['Боковина','Полка','Перегородка','Дно','Крышка','Цоколь','Фасад','Дверь','Задняя стенка','Планка','Деталь ящика','Другое'].map(n=>'<option '+(n===x.item_name?'selected':'')+'>'+esc(n)+'</option>').join('')+'</select></td>'+
+    '<td><input data-i="'+i+'" data-k="width_mm" type="number" min="0" value="'+Number(x.width_mm||0)+'"></td><td><input data-i="'+i+'" data-k="height_mm" type="number" min="0" value="'+Number(x.height_mm||0)+'"></td><td><input data-i="'+i+'" data-k="quantity" type="number" min="1" value="'+Number(x.quantity||1)+'"></td><td><button type="button" class="btn danger" data-del="'+i+'">×</button></td></tr>').join('')||'<tr><td colspan="5" class="empty">Добавьте детали изделия.</td></tr>';
+   $('cItemRows').querySelectorAll('[data-i]').forEach(el=>{
+    el.onchange=()=>{const x=items[Number(el.dataset.i)],k=el.dataset.k;
+     if(k==='item_name'){const wasFacade=facadeItem(x);x[k]=el.value;const nowFacade=facadeItem(x);if(wasFacade!==nowFacade){const id=nowFacade?facades?.value:defaults?.value;if(id)setMaterial(x,id)}}
+     else x[k]=Number(el.value);drawItems()};
+    el.oninput=()=>{const x=items[Number(el.dataset.i)],k=el.dataset.k;if(['width_mm','height_mm','quantity'].includes(k)){x[k]=Number(el.value);summary();renderCuttingSummary()}};
+   });
+   $('cItemRows').querySelectorAll('[data-del]').forEach(el=>el.onclick=()=>{items.splice(Number(el.dataset.del),1);drawItems()});
+   if($('cKerf'))$('cKerf').oninput=()=>{renderCuttingSummary();summary()};
+   renderCuttingSummary();summary();
+  }
+  function renderCuttingSummary(){
   const host=$('cCuttingSummary');if(!host)return;const c=calculateDetailCosts();
   host.innerHTML='<b>Раскрой и кромка</b><div class="small">Лист 2800 × 2070 мм · пропил '+Number($('cKerf')?.value||4)+' мм · поворот деталей на 90° разрешён.</div>'+
    (c.plans.length?c.plans.map(p=>'<div style="padding:8px 0;border-bottom:1px solid var(--line)"><b>'+esc(p.name)+': '+p.count+' лист. × '+money(p.price)+' = '+money(p.count*p.price)+'</b>'+p.sheets.map((parts,si)=>'<div class="small" style="margin-top:8px">Лист '+(si+1)+'</div><svg viewBox="0 0 560 414" role="img" aria-label="Карта раскроя '+esc(p.name)+'" style="width:100%;max-width:560px;border:1px solid var(--line);background:#fff">'+parts.map((r,ri)=>'<rect x="'+(r.x/5)+'" y="'+(r.y/5)+'" width="'+(r.w/5)+'" height="'+(r.h/5)+'" fill="#dbeafe" stroke="#315b8a" stroke-width="1"/><text x="'+(r.x/5+3)+'" y="'+(r.y/5+12)+'" font-size="10" fill="#172b4d">'+esc(r.label)+(r.rotated?' ↻':'')+'</text>').join('')+'</svg>').join('')+'</div>').join(''):'<div class="small">Выбери листовой материал у деталей, чтобы рассчитать раскрой.</div>')+
