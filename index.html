@@ -135,7 +135,7 @@ const SUPABASE_URL='https://zxgkodaeynzcprhnymee.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_-vLSsEdL_fmBciXRltuNEg_xcR77onn';
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
 window.crmDb=db;
-const stages=['Просчёт','Договор и оплата','Замер','Проектирование','Согласование','Производство','Монтаж'];
+const stages=['Просчёт','Договор и оплата','Замер','Проектирование','Согласование','Производство','Монтаж','Рекламации'];
 const tabNames={home:'Обзор',clients:'Клиенты',leads:'Воронка продаж',orders:'Заказы',calendar:'Календарь',measure:'Замеры и проекты',calc:'Расчёты',suppliers:'Поставщики',production:'Производство',team:'Сотрудники',settings:'Настройки'};
 let clients=[],deals=[];
 const $=id=>document.getElementById(id);
@@ -270,7 +270,7 @@ try {
   'use strict';
   const $ = id => document.getElementById(id);
   const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const stages = ['Просчёт','Договор и оплата','Замер','Проектирование','Согласование','Производство','Монтаж','Завершено'];
+  const stages = ['Просчёт','Договор и оплата','Замер','Проектирование','Согласование','Производство','Монтаж','Рекламации','Завершено'];
   let orders = [];
   let activeId = null;
 
@@ -620,7 +620,7 @@ window.__fullOrdersModuleEmbedded=true;
   'use strict';
   const $ = id => document.getElementById(id);
   const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const stages = ['Просчёт','Договор и оплата','Замер','Проектирование','Согласование','Производство','Монтаж'];
+  const stages = ['Просчёт','Договор и оплата','Замер','Проектирование','Согласование','Производство','Монтаж','Рекламации'];
   let orders = [];
   let activeId = null;
   const pendingOrderFiles={lidar:[],project:[]};
