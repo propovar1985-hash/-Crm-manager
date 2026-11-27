@@ -38,6 +38,10 @@ if (!studio.includes("materials.body=new THREE.MeshStandardMaterial({map:bodyTex
 else pass('H1715 wood texture is assigned to cabinet body');
 if (!studio.includes("new THREE.TextureLoader().load('assets/H1715-wood.svg")) fail('H1715 wood texture asset is not loaded');
 else pass('H1715 wood texture asset is loaded');
+if (!studio.includes('value="partial">Частично по высоте</option>')) fail('Partial-height facade mode is missing');
+else pass('Partial-height facade mode is available');
+if (!studio.includes('doorBottom:doorBottom')) fail('Partial facade vertical position is not saved');
+else pass('Partial facade vertical position is saved');
 if (!fs.existsSync('assets/H1715-wood.svg')) fail('H1715 wood texture asset is missing');
 else pass('H1715 wood texture asset exists');
 
