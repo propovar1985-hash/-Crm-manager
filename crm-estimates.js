@@ -23,14 +23,14 @@
   <label>Клиент *<input name="client_name" required></label><label>Название изделия *<input name="title" required placeholder="Кухня, шкаф, гардеробная"></label>
   <label>Привязать к заказу<select name="order_id"><option value="">Без привязки</option></select></label><label>Связанный замер<select name="measurement_id"><option value="">Не выбран</option></select></label>
   <label>Статус<select name="status"><option>Черновик</option><option>На согласовании</option><option>Согласован</option><option>Архив</option></select></label>
-  <label>Дополнительная общая наценка, %<input name="markup_percent" type="number" min="0" step="0.1" value="0"></label>
+  
   <label>Длина листа, мм<input name="sheet_length_mm" type="number" min="1" value="2800"></label><label>Ширина листа, мм<input name="sheet_width_mm" type="number" min="1" value="2070"></label>
-  </div><h3>Наценки по разделам</h3><div class="small">Каждый раздел настраивается отдельно. Значения сохраняются вместе с просчётом.</div><div id="cMarkupSettings"></div><h3>Детали</h3><div class="scroll"><table class="c-items"><thead><tr><th>Деталь</th><th>Материал</th><th>Поставщик</th><th>Ширина</th><th>Высота</th><th>Кол-во</th><th>Кромка, м</th><th>Цена м², ₽</th><th></th></tr></thead><tbody id="cItemRows"></tbody></table></div>
-  <div class="c-toolbar"><button type="button" class="btn" id="cAddItem">＋ Добавить деталь</button></div><h3>Позиции расчёта</h3><div class="small">Добавляй расходы по нужным разделам. В каждом разделе — свои позиции и поставщики.</div><div id="cCostSections"></div>
+  </div><h3>Детали изделия</h3><div class="small">Размеры деталей можно заполнить отдельно. Материалы и комплектующие выбираются из прайса ниже.</div><div class="scroll"><table class="c-items"><thead><tr><th>Деталь</th><th>Материал</th><th>Поставщик</th><th>Ширина</th><th>Высота</th><th>Кол-во</th><th>Кромка, м</th><th>Цена м², ₽</th><th></th></tr></thead><tbody id="cItemRows"></tbody></table></div>
+  <div class="c-toolbar"><button type="button" class="btn" id="cAddItem">＋ Добавить деталь</button></div><h3>Прайс и деталировка по разделам</h3><div class="small">Выбери позицию из выпадающего списка. Цена и единица измерения подставятся из твоей таблицы.</div><div id="cCostSections"></div>
   <div class="c-grid">
-  <label>Фурнитура, ₽<input name="fittings_cost" type="number" min="0" step="0.01" value="0"></label><label>Работа, ₽<input name="labor_cost" type="number" min="0" step="0.01" value="0"></label><label>Прочие затраты, ₽<input name="other_cost" type="number" min="0" step="0.01" value="0"></label><label class="wide">Примечание<textarea name="notes"></textarea></label></div>
+  <label class="wide">Примечание<textarea name="notes"></textarea></label></div>
   <div id="cSummary" class="c-summary"></div><div class="actions"><button type="button" class="btn" id="cCancel">Отмена</button><button class="btn primary">Сохранить просчёт</button></div></form></div></div>`;
-  $('cNew').onclick=()=>open();$('cWardrobe').onclick=()=>{if(!active){$('cForm').reset();items=[blank()];costLines=[];fillSelects();$('cForm').elements.status.value='Черновик';$('cForm').elements.markup_percent.value=0;$('cNo').textContent='НОВЫЙ ПРОСЧЁТ';$('cModal').classList.remove('open');}window.dispatchEvent(new CustomEvent('crm:open-wardrobe-builder'));};$('cClose').onclick=close;$('cCancel').onclick=close;$('cModal').onclick=e=>{if(e.target.id==='cModal')close()};
+  $('cNew').onclick=()=>open();$('cWardrobe').onclick=()=>{if(!active){$('cForm').reset();items=[blank()];costLines=[];fillSelects();$('cForm').elements.status.value='Черновик';$('cNo').textContent='НОВЫЙ ПРОСЧЁТ';$('cModal').classList.remove('open');}window.dispatchEvent(new CustomEvent('crm:open-wardrobe-builder'));};$('cClose').onclick=close;$('cCancel').onclick=close;$('cModal').onclick=e=>{if(e.target.id==='cModal')close()};
   $('cSearch').oninput=render;$('cRefresh').onclick=load;$('cAddItem').onclick=()=>{items.push(blank());drawItems()};
   $('cForm').onsubmit=save;$('cForm').oninput=summary;
  }
@@ -48,22 +48,36 @@
  function setCostSupplier(x,id){const p=suppliers.find(v=>v.id===id);x.supplier_id=p?.id||'';x.supplier_name=p?.name||'';x.supplier_discount_percent=Number(p?.discount_percent||0);const base=Number(x.source_unit_price??x.unit_price??0);x.source_unit_price=base;x.unit_price=base*(1-x.supplier_discount_percent/100)}
  function setMaterialSupplier(x,id){const p=suppliers.find(v=>v.id===id);x.supplier_id=p?.id||'';x.supplier_name=p?.name||'';x.supplier_discount_percent=Number(p?.discount_percent||0);x.source_material_price_m2=Number(x.source_material_price_m2??x.material_price_m2??0);x.material_price_m2=x.source_material_price_m2*(1-x.supplier_discount_percent/100)}
  function calc(){
-  const f=$('cForm'),sheet=(Number(f.elements.sheet_length_mm.value||2800)*Number(f.elements.sheet_width_mm.value||2070))/1e6;
-  const byMaterial={},edge=items.reduce((s,x)=>s+Number(x.edge_m||0)*Number(x.quantity||0),0);
-  let area=0,materialsCost=0;
-  items.forEach(x=>{const a=Number(x.width_mm||0)*Number(x.height_mm||0)/1e6*Number(x.quantity||0);area+=a;materialsCost+=a*(Number(x.source_material_price_m2??x.material_price_m2??0)*(1-Number(x.supplier_discount_percent||0)/100));byMaterial[x.material]=(byMaterial[x.material]||0)+a});
-  const sheets=Object.values(byMaterial).reduce((s,a)=>s+(sheet>0?Math.ceil(a/sheet):0),0);
-  const edgeCost=0;
-  const base=materialsCost+edgeCost+Number(f.elements.fittings_cost.value||0)+Number(f.elements.labor_cost.value||0)+Number(f.elements.other_cost.value||0);
-  const lineBase=costLines.reduce((s,x)=>s+Number(x.quantity||0)*Number(x.unit_price||0),0);
-  const lineTotal=costLines.reduce((s,x)=>s+Number(x.quantity||0)*Number(x.unit_price||0)*(1+Number(markupSettings[x.category]||0)/100),0);
-  const materialMarkup=materialsCost*Number(markupSettings['Материалы']||0)/100;
-  const total=(base+materialMarkup+(lineTotal-lineBase))*(1+Number(f.elements.markup_percent.value||0)/100);
-  return {area,edge,materialsCost,sheets,base:base+lineBase,total,lineBase,lineTotal,materialMarkup};
+  const sums=Object.fromEntries(costCategories.map(c=>[c,0]));
+  costLines.forEach(x=>{
+   const amount=Number(x.quantity||0)*Number(x.unit_price||0);
+   if(x.category==='Фурнитура'&&String(x.item_name||'').trim().toLocaleUpperCase('ru').includes('КОМАР'))return;
+   sums[x.category]=(sums[x.category]||0)+amount;
+  });
+  const materials=sums['Материалы']||0;
+  const categoriesBase=(sums['Материалы']||0)+(sums['Облицовка и фасады']||0)+(sums['Фурнитура']||0)+(sums['Шкафы-купе']||0)+(sums['Лицевая фурнитура']||0)+(sums['Крепёж']||0)+(sums['Свет']||0)+(sums['Комплектующие']||0);
+  const production=materials;
+  const assembly=(categoriesBase+production)*0.10;
+  const service=sums['Работы и доставка']||0;
+  const cost=categoriesBase+production+service+assembly;
+  const margin=cost*0.80;
+  const managerCommission=(categoriesBase+production)*0.05;
+  const total=cost+margin+managerCommission;
+  const area=items.reduce((a,x)=>a+Number(x.width_mm||0)*Number(x.height_mm||0)/1e6*Number(x.quantity||0),0);
+  const edge=costLines.filter(x=>String(x.item_name||'').toLocaleUpperCase('ru').includes('КРОМКА')).reduce((a,x)=>a+Number(x.quantity||0),0);
+  return {area,edge,materialsCost:materials,sheets:0,base:cost,total,categoriesBase,production,service,assembly,margin,managerCommission,sums};
  }
  function summary(){
   if(!$('cSummary'))return;const x=calc();
-  $('cSummary').innerHTML=`<div class="c-total"><span class="small">Площадь деталей</span><b>${x.area.toFixed(3)} м²</b></div><div class="c-total"><span class="small">Ориентир по листам*</span><b>${x.sheets}</b></div><div class="c-total"><span class="small">Кромка</span><b>${x.edge.toFixed(2)} м</b></div><div class="c-total"><span class="small">Материалы + наценка раздела</span><b>${money(x.materialsCost+x.materialMarkup)}</b></div><div class="c-total"><span class="small">Себестоимость по введённым затратам</span><b>${money(x.base)}</b></div><div class="c-total"><span class="small">Цена с наценкой</span><b>${money(x.total)}</b></div><div class="small wide">* Площадь суммируется отдельно по каждому материалу. Это предварительная оценка количества листов, не карта раскроя. Кромка показана в метрах; стоимость кромки добавляется после задания тарифа.</div>`;
+  $('cSummary').innerHTML=`
+   <div class="c-total"><span class="small">Материалы и комплектующие по прайсу</span><b>${money(x.categoriesBase)}</b></div>
+   <div class="c-total"><span class="small">Работа на производстве (как в Excel)</span><b>${money(x.production)}</b></div>
+   <div class="c-total"><span class="small">Работы, доставка и услуги</span><b>${money(x.service)}</b></div>
+   <div class="c-total"><span class="small">Сборка на адресе (10%)</span><b>${money(x.assembly)}</b></div>
+   <div class="c-total"><span class="small">Моржа (80%)</span><b>${money(x.margin)}</b></div>
+   <div class="c-total"><span class="small">Комиссия менеджера (5%)</span><b>${money(x.managerCommission)}</b></div>
+   <div class="c-total"><span class="small">ИТОГОВАЯ СТОИМОСТЬ</span><b>${money(x.total)}</b></div>
+   <div class="small wide">Расчёт повторяет итоговые формулы исходного Excel: производство = стоимость раздела «Материалы»; сборка = 10% от базы производства; моржа = 80% от себестоимости; комиссия = 5% от базы производства. Проценты поверх этих формул не добавляются.</div>`;
  }
  function drawItems(){
   $('cItemRows').innerHTML=items.map((x,i)=>`<tr>
@@ -103,13 +117,25 @@
   const host=$('cCostSections');if(!host)return;
   host.innerHTML=costCategories.map((category,ci)=>{
    const rows=costLines.map((x,i)=>({...x,_i:i})).filter(x=>x.category===category);
-   return '<section class="panel" style="padding:12px;margin:10px 0"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><b>'+esc((ci+1)+'. '+category)+'</b><button type="button" class="btn" data-add-category="'+esc(category)+'">＋ Добавить</button></div>'+
-    (rows.length?'<div class="scroll"><table class="c-items"><thead><tr><th>Товар из каталога</th><th>Позиция</th><th>Поставщик</th><th>Ед.</th><th>Кол-во</th><th>Цена источника, ₽</th><th>Наценка раздела</th><th>Сумма, ₽</th><th></th></tr></thead><tbody>'+
-    rows.map(x=>'<tr><td><select data-ci="'+x._i+'" data-ck="catalog_item_id">'+catalogOptions({'Материалы':'Материалы','Облицовка и фасады':'Облицовка и фасады','Фурнитура':'Фурнитура','Шкафы-купе':'Шкафы-купе','Лицевая фурнитура':'Лицевая фурнитура','Крепёж':'Крепёж','Свет':'Свет','Комплектующие':'Комплектующие','Работы и доставка':'Работы и доставка'}[category]||null,x.catalog_item_id)+'</select></td><td><input data-ci="'+x._i+'" data-ck="item_name" value="'+esc(x.item_name)+'" placeholder="Название или артикул"></td><td><select data-ci="'+x._i+'" data-ck="supplier_id">'+supplierOptions(x.supplier_id)+'</select><small>'+Number(x.supplier_discount_percent||0)+'% скидка</small></td><td><input data-ci="'+x._i+'" data-ck="unit" value="'+esc(x.unit)+'" style="width:55px"></td><td><input data-ci="'+x._i+'" data-ck="quantity" type="number" min="0" step=".001" value="'+x.quantity+'"></td><td><input data-ci="'+x._i+'" data-ck="source_unit_price" type="number" min="0" step=".01" value="'+(x.source_unit_price??x.unit_price??0)+'"><small>К расчёту '+money(x.unit_price)+'</small></td><td>'+Number(markupSettings[category]||0).toLocaleString('ru-RU')+'%</td><td>'+money(Number(x.quantity||0)*Number(x.unit_price||0)*(1+Number(markupSettings[category]||0)/100))+'</td><td><button type="button" class="btn danger" data-cdel="'+x._i+'">×</button></td></tr>').join('')+
-    '</tbody></table></div>':'<div class="small" style="padding:10px 0">Пока нет позиций</div>')+'</section>';
+   const htmlRows=rows.map(x=>'<tr>'+
+    '<td><select data-ci="'+x._i+'" data-ck="catalog_item_id">'+catalogOptions(category,x.catalog_item_id)+'</select></td>'+
+    '<td><input data-ci="'+x._i+'" data-ck="unit" value="'+esc(x.unit||'шт')+'" style="width:65px" readonly></td>'+
+    '<td><input data-ci="'+x._i+'" data-ck="quantity" type="number" min="0" step=".001" value="'+Number(x.quantity||0)+'"></td>'+
+    '<td><input data-ci="'+x._i+'" data-ck="source_unit_price" type="number" min="0" step=".01" value="'+Number(x.unit_price??x.source_unit_price??0)+'"></td>'+
+    '<td>'+money(Number(x.quantity||0)*Number(x.unit_price||0))+'</td>'+
+    '<td><button type="button" class="btn danger" data-cdel="'+x._i+'">×</button></td></tr>').join('');
+   return '<section class="panel" style="padding:12px;margin:10px 0"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><b>'+esc((ci+1)+'. '+category)+'</b><button type="button" class="btn" data-add-category="'+esc(category)+'">＋ Добавить позицию</button></div>'+
+    (rows.length?'<div class="scroll"><table class="c-items"><thead><tr><th>Наименование из прайса</th><th>Ед.</th><th>Количество</th><th>Цена, ₽</th><th>Сумма, ₽</th><th></th></tr></thead><tbody>'+htmlRows+'</tbody></table></div>':'<div class="small" style="padding:10px 0">Пока нет позиций</div>')+'</section>';
   }).join('');
   host.querySelectorAll('[data-add-category]').forEach(el=>el.onclick=()=>{costLines.push({...blankCost(),category:el.dataset.addCategory});drawCosts()});
-  host.querySelectorAll('[data-ci]').forEach(el=>el.onchange=()=>{const x=costLines[Number(el.dataset.ci)],k=el.dataset.ck;if(k==='catalog_item_id'){applyEstimateCatalog(x,el.value,'line');drawCosts();summary();return}else if(k==='supplier_product_id'){applyCatalogProduct(x,el.value);drawCosts();summary();return}else if(k==='supplier_id')setCostSupplier(x,el.value);else if(k==='source_unit_price'){x.source_unit_price=Number(el.value);x.unit_price=x.source_unit_price*(1-Number(x.supplier_discount_percent||0)/100)}else x[k]=['item_name','unit'].includes(k)?el.value:Number(el.value);drawCosts();summary()});
+  host.querySelectorAll('[data-ci]').forEach(el=>el.onchange=()=>{
+   const x=costLines[Number(el.dataset.ci)],k=el.dataset.ck;
+   if(k==='catalog_item_id'){applyEstimateCatalog(x,el.value,'line');drawCosts();summary();return;}
+   if(k==='source_unit_price'){x.source_unit_price=Number(el.value);x.unit_price=Number(el.value);}
+   else if(k==='unit')x.unit=el.value;
+   else x.quantity=Number(el.value);
+   drawCosts();summary();
+  });
   host.querySelectorAll('[data-cdel]').forEach(el=>el.onclick=()=>{costLines.splice(Number(el.dataset.cdel),1);drawCosts();summary()});
  }
   function close(){$('cModal').classList.remove('open');active=null}
@@ -117,7 +143,7 @@
   e.preventDefault();if(!items.length&&!costLines.length){alert('Добавьте хотя бы одну деталь или позицию сметы.');return}
   const activeItems=items.filter(x=>x.item_name.trim()||Number(x.width_mm)>0||Number(x.height_mm)>0);if(activeItems.some(x=>!x.item_name.trim()||Number(x.width_mm)<=0||Number(x.height_mm)<=0||Number(x.quantity)<1)){alert('Заполните название, размеры и количество каждой добавленной детали.');return}
   const f=Object.fromEntries(new FormData(e.target));const {data:{user}}=await db.auth.getUser();
-  const row={client_name:f.client_name.trim(),title:f.title.trim(),order_id:f.order_id||null,measurement_id:f.measurement_id||null,status:f.status,markup_percent:Number(f.markup_percent||0),markup_settings:markupSettings,sheet_length_mm:Number(f.sheet_length_mm||2800),sheet_width_mm:Number(f.sheet_width_mm||2070),fittings_cost:Number(f.fittings_cost||0),labor_cost:Number(f.labor_cost||0),other_cost:Number(f.other_cost||0),notes:f.notes||null,updated_at:new Date().toISOString()};
+  const row={client_name:f.client_name.trim(),title:f.title.trim(),order_id:f.order_id||null,measurement_id:f.measurement_id||null,status:f.status,markup_percent:0,markup_settings:{},sheet_length_mm:Number(f.sheet_length_mm||2800),sheet_width_mm:Number(f.sheet_width_mm||2070),fittings_cost:0,labor_cost:0,other_cost:0,notes:f.notes||null,updated_at:new Date().toISOString()};
   const result=active?await db.from('furniture_estimates').update(row).eq('id',active).select().single():await db.from('furniture_estimates').insert({...row,created_by:user?.id||null}).select().single();
   if(result.error){alert('Не удалось сохранить просчёт: '+result.error.message);return}
   const id=result.data.id;const del=await db.from('furniture_estimate_items').delete().eq('estimate_id',id);
@@ -126,7 +152,7 @@
   if(ins.error){alert('Просчёт сохранён, но детали не записались: '+ins.error.message);return}
   const oldLines=await db.from('furniture_estimate_lines').delete().eq('estimate_id',id);
   if(oldLines.error){alert('Просчёт сохранён, но позиции сметы не обновились: '+oldLines.error.message);return}
-  const linePayload=costLines.filter(x=>x.item_name.trim()).map(x=>({...x,catalog_item_id:x.catalog_item_id||null,source_unit_price:Number(x.source_unit_price??x.unit_price??0),unit_price:Number(x.unit_price||0),price_checked_at:x.price_checked_at||null,supplier_product_id:x.supplier_product_id||null,estimate_id:id}));
+  const linePayload=costLines.filter(x=>x.item_name.trim()&&x.catalog_item_id).map(x=>({...x,supplier_id:null,supplier_name:'Таблица пользователя',supplier_discount_percent:0,source_unit_price:Number(x.source_unit_price??x.unit_price??0),unit_price:Number(x.unit_price||0),markup_percent:0,price_checked_at:x.price_checked_at||null,supplier_product_id:null,estimate_id:id}));
   const lineInsert=linePayload.length?await db.from('furniture_estimate_lines').insert(linePayload):{error:null};
   if(lineInsert.error){alert('Просчёт сохранён, но позиции сметы не записались: '+lineInsert.error.message);return}
   await load();close();alert('Просчёт сохранён.');
