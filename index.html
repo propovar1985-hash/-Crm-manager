@@ -1098,6 +1098,7 @@ window.__fullOrdersModuleEmbedded=true;
       if(!saved)return;
       applyOrder(side,saved.root);
       applyOrder(adminItems,saved.admin);
+      side.appendChild(admin); // «Админ» всегда остаётся последним пунктом меню
     }catch(e){console.warn('Не удалось восстановить порядок меню:',e);}
   }
   function clearTargets(){side.classList.remove('nav-drop-target');adminItems.classList.remove('nav-drop-target');side.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('nav-drop-target'));}
