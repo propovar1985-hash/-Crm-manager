@@ -63,6 +63,8 @@ if (estimates.includes('Расчёт по разделу 9 — РАБОТА')) f
 else pass('Automatic section 9 calculation block is removed');
 if (estimates.includes("['СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ (100% ОТ МАТЕРИАЛОВ БЕЗ ФАСАДОВ)'")) fail('Automatic production work row is still added to section 9');
 else pass('Automatic production work row is not added to section 9');
+if (!estimates.includes("costLines=costLines.filter(x=>!String(x.item_name||'').trim().toLocaleUpperCase('ru').startsWith('СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ'))")) fail('Legacy automatic production row is not removed regardless of category or letter case');
+else pass('Legacy automatic production row is removed from every category, case-insensitively');
 if (!estimates.includes('data-ck="service_amount"')) fail('Manual amount input for section 9 is missing');
 else pass('Section 9 has an editable amount field');
 if (!estimates.includes("x.category==='Работы и доставка'?1")) fail('Manual section 9 amounts are not normalized for saving');
