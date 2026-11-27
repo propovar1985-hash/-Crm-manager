@@ -2,7 +2,7 @@
 (() => {
  'use strict';
  const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- let estimates=[],orders=[],measurements=[],suppliers=[],supplierProducts=[],estimateCatalog=[],active=null,items=[],costLines=[];
+ let estimates=[],orders=[],measurements=[],estimateCatalog=[],active=null,items=[],costLines=[];
  const SHEET_AREA=5.796;
  const css=document.createElement('style');css.textContent=`
  #calc .c-toolbar{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}
@@ -37,7 +37,17 @@
  const blank=()=>({item_name:'Боковина',material:'ЛДСП 16 мм',width_mm:0,height_mm:0,quantity:1,edge_m:0,material_price_m2:0,source_material_price_m2:0,supplier_id:'',supplier_name:'',supplier_discount_percent:0});
  const costCategories=['Материалы','Облицовка и фасады','Фурнитура','Шкафы-купе','Лицевая фурнитура','Крепёж','Свет','Комплектующие','Работы и доставка'];
  
- const blankCost=()=>({category:'Фурнитура',item_name:'',unit:'шт',quantity:1,unit_price:0,source_unit_price:0,supplier_id:'',supplier_name:'',supplier_discount_percent:0});
+ const blankCost=()=>({category:'Фурнитура',item_name:'',unit:'шт',quantity:1,unit_price:0,source_unit_price:0});
+ const serviceDefaults=[
+  ['СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ (100% ОТ МАТЕРИАЛА)',0,'расчёт'],
+  ['ДОСТАВКА МАТЕРИАЛА',2000,'услуга'],
+  ['ЗАМЕР',0,'услуга'],
+  ['ДОСТАВКА',2000,'услуга'],
+  ['ПРЕДСБОРКА',0,'услуга'],
+  ['СБОРКА НА АДРЕСЕ 10%',4000,'услуга'],
+  ['ФОРС-МАЖОР',5000,'услуга']
+ ];
+ function ensureServiceLines(){serviceDefaults.forEach(([name,price,unit])=>{if(!costLines.some(x=>x.category==='Работы и доставка'&&x.item_name===name))costLines.push({category:'Работы и доставка',item_name:name,unit,quantity:1,unit_price:price,source_unit_price:price});});}
  function money(v){return Number(v||0).toLocaleString('ru-RU',{maximumFractionDigits:2})+' ₽'}
  function catalogOptions(category,selected,unitFilter){return '<option value="">Выбрать из прайса пользователя…</option>'+estimateCatalog.filter(p=>p.is_active&&(!category||p.category===category)&&(!unitFilter||p.unit===unitFilter)).map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selected?'selected':'')+'>'+esc(p.subgroup+' · '+p.item_name)+' · '+money(p.source_price)+' / '+esc(p.unit)+'</option>').join('')}
  function applyEstimateCatalog(target,id,kind){const p=estimateCatalog.find(x=>x.id===id);if(!p)return;target.catalog_item_id=p.id;target.item_name=p.item_name;target.unit=p.unit||'шт';target.supplier_name=p.supplier_name||'Прайс пользователя';target.supplier_id='';target.supplier_discount_percent=0;target.price_checked_at=p.updated_at||new Date().toISOString();if(kind==='material'){const price=Number(p.source_price||0);target.material=p.item_name;target.source_material_price_m2=price;target.material_price_m2=price}else{target.source_unit_price=Number(p.source_price||0);target.unit_price=Number(p.source_price||0)}}
@@ -56,7 +66,7 @@
   const materials=sums['Материалы']||0;
   const categoriesBase=costCategories.filter(c=>c!=='Работы и доставка').reduce((a,c)=>a+(sums[c]||0),0);
   const production=materials;
-  const service=sums['Работы и доставка']||0;
+  const service=costLines.filter(x=>x.category==='Работы и доставка'&&!x.item_name.startsWith('СТОИМОСТЬ РАБОТЫ НА ПРОИЗВОДСТВЕ')).reduce((a,x)=>a+Number(x.quantity||0)*Number(x.unit_price||0),0);
   const cost=categoriesBase+production+service;
   const margin=cost*0.80;
   const subtotal=cost+margin;
@@ -88,9 +98,9 @@
   $('cItemRows').querySelectorAll('[data-del]').forEach(el=>el.onclick=()=>{items.splice(Number(el.dataset.del),1);drawItems();summary()});summary();
  }
  async function load(){
-  const [a,b,c,d,e,g]=await Promise.all([db.from('furniture_estimates').select('*').order('created_at',{ascending:false}),db.from('furniture_orders').select('id,order_no,title,client_name').order('created_at',{ascending:false}),db.from('furniture_measurements').select('id,client_name,room_name,measured_at').order('created_at',{ascending:false}),db.from('crm_suppliers').select('id,name,category,discount_percent,is_active').eq('is_active',true).order('name'),db.from('crm_supplier_products').select('id,supplier_id,product_name,article,unit,source_price,discount_percent,calc_price,updated_at,is_active').eq('is_active',true).order('product_name').limit(1000),db.from('furniture_estimate_catalog').select('id,category,subgroup,item_name,unit,source_price,supplier_name,is_active,updated_at').eq('is_active',true).order('category').order('subgroup').order('item_name')]);
+  const [a,b,c,g]=await Promise.all([db.from('furniture_estimates').select('*').order('created_at',{ascending:false}),db.from('furniture_orders').select('id,order_no,title,client_name').order('created_at',{ascending:false}),db.from('furniture_measurements').select('id,client_name,room_name,measured_at').order('created_at',{ascending:false}),db.from('furniture_estimate_catalog').select('id,category,subgroup,item_name,unit,source_price,supplier_name,is_active,updated_at').eq('is_active',true).order('category').order('subgroup').order('item_name')]);
   if(a.error){$('cRows').innerHTML='<div class="error">Ошибка загрузки: '+esc(a.error.message)+'. Проверьте SQL-миграцию.</div>';return}
-  estimates=a.data||[];orders=b.data||[];measurements=c.data||[];suppliers=d.error?[]:(d.data||[]);supplierProducts=e.error?[]:(e.data||[]);estimateCatalog=g.error?[]:(g.data||[]);if(g.error)console.warn('Каталог пользовательской таблицы не загружен. Выполните supabase-estimate-user-catalog.sql:',g.error.message);render();
+  estimates=a.data||[];orders=b.data||[];measurements=c.data||[];estimateCatalog=g.error?[]:(g.data||[]);if(g.error)console.warn('Каталог пользовательской таблицы не загружен. Выполните supabase-estimate-user-catalog.sql:',g.error.message);render();
  }
  function render(){
   const q=($('cSearch')?.value||'').toLocaleLowerCase('ru');const list=estimates.filter(x=>[x.client_name,x.title,x.estimate_no].join(' ').toLocaleLowerCase('ru').includes(q));
@@ -108,8 +118,8 @@
    const {data,error}=await db.from('furniture_estimate_items').select('*').eq('estimate_id',row.id).order('created_at');
    if(error){alert('Не удалось загрузить детали: '+error.message);return}items=(data||[]).map(({id,estimate_id,created_at,...x})=>x);
    const lineResult=await db.from('furniture_estimate_lines').select('*').eq('estimate_id',row.id).order('created_at');
-   if(lineResult.error){alert('Не удалось загрузить позиции сметы: '+lineResult.error.message);return}costLines=(lineResult.data||[]).map(({id,estimate_id,created_at,...x})=>x);
-  }else {items=[blank()];costLines=[];}
+   if(lineResult.error){alert('Не удалось загрузить позиции сметы: '+lineResult.error.message);return}costLines=(lineResult.data||[]).map(({id,estimate_id,created_at,...x})=>x);ensureServiceLines();
+  }else {items=[blank()];costLines=[];ensureServiceLines();}
   $('cNo').textContent=row?.estimate_no||'НОВЫЙ ПРОСЧЁТ';drawItems();drawCosts();$('cModal').classList.add('open');
  }
  function drawCosts(){
