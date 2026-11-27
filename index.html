@@ -514,10 +514,13 @@ function renderDeals(){
  const activeStages=stages.filter(stage=>!isCompletedStage(stage));
  const inPipeline=activeOrders.filter(o=>activeStages.includes(o.stage));
  const unassigned=activeOrders.filter(o=>!activeStages.includes(o.stage));
+ // Блок переноса заказов показываем только когда действительно есть нераспределённые заказы.
+ const orderSource=$('pipelineOrderSource');
+ if(orderSource)orderSource.classList.toggle('hidden',unassigned.length===0);
  const completedCount=completedDeals.length+completedOrders.length;
  if($('completedCount'))$('completedCount').textContent=completedCount?'('+completedCount+')':'';
  $('dealSummary').textContent=`Сделок: ${activeDeals.length} · Заказов в воронке: ${inPipeline.length} · Завершено: ${completedCount} · Общая сумма: ${money(activeDeals.reduce((s,d)=>s+Number(d.amount||0),0)+inPipeline.reduce((s,o)=>s+Number(o.amount||0),0))}`;
- $('pipelineOrderPool').innerHTML=unassigned.length?unassigned.map(o=>orderPipelineCard(o)).join(''):'<span class="small">Все активные заказы распределены по этапам воронки.</span>';
+ $('pipelineOrderPool').innerHTML=unassigned.map(o=>orderPipelineCard(o)).join('');
  $('pipeline').innerHTML=activeStages.map(stage=>{const group=activeDeals.filter(d=>d.stage===stage);const orderGroup=inPipeline.filter(o=>o.stage===stage);return `<div class="stage" data-drop-stage="${esc(stage)}"><div class="stage-head"><span>${esc(stage)}</span><span>${group.length+orderGroup.length}</span></div>${orderGroup.map(o=>orderPipelineCard(o)).join('')}${group.map(d=>`<article class="deal"><div class="deal-title">${esc(d.title)}</div><div>${esc(d.client_name)}</div><div class="deal-meta">${esc(d.phone||'Телефон не указан')}<br>Ответственный: ${esc(d.manager||'—')}<br>${d.next_contact_at?'Контакт: '+new Date(d.next_contact_at).toLocaleString('ru-RU'):''}</div><div class="deal-amount">${money(d.amount)}</div><div class="deal-controls"><select aria-label="Этап сделки" onchange="moveDeal('${d.id}',this.value)">${stages.map(st=>`<option ${st===d.stage?'selected':''}>${esc(st)}</option>`).join('')}</select><button class="btn" onclick="editDeal('${d.id}')">✎</button><button class="btn danger" onclick="removeDeal('${d.id}')">×</button></div></article>`).join('')}${!group.length&&!orderGroup.length?'<div class="small">Нет сделок и заказов</div>':''}</div>`;}).join('');
  bindOrderDragAndDrop();updateDashboard();
 }
