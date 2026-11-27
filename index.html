@@ -162,6 +162,27 @@ input,select,textarea{padding:10px 11px;border:1px solid #d6deea;border-radius:8
 }
 @media(max-width:380px){.side>.navbtn{padding:6px 7px!important;font-size:10px!important}.cards{grid-template-columns:1fr 1fr!important}.calendar-filters{grid-template-columns:1fr!important}}
 
+
+/* Compact iPhone header: respect notch, reduce fixed menu height and prevent topbar overflow */
+@media(max-width:680px){
+ .side{
+  height:calc(42px + env(safe-area-inset-top))!important;
+  min-height:calc(42px + env(safe-area-inset-top))!important;
+  padding:calc(2px + env(safe-area-inset-top)) 5px 2px!important;
+  gap:3px!important;
+ }
+ .side>.navbtn{height:32px!important;min-height:32px!important;padding:5px 7px!important;font-size:10px!important}
+ .side>.nav-group>summary{height:32px!important;padding:5px 7px!important;font-size:10px!important}
+ .nav-group-items{top:calc(42px + env(safe-area-inset-top))!important}
+ main{padding-top:calc(42px + env(safe-area-inset-top))!important}
+ .top{min-width:0!important;width:100%!important;display:flex!important;flex-wrap:nowrap!important;align-items:center!important;
+  gap:5px!important;padding:6px 8px!important;min-height:42px!important;font-size:11px!important;overflow:hidden!important}
+ .top>div:first-child{min-width:0!important;flex:1 1 auto!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+ .top-right{min-width:0!important;flex:0 1 auto!important;gap:5px!important;overflow:hidden!important}
+ #userEmail{display:none!important}
+ .top-right .btn{flex:0 0 auto!important;padding:5px 8px!important;min-height:28px!important;font-size:11px!important}
+}
+
 </style>
 <link rel="stylesheet" href="./crm-ui.css?v=responsive-001">
 </head>
