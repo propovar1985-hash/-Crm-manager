@@ -51,8 +51,8 @@ if (!estimates.includes('data-delete="\u0024{esc(x.id)}"') || !estimates.include
 else pass('Saved estimates have a delete action');
 if (!estimates.includes("from('furniture_estimate_items').delete().eq('estimate_id',id)") || !estimates.includes("from('furniture_estimate_lines').delete().eq('estimate_id',id)") || !estimates.includes("from('furniture_estimates').delete().eq('id',id)")) fail('Deleting an estimate does not remove its child rows before the estimate');
 else pass('Deleting an estimate removes its detail and price rows before the estimate');
-if (!estimates.includes("if(!confirm('Удалить '+label")) fail('Estimate deletion is missing a confirmation prompt');
-else pass('Estimate deletion requires explicit confirmation');
+if (estimates.includes("if(!confirm('Удалить '+label")) fail('Estimate deletion still asks for confirmation');
+else pass('Estimate deletion runs without a confirmation prompt');
 
 if (!estimates.includes('Подробный расчёт фасадов')) fail('Facade detail report is missing');
 else pass('Facade detail report is present');
