@@ -31,7 +31,7 @@
   <label class="wide">Примечание<textarea name="notes"></textarea></label></div>
   <div id="cSummary" class="c-summary"></div><div class="actions"><button type="button" class="btn" id="cCancel">Отмена</button><button class="btn primary">Сохранить просчёт</button></div></form></div></div>`;
   $('cNew').onclick=()=>open();$('cWardrobe').onclick=()=>{if(!active){$('cForm').reset();items=[blank()];costLines=[];fillSelects();$('cForm').elements.status.value='Черновик';$('cNo').textContent='НОВЫЙ ПРОСЧЁТ';$('cModal').classList.remove('open');}window.dispatchEvent(new CustomEvent('crm:open-wardrobe-builder'));};$('cClose').onclick=close;$('cCancel').onclick=close;$('cModal').onclick=e=>{if(e.target.id==='cModal')close()};
-  $('cSearch').oninput=render;$('cRefresh').onclick=load;$('cAddItem').onclick=()=>{items.push(blank());drawItems()};
+  $('cSearch').oninput=render;$('cRefresh').onclick=load;$('cAddItem').onclick=()=>{const x=blank();if($('cDefaultMaterial')?.value)setMaterial(x,$('cDefaultMaterial').value);if($('cDefaultEdge')?.value)setEdge(x,$('cDefaultEdge').value);items.push(x);drawItems()};
   $('cForm').onsubmit=save;$('cForm').oninput=summary;
  }
  const blank=()=>({item_name:'Боковина',material:'',catalog_item_id:'',material_price_sheet:0,edge_catalog_item_id:'',edge_name:'',edge_price_per_m:0,edge_sides:{top:false,right:false,bottom:false,left:false},edge_m:0,width_mm:0,height_mm:0,quantity:1,supplier_id:'',supplier_name:'',supplier_discount_percent:0});
