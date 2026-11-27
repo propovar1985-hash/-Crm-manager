@@ -65,6 +65,8 @@ else pass('Wardrobe import refreshes hardware selector and all cost sections');
 
 if (!estimates.includes("if(isService)return '<tr><td><b>'+esc(x.item_name)+'</b></td><td>'+money(amount)+'</td></tr>'")) fail('Section 9 must show only work name and total');
 else pass('Section 9 shows only work name and total');
+if (estimates.includes('Расчёт по разделу 9 — РАБОТА')) fail('Section 9 automatic calculation block must be removed');
+else pass('Section 9 automatic calculation block is removed');
 
 if (process.exitCode) process.exit(1);
 console.log('CRM validation completed successfully.');
