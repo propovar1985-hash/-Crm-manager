@@ -6,7 +6,7 @@
  const SHEET_AREA=5.796;
  const css=document.createElement('style');css.textContent=`
  #calc .c-toolbar{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}
- .c-modal{position:fixed;inset:0;background:#10182888;z-index:91;display:none;justify-content:flex-end}.c-modal.open{display:flex}
+ .c-modal{position:fixed;inset:0;background:#10182888;z-index:91;display:none;justify-content:flex-end}.c-modal.open{display:flex}.c-catalog-modal{position:fixed;inset:0;background:#10182899;z-index:120;display:none;align-items:center;justify-content:center;padding:16px}.c-catalog-modal.open{display:flex}.c-catalog-card{background:#fff;border-radius:14px;padding:20px;width:min(480px,100%);max-height:90vh;overflow:auto;box-shadow:0 18px 60px #10182844}.c-catalog-card label{display:flex;flex-direction:column;gap:5px;margin:10px 0;font-size:13px;font-weight:600}.c-catalog-card input,.c-catalog-card select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px}.c-catalog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
  .c-panel{background:#fff;width:min(920px,100%);height:100%;overflow:auto;padding:22px}
  .c-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.c-grid label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700}.c-grid .wide{grid-column:1/-1}
  .c-items{width:100%;border-collapse:collapse;white-space:nowrap}.c-items th,.c-items td{padding:7px;border-bottom:1px solid var(--line)}.c-items input,.c-items select{min-width:85px;padding:7px}.c-items th{white-space:normal;min-width:100px}.c-items th:nth-child(5),.c-items th:nth-child(6){min-width:155px}.c-items td:nth-child(5) input,.c-items td:nth-child(6) input{min-width:125px}
@@ -29,10 +29,11 @@
   <div class="c-toolbar"><button type="button" class="btn" id="cAddItem">＋ Добавить деталь</button></div><h3>Прайс и деталировка по разделам</h3><div class="small">Выбери позицию из выпадающего списка. Цена и единица измерения подставятся из твоей таблицы.</div><div id="cCostSections"></div>
   <div class="c-grid">
   <label class="wide">Примечание<textarea name="notes"></textarea></label></div>
-  <div id="cSummary" class="c-summary"></div><div class="actions"><button type="button" class="btn" id="cCancel">Отмена</button><button class="btn primary">Сохранить просчёт</button></div></form></div></div>`;
+  <div id="cSummary" class="c-summary"></div><div class="actions"><button type="button" class="btn" id="cCancel">Отмена</button><button class="btn primary">Сохранить просчёт</button></div></form></div></div><div class="c-catalog-modal" id="cCatalogModal" role="dialog" aria-modal="true" aria-labelledby="cCatalogTitle"><div class="c-catalog-card"><div class="head"><h3 id="cCatalogTitle">Новая позиция прайса</h3><button type="button" class="btn" id="cCatalogClose">✕</button></div><form id="cCatalogForm"><label>Раздел<select id="cCatalogCategory" required></select></label><label>Группа<input id="cCatalogSubgroup" maxlength="120" placeholder="Например, направляющие"></label><label>Наименование<input id="cCatalogName" maxlength="200" required placeholder="Введите название позиции"></label><label>Единица измерения<select id="cCatalogUnit" required><option value="шт">шт</option><option value="лист">лист</option><option value="м">м</option><option value="м²">м²</option><option value="компл">компл</option><option value="упак">упак</option><option value="кг">кг</option><option value="услуга">услуга</option></select></label><label>Цена, ₽<input id="cCatalogPrice" type="number" min="0" step="100" value="0" required></label><label>Поставщик<input id="cCatalogSupplier" maxlength="160" placeholder="Необязательно"></label><div id="cCatalogError" class="error" style="display:none"></div><div class="c-catalog-actions"><button type="button" class="btn" id="cCatalogCancel">Отмена</button><button type="submit" class="btn primary" id="cCatalogSave">Создать позицию</button></div></form></div></div>`;
   $('cNew').type='button';$('cWardrobe').type='button';$('cNew').onclick=()=>open();$('cWardrobe').onclick=()=>{if(!active){$('cForm').reset();items=[blank()];costLines=[];fillSelects();$('cForm').elements.status.value='Черновик';$('cNo').textContent='НОВЫЙ ПРОСЧЁТ';$('cModal').classList.remove('open');}if(typeof window.openWardrobeBuilder==='function'){window.openWardrobeBuilder();}else{window.dispatchEvent(new CustomEvent('crm:open-wardrobe-builder'));}};$('cClose').onclick=close;$('cPrint').onclick=printEstimate;$('cCancel').onclick=close;$('cModal').onclick=e=>{if(e.target.id==='cModal')close()};
   $('cSearch').oninput=render;$('cRefresh').onclick=load;$('cAddItem').onclick=()=>{const x=blank();if($('cDefaultMaterial')?.value)setMaterial(x,$('cDefaultMaterial').value);if($('cDefaultEdge')?.value)setEdge(x,$('cDefaultEdge').value);items.push(x);drawItems()};
   $('cForm').onsubmit=save;$('cForm').oninput=summary;
+  $('cCatalogClose').onclick=closeCatalogModal;$('cCatalogCancel').onclick=closeCatalogModal;$('cCatalogModal').onclick=e=>{if(e.target.id==='cCatalogModal')closeCatalogModal()};$('cCatalogForm').onsubmit=createCatalogPosition;
  }
  let commonMaterialPrice=0,commonFacadePrice=0,commonHdfPrice=0,commonEdgePrice=0;
  const blank=()=>({item_name:nextDetailName('Боковина'),material:'',catalog_item_id:'',material_price_sheet:commonMaterialPrice,edge_catalog_item_id:'',edge_name:'',edge_price_per_m:commonEdgePrice,edge_sides:{top:true,right:true,bottom:true,left:true},edge_m:0,width_mm:0,height_mm:0,quantity:1,supplier_id:'',supplier_name:'',supplier_discount_percent:0});
@@ -223,6 +224,31 @@
   }else {items=[blank()];costLines=[];ensureServiceLines();}
   $('cNo').textContent=row?.estimate_no||'НОВЫЙ ПРОСЧЁТ';drawItems();drawCosts();$('cModal').classList.add('open');
  }
+ let catalogModalCategory='';
+ function openCatalogModal(category){
+  catalogModalCategory=category;
+  const select=$('cCatalogCategory');
+  select.innerHTML=costCategories.filter(x=>x!=='Работы и доставка').map(x=>'<option value="'+esc(x)+'" '+(x===category?'selected':'')+'>'+esc(x)+'</option>').join('');
+  $('cCatalogSubgroup').value='';$('cCatalogName').value='';$('cCatalogUnit').value=category==='Материалы'?'лист':category==='Облицовка и фасады'?'м²':'шт';$('cCatalogPrice').value='0';$('cCatalogSupplier').value='';$('cCatalogError').style.display='none';$('cCatalogError').textContent='';$('cCatalogModal').classList.add('open');$('cCatalogName').focus();
+ }
+ function closeCatalogModal(){$('cCatalogModal')?.classList.remove('open');}
+ async function createCatalogPosition(e){
+  e.preventDefault();
+  const category=$('cCatalogCategory').value,name=$('cCatalogName').value.trim(),unit=$('cCatalogUnit').value,price=Number($('cCatalogPrice').value),subgroup=$('cCatalogSubgroup').value.trim()||category,supplier=$('cCatalogSupplier').value.trim();
+  const error=$('cCatalogError'),saveButton=$('cCatalogSave');
+  if(!category||!name||!unit||!Number.isFinite(price)||price<0){error.textContent='Заполни раздел, наименование, единицу измерения и корректную цену.';error.style.display='block';return;}
+  if(estimateCatalog.some(p=>p.is_active&&p.category===category&&String(p.item_name||'').trim().toLocaleLowerCase('ru')===name.toLocaleLowerCase('ru'))){error.textContent='Позиция с таким названием уже есть в этом разделе прайса.';error.style.display='block';return;}
+  saveButton.disabled=true;saveButton.textContent='Сохранение…';error.style.display='none';
+  try{
+   const payload={category,subgroup,item_name:name,unit,source_price:price,supplier_name:supplier||'Пользовательская позиция',is_active:true};
+   const result=await db.from('furniture_estimate_catalog').insert(payload).select('id,category,subgroup,item_name,unit,source_price,supplier_name,is_active,updated_at').single();
+   if(result.error)throw result.error;
+   const p=result.data;estimateCatalog.push(p);
+   const line={...blankCost(),category:p.category,catalog_item_id:p.id,item_name:p.item_name,unit:p.unit,unit_price:Number(p.source_price||0),source_unit_price:Number(p.source_price||0),supplier_name:p.supplier_name||''};
+   costLines.push(line);closeCatalogModal();drawCosts();summary();
+  }catch(err){error.textContent='Не удалось создать позицию: '+(err?.message||'ошибка базы данных');error.style.display='block';}
+  finally{saveButton.disabled=false;saveButton.textContent='Создать позицию';}
+ }
  function drawCosts(){
   const host=$('cCostSections');if(!host)return;
   host.innerHTML=(costLinesLoadError?'<div class="error" role="alert">Не удалось загрузить ранее сохранённые позиции сметы. Разделы доступны для просмотра, но сохранение заблокировано, чтобы не потерять данные. Обновите страницу и откройте смету повторно.</div>':'')+costCategories.map((category,ci)=>{
@@ -242,7 +268,7 @@
    return '<section class="panel" style="padding:12px;margin:10px 0"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><b>'+esc((ci+1)+'. '+category)+'</b>'+(isService?'<span class="small">Раздел всегда открыт — все строки видны</span>':'<button type="button" class="btn" data-add-category="'+esc(category)+'">＋ Добавить позицию</button>')+'</div>'+
     (rows.length?'<div class="scroll"><table class="c-items"><thead><tr>'+(isService?'<th>Наименование</th><th>Сумма, ₽</th>':'<th>Наименование</th><th>Ед.</th><th>Количество</th><th>Цена, ₽</th><th>Сумма, ₽</th><th></th>')+'</tr></thead><tbody>'+htmlRows+'</tbody></table></div>':'<div class="small" style="padding:10px 0">Пока нет позиций</div>')+'</section>';
   }).join('');
-  host.querySelectorAll('[data-add-category]').forEach(el=>el.onclick=()=>{costLines.push({...blankCost(),category:el.dataset.addCategory});drawCosts()});
+  host.querySelectorAll('[data-add-category]').forEach(el=>el.onclick=()=>openCatalogModal(el.dataset.addCategory));
   host.querySelectorAll('[data-ci]').forEach(el=>el.onchange=()=>{
    const x=costLines[Number(el.dataset.ci)],k=el.dataset.ck;
    if(k==='catalog_item_id'){const fallback=excelHardware.find(p=>p.id===el.value);if(fallback){x.catalog_item_id=fallback.id;x.item_name=fallback.item_name;x.unit=fallback.unit;x.source_unit_price=Number(fallback.source_price);x.unit_price=Number(fallback.source_price);x.supplier_name='Таблица пользователя';}else applyEstimateCatalog(x,el.value,'line');drawCosts();summary();return;}
