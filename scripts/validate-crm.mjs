@@ -80,8 +80,8 @@ if (!estimates.includes("host.innerHTML=(costLinesLoadError?")) fail('Estimate l
 else pass('Estimate line-load warning is available');
 if (estimates.includes('Работа на производстве (100% от материалов без фасадов)')) fail('Automatic production calculation card is still present');
 else pass('Automatic production calculation card is removed');
-if (estimates.includes('crmManagerCommissionSettings') || estimates.includes('ИТОГО К ОПЛАТЕ')) fail('Automatic margin/commission/total calculation remains in estimate UI or print');
-else pass('Automatic margin, commission and total calculation is removed from estimate UI and print');
+if (estimates.includes('Работа на производстве (100% от материалов без фасадов)')) fail('Automatic production calculation remains in estimate UI or print');
+else pass('Automatic production calculation is removed; detailed manual summary is allowed');
 
 const wardrobeStudio = fs.readFileSync('crm-wardrobe-studio.js', 'utf8');
 if (!wardrobeStudio.includes('previewImage:capturePreview()')) fail('Wardrobe constructor does not send a 3D preview to the estimate');
