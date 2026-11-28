@@ -26,7 +26,7 @@
     .mai-prompts{display:flex;gap:6px;flex-wrap:wrap;padding:9px 12px;border-top:1px solid #e6ebf1;background:#fff}
     .mai-prompt{border:1px solid #dce4ed;border-radius:20px;padding:6px 9px;background:#fff;color:#334155;font-size:11px;cursor:pointer}
     .mai-form{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid #e6ebf1}
-    .mai-input{min-width:0;flex:1;resize:none;border:1px solid #d6deea;border-radius:11px;padding:10px;font:14px inherit;max-height:100px}
+    .mai-input{min-width:0;flex:1;resize:none;border:1px solid #d6deea;border-radius:11px;padding:10px;font:14px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;max-height:100px}
     .mai-send{border:0;border-radius:11px;background:#176b58;color:#fff;font-weight:700;padding:0 14px;cursor:pointer}
     .mai-send:disabled{opacity:.5;cursor:wait}
     @media(max-width:600px){#masterAiLauncher{right:12px;bottom:calc(12px + env(safe-area-inset-bottom));padding:12px 15px}#masterAiPanel{right:6px;bottom:calc(65px + env(safe-area-inset-bottom));width:calc(100vw - 12px);height:calc(100dvh - 90px);max-height:720px}}
